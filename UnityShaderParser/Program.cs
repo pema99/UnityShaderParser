@@ -71,7 +71,11 @@ public enum TokenKind
     _2DKeyword,
     _3DKeyword,
     CubeKeyword,
+    _2DArrayKeyword,
+    _3DArrayKeyword,
+    CubeArrayKeyword,
     AnyKeyword,
+    RectKeyword,
     CategoryKeyword,
     SubShaderKeyword,
     TagsKeyword,
@@ -212,7 +216,11 @@ public static class SyntaxFacts
             case "2d": token = TokenKind._2DKeyword; return true;
             case "3d": token = TokenKind._3DKeyword; return true;
             case "cube": token = TokenKind.CubeKeyword; return true;
+            case "2darray": token = TokenKind._2DArrayKeyword; return true;
+            case "3darray": token = TokenKind._3DArrayKeyword; return true;
+            case "cubearray": token = TokenKind.CubeArrayKeyword; return true;
             case "any": token = TokenKind.AnyKeyword; return true;
+            case "rect": token = TokenKind.RectKeyword; return true;
             case "category": token = TokenKind.CategoryKeyword; return true;
             case "subshader": token = TokenKind.SubShaderKeyword; return true;
             case "tags": token = TokenKind.TagsKeyword; return true;
@@ -302,6 +310,28 @@ public static class SyntaxFacts
             default: return false;
         }
     }
+
+    public static bool TryParseBindChannelName(string name, out BindChannel bindChannel)
+    {
+        bindChannel = default;
+
+        switch (name.ToLower())
+        {
+            case "vertex": bindChannel = BindChannel.Vertex; return true;
+            case "normal": bindChannel = BindChannel.Normal; return true;
+            case "tangent": bindChannel = BindChannel.Tangent; return true;
+            case "texcoord0" or "texcoord": bindChannel = BindChannel.TexCoord0; return true;
+            case "texcoord1": bindChannel = BindChannel.TexCoord1; return true;
+            case "texcoord2": bindChannel = BindChannel.TexCoord2; return true;
+            case "texcoord3": bindChannel = BindChannel.TexCoord3; return true;
+            case "texcoord4": bindChannel = BindChannel.TexCoord4; return true;
+            case "texcoord5": bindChannel = BindChannel.TexCoord5; return true;
+            case "texcoord6": bindChannel = BindChannel.TexCoord6; return true;
+            case "texcoord7": bindChannel = BindChannel.TexCoord7; return true;
+            case "color": bindChannel = BindChannel.Color; return true;
+            default: return false;
+        }
+    }
 }
 
 public class ShaderLabLexer
@@ -386,8 +416,10 @@ public class ShaderLabLexer
                     LexIdentifier();
                     break;
 
-                case '2' when LookAhead('D') || LookAhead('d'): Advance(2); Add(TokenKind._2DKeyword); break;
-                case '3' when LookAhead('D') || LookAhead('d'): Advance(2); Add(TokenKind._3DKeyword); break;
+                case '2' when LookAhead('D') || LookAhead('d'):
+                case '3' when LookAhead('D') || LookAhead('d'):
+                    LexDimensionalTextureType();
+                    break;
 
                 case char c when char.IsDigit(c) || c == '.' || c == '-':
                     LexNumber();
@@ -517,6 +549,24 @@ public class ShaderLabLexer
         }
 
         return builder.ToString();
+    }
+
+    private void LexDimensionalTextureType()
+    {
+        StringBuilder builder = new();
+        builder.Append(Advance());
+        while (char.IsLetter(Peek()))
+        {
+            builder.Append(Advance());
+        }
+
+        switch (builder.ToString().ToLower())
+        {
+            case "2darray": Add(TokenKind._2DArrayKeyword); break;
+            case "3darray": Add(TokenKind._3DArrayKeyword); break;
+            case "2d": Add(TokenKind._2DKeyword); break;
+            case "3d": Add(TokenKind._3DKeyword); break;
+        }
     }
 
     private void LexIdentifier()
@@ -678,6 +728,9 @@ public enum PropertyKind
     Texture3D,
     TextureCube,
     TextureAny,
+    Texture2DArray,
+    Texture3DArray,
+    TextureCubeArray,
     Float,
     Int,
     Integer,
@@ -853,6 +906,33 @@ public class ShaderLabCommandFogNode : ShaderLabCommandNode
 public class ShaderLabCommandNameNode : ShaderLabCommandNode
 {
     public string Name { get; set; } = string.Empty;
+}
+
+public enum BindChannel
+{
+    Vertex,
+    Normal,
+    Tangent,
+    TexCoord0,
+    TexCoord1,
+    TexCoord2,
+    TexCoord3,
+    TexCoord4,
+    TexCoord5,
+    TexCoord6,
+    TexCoord7,
+    Color,
+}
+
+public class ShaderLabCommandBindChannelsNode : ShaderLabCommandNode
+{
+    public Dictionary<BindChannel, BindChannel> Bindings { get; set; } = new();
+}
+
+public class ShaderLabCommandColorNode : ShaderLabCommandNode
+{
+    public bool HasAlphaChannel { get; set; } = false;
+    public PropertyReferenceOr<(float r, float g, float b, float a)> Color { get; set; }
 }
 
 public class ShaderLabParser
@@ -1107,9 +1187,12 @@ public class ShaderLabParser
             case TokenKind.IntKeyword: kind = PropertyKind.Int; break;
             case TokenKind.ColorKeyword: kind = PropertyKind.Color; break;
             case TokenKind.VectorKeyword: kind = PropertyKind.Vector; break;
-            case TokenKind._2DKeyword: kind = PropertyKind.Texture2D; break;
+            case TokenKind._2DKeyword or TokenKind.RectKeyword: kind = PropertyKind.Texture2D; break;
             case TokenKind._3DKeyword: kind = PropertyKind.Texture3D; break;
             case TokenKind.CubeKeyword: kind = PropertyKind.TextureCube; break;
+            case TokenKind._2DArrayKeyword: kind = PropertyKind.Texture2DArray; break;
+            case TokenKind._3DArrayKeyword: kind = PropertyKind.Texture3DArray; break;
+            case TokenKind.CubeArrayKeyword: kind = PropertyKind.TextureCubeArray; break;
             case TokenKind.AnyKeyword: kind = PropertyKind.TextureAny; break;
             case TokenKind.RangeKeyword:
                 kind = PropertyKind.Range;
@@ -1154,7 +1237,8 @@ public class ShaderLabParser
                     valueNode = new PropertyValueVectorNode { HasWChannel = hasLastChannel, Vector = (x, y, z, w) };
                 break;
 
-            case PropertyKind.TextureCube or PropertyKind.Texture2D or PropertyKind.Texture3D or PropertyKind.TextureAny:
+            case PropertyKind.TextureCube or PropertyKind.Texture2D or PropertyKind.Texture3D or PropertyKind.TextureAny or
+                 PropertyKind.TextureCubeArray or PropertyKind.Texture2DArray or PropertyKind.Texture3DArray:
                 valueNode = new PropertyValueTextureNode { TextureName = ParseStringLiteral() };
                 break;
 
@@ -1339,6 +1423,8 @@ public class ShaderLabParser
                 case TokenKind.AlphaToMaskKeyword: outCommands.Add(ParseAlphaToMaskCommand()); break;
                 case TokenKind.FogKeyword: outCommands.Add(ParseFogCommand()); break;
                 case TokenKind.NameKeyword: outCommands.Add(ParseNameCommand()); break;
+                case TokenKind.BindChannelsKeyword: outCommands.Add(ParseBindChannelsCommand()); break;
+                case TokenKind.ColorKeyword: outCommands.Add(ParseColorCommand()); break;
 
                 default:
                     run = false;
@@ -1626,6 +1712,61 @@ public class ShaderLabParser
         Eat(TokenKind.NameKeyword);
         string name = ParseStringLiteral();
         return new ShaderLabCommandNameNode { Name = name };
+    }
+
+    public ShaderLabCommandBindChannelsNode ParseBindChannelsCommand()
+    {
+        Eat(TokenKind.BindChannelsKeyword);
+        Eat(TokenKind.OpenBraceToken);
+
+        Dictionary<BindChannel, BindChannel> bindings = new();
+        while (Peek().Kind != TokenKind.CloseBraceToken)
+        {
+            Eat(TokenKind.BindKeyword);
+            string source = ParseStringLiteral();
+            Eat(TokenKind.CommaToken);
+            Token targetToken = Advance();
+            // Handle ShaderLab's ambiguous syntax: Could be a keyword or an identifier here, in the case of color.
+            string target = targetToken.Kind == TokenKind.ColorKeyword ? "color" : targetToken.Identifier ?? String.Empty;
+            if (SyntaxFacts.TryParseBindChannelName(source, out BindChannel sourceChannel) &&
+                SyntaxFacts.TryParseBindChannelName(target, out BindChannel targetChannel))
+            {
+                bindings[sourceChannel] = targetChannel;
+            }
+            else
+            {
+                Error($"Failed to parse channel binding from '{source}' to '{target}'.");
+            }
+        }
+
+        Eat(TokenKind.CloseBraceToken);
+
+        return new ShaderLabCommandBindChannelsNode { Bindings = bindings };
+    }
+
+    public ShaderLabCommandColorNode ParseColorCommand()
+    {
+        Eat(TokenKind.ColorKeyword);
+        bool hasAlphaChannel = false;
+        var prop = ParsePropertyReferenceOr(() =>
+        {
+            float r, g, b, a = 0;
+            Eat(TokenKind.OpenParenToken);
+            r = ParseNumericLiteral();
+            Eat(TokenKind.CommaToken);
+            g = ParseNumericLiteral();
+            Eat(TokenKind.CommaToken);
+            b = ParseNumericLiteral();
+            if (Match(TokenKind.CommaToken))
+            {
+                Eat(TokenKind.CommaToken);
+                a = ParseNumericLiteral();
+                hasAlphaChannel = true;
+            }
+            Eat(TokenKind.CloseParenToken);
+            return (r, g, b, a);
+        });
+        return new ShaderLabCommandColorNode { Color = prop, HasAlphaChannel = hasAlphaChannel };
     }
 }
 
