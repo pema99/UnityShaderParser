@@ -4,9 +4,6 @@ public enum TokenKind
 {
     None,
 
-    TrueKeyword,
-    FalseKeyword,
-
     OpenParenToken,
     CloseParenToken,
     OpenBracketToken,
@@ -136,6 +133,32 @@ public enum TokenKind
     BindChannelsKeyword,
     BindKeyword,
 
+    TrueKeyword,
+    FalseKeyword,
+    OffKeyword,
+    OnKeyword,
+    FrontKeyword,
+    BackKeyword,
+    OneKeyword,
+    ZeroKeyword,
+    SrcColorKeyword,
+    SrcAlphaKeyword,
+    SrcAlphaSaturateKeyword,
+    DstColorKeyword,
+    DstAlphaKeyword,
+    OneMinusSrcColorKeyword,
+    OneMinusSrcAlphaKeyword,
+    OneMinusDstColorKeyword,
+    OneMinusDstAlphaKeyword,
+    NeverKeyword,
+    LessKeyword,
+    EqualKeyword,
+    LEqualKeyword,
+    GreaterKeyword,
+    NotEqualKeyword,
+    GEqualKeyword,
+    AlwaysKeyword,
+
     IncludeBlock,
     ProgramBlock,
 }
@@ -251,6 +274,29 @@ public static class SyntaxFacts
             case "bind": token = TokenKind.BindKeyword; return true;
             case "true": token = TokenKind.TrueKeyword; return true;
             case "false": token = TokenKind.FalseKeyword; return true;
+            case "off": token = TokenKind.OffKeyword; return true;
+            case "on": token = TokenKind.OnKeyword; return true;
+            case "front": token = TokenKind.FrontKeyword; return true;
+            case "back": token = TokenKind.BackKeyword; return true;
+            case "one": token = TokenKind.OneKeyword; return true;
+            case "zero": token = TokenKind.ZeroKeyword; return true;
+            case "srccolor": token = TokenKind.SrcColorKeyword; return true;
+            case "srcalpha": token = TokenKind.SrcAlphaKeyword; return true;
+            case "srcalphasaturate": token = TokenKind.SrcAlphaSaturateKeyword; return true;
+            case "dstcolor": token = TokenKind.DstColorKeyword; return true;
+            case "dstalpha": token = TokenKind.DstAlphaKeyword; return true;
+            case "oneminussrccolor": token = TokenKind.OneMinusSrcColorKeyword; return true;
+            case "oneminussrcalpha": token = TokenKind.OneMinusSrcAlphaKeyword; return true;
+            case "oneminusdstcolor": token = TokenKind.OneMinusDstColorKeyword; return true;
+            case "oneminusdstalpha": token = TokenKind.OneMinusDstAlphaKeyword; return true;
+            case "never": token = TokenKind.NeverKeyword; return true;
+            case "less": token = TokenKind.LessKeyword; return true;
+            case "equal": token = TokenKind.EqualKeyword; return true;
+            case "lequal": token = TokenKind.LEqualKeyword; return true;
+            case "greater": token = TokenKind.GreaterKeyword; return true;
+            case "notequal": token = TokenKind.NotEqualKeyword; return true;
+            case "gequal": token = TokenKind.GEqualKeyword; return true;
+            case "always": token = TokenKind.AlwaysKeyword; return true;
             default: return false;
         }
     }
@@ -350,7 +396,7 @@ public class ShaderLabLexer
                     break;
 
                 case '[' when SyntaxFacts.IsAlphaNumericOrUnderscore(LookAhead()):
-                    LexString('[', ']', TokenKind.StringLiteralToken);
+                    LexString('[', ']', TokenKind.BracketedStringLiteralToken);
                     break;
 
                 case ' ' or '\t' or '\r' or '\n':
@@ -545,7 +591,7 @@ public class ShaderLabLexer
             builder.Append(Advance());
         }
         Eat(end);
-        Add(builder.ToString(), TokenKind.StringLiteralToken);
+        Add(builder.ToString(), kind);
     }
 }
 
@@ -562,6 +608,7 @@ public class ShaderNode : ShaderLabSyntaxNode
 
     public List<SubShaderNode> SubShaders { get; set; } = new();
     public string? Fallback { get; set; }
+    public bool FallbackDisabledExplicitly { get; set; }
     public string? CustomEditor { get; set; }
     public List<string> IncludeBlocks { get; set; } = new();
 }
@@ -613,6 +660,7 @@ public enum PropertyKind
     Texture2D,
     Texture3D,
     TextureCube,
+    TextureAny,
     Float,
     Int,
     Integer,
@@ -625,7 +673,9 @@ public class SubShaderNode : ShaderLabSyntaxNode
 {
     public List<ShaderPassNode> Passes { get; set; } = new();
     public List<ShaderLabCommandNode> Commands { get; set; } = new();
+    public List<string> ProgramBlocks { get; set; } = new();
     public List<string> IncludeBlocks { get; set; } = new();
+    public string? ProgramBlock => ProgramBlocks.Count > 0 ? ProgramBlocks[0] : null;
 }
 
 public class ShaderPassNode : ShaderLabSyntaxNode
@@ -634,15 +684,17 @@ public class ShaderPassNode : ShaderLabSyntaxNode
 
 public class ShaderCodePassNode : ShaderPassNode
 {
-    public string? ProgramBlock { get; set; }
     public List<ShaderLabCommandNode> Commands { get; set; } = new();
+    public List<string> ProgramBlocks { get; set; } = new();
     public List<string> IncludeBlocks { get; set; } = new();
+    public string? ProgramBlock => ProgramBlocks.Count > 0 ? ProgramBlocks[0] : null;
 }
 
 public class ShaderGrabPassNode : ShaderPassNode
 {
     public string? TextureName { get; set; } = string.Empty;
     public List<ShaderLabCommandNode> Commands { get; set; } = new();
+    public List<string> ProgramBlocks { get; set; } = new();
     public List<string> IncludeBlocks { get; set; } = new();
 
     public bool IsUnnamed => string.IsNullOrEmpty(TextureName);
@@ -667,6 +719,103 @@ public class ShaderLabCommandLodNode : ShaderLabCommandNode
     public int LodLevel { get; set; } = 0;
 }
 
+// Either a reference to a property or some other type
+public struct PropertyReferenceOr<TOther>
+{
+    public TOther? Value;
+    public string? Property;
+
+    public bool IsValue => Value != null;
+    public bool IsPropertyReference => Property != null;
+    public bool IsValid => IsValue || IsPropertyReference;
+
+    public override string ToString()
+    {
+        if (Value != null) return Value.ToString() ?? string.Empty;
+        else if (Property != null) return Property;
+        else return string.Empty;
+    }
+}
+
+public class ShaderLabCommandLightingNode : ShaderLabCommandNode
+{
+    public PropertyReferenceOr<bool> Enabled { get; set; }
+}
+
+public enum CullMode
+{
+    Off,
+    Front,
+    Back,
+}
+
+public class ShaderLabCommandCullNode : ShaderLabCommandNode
+{
+    public PropertyReferenceOr<CullMode> Mode { get; set; }
+}
+
+public enum ZTestMode
+{
+    Off,
+    Never,
+    Less,
+    Equal,
+    LEqual,
+    Greater,
+    NotEqual,
+    GEqual,
+    Always,
+}
+
+public class ShaderLabCommandZTestNode : ShaderLabCommandNode
+{
+    public PropertyReferenceOr<ZTestMode> Mode { get; set; }
+}
+
+public class ShaderLabCommandZWriteNode : ShaderLabCommandNode
+{
+    public PropertyReferenceOr<bool> Enabled { get; set; }
+}
+
+public enum BlendFactor
+{
+    One,
+    Zero,
+    SrcColor,
+    SrcAlpha,
+    SrcAlphaSaturate,
+    DstColor,
+    DstAlpha,
+    OneMinusSrcColor,
+    OneMinusSrcAlpha,
+    OneMinusDstColor,
+    OneMinusDstAlpha,
+}
+
+public class ShaderLabCommandBlendNode : ShaderLabCommandNode
+{
+    public int RenderTarget { get; set; } = 0;
+    public bool Enabled { get; set; } = false;
+    public PropertyReferenceOr<BlendFactor>? SourceFactorRGB { get; set; } = null;
+    public PropertyReferenceOr<BlendFactor>? DestinationFactorRGB { get; set; } = null;
+    public PropertyReferenceOr<BlendFactor>? SourceFactorAlpha { get; set; } = null;
+    public PropertyReferenceOr<BlendFactor>? DestinationFactorAlpha { get; set; } = null;
+}
+
+public class ShaderLabCommandOffsetNode : ShaderLabCommandNode
+{
+    public PropertyReferenceOr<float> Factor { get; set; }
+    public PropertyReferenceOr<float> Units { get; set; }
+}
+
+public class ShaderLabCommandColorMaskNode : ShaderLabCommandNode
+{
+    public PropertyReferenceOr<string> Mask { get; set; }
+    public int RenderTarget { get; set; } = 0;
+
+    public bool IsZeroMask => Mask.Value == "0";
+}
+
 public class ShaderLabParser
 {
     private List<Token> tokens = new();
@@ -683,7 +832,8 @@ public class ShaderLabParser
     public Token Peek() => IsAtEnd() ? default : tokens[position];
     public Token LookAhead(int offset = 1) => IsAtEnd(offset) ? default : tokens[position + offset];
     public bool Match(Func<Token, bool> predicate) => predicate(Peek());
-    public bool MatchKind(TokenKind kind) => Match(tok => tok.Kind == kind);
+    public bool Match(TokenKind kind) => Match(tok => tok.Kind == kind);
+    public bool Match(params TokenKind[] alternatives) => Match(tok => alternatives.Contains(tok.Kind));
     public bool IsAtEnd(int offset = 0) => position + offset >= tokens.Count;
     public Token Eat(Func<Token, bool> predicate)
     {
@@ -691,10 +841,19 @@ public class ShaderLabParser
             Error($"Unexpected token '{Peek()}'.");
         return Advance();
     }
-    public Token EatKind(TokenKind kind)
+    public Token Eat(TokenKind kind)
     {
-        if (!MatchKind(kind))
+        if (!Match(kind))
             Error($"Expected token type '{kind}', got '{Peek().Kind}'.");
+        return Advance();
+    }
+    public Token Eat(params TokenKind[] alternatives)
+    {
+        if (!Match(alternatives))
+        {
+            string allowed = string.Join(", ", alternatives);
+            Error($"Unexpected token '{Peek()}', expected one of the following token types: {allowed}.");
+        }
         return Advance();
     }
     public Token Advance(int amount = 1)
@@ -732,27 +891,28 @@ public class ShaderLabParser
 
     public ShaderNode ParseShader()
     {
-        EatKind(TokenKind.ShaderKeyword);
-        string name = EatKind(TokenKind.StringLiteralToken).Identifier ?? string.Empty;
-        EatKind(TokenKind.OpenBraceToken);
+        Eat(TokenKind.ShaderKeyword);
+        string name = Eat(TokenKind.StringLiteralToken).Identifier ?? string.Empty;
+        Eat(TokenKind.OpenBraceToken);
 
         List<string> includeBlocks = new List<string>();
 
-        ParseIncludeBlockIfPresent(includeBlocks);
+        ParseIncludeBlocksIfPresent(includeBlocks);
 
         List<PropertyNode> properties = new();
-        if (Peek().Kind == TokenKind.PropertiesKeyword)
+        if (Match(TokenKind.PropertiesKeyword))
         {
             ParsePropertySection(properties);
         }
 
         List<SubShaderNode> subshaders = new();
         string? fallback = null;
+        bool fallbackDisabledExplicitly = false;
         string? customEditor = null;
 
         while (!IsAtEnd())
         {
-            ParseIncludeBlockIfPresent(includeBlocks);
+            ParseIncludeBlocksIfPresent(includeBlocks);
 
             int lastPosition = position;
 
@@ -767,11 +927,19 @@ public class ShaderLabParser
                     break;
                 case TokenKind.FallbackKeyword:
                     Advance();
-                    fallback = EatKind(TokenKind.StringLiteralToken).Identifier ?? string.Empty;
+                    if (Match(TokenKind.OffKeyword, TokenKind.FalseKeyword))
+                    {
+                        fallbackDisabledExplicitly = true;
+                        Advance();
+                    }
+                    else
+                    {
+                        fallback = Eat(TokenKind.StringLiteralToken).Identifier ?? string.Empty;
+                    }
                     break;
                 case TokenKind.CustomEditorKeyword:
                     Advance();
-                    customEditor = EatKind(TokenKind.StringLiteralToken).Identifier ?? string.Empty;
+                    customEditor = Eat(TokenKind.StringLiteralToken).Identifier ?? string.Empty;
                     break;
                 default:
                     Advance();
@@ -781,14 +949,15 @@ public class ShaderLabParser
 
             if (position == lastPosition)
             {
+                // TODO: Get rid of these
                 Error($"Parser got stuck on token type '{next.Kind}'. Please file a bug report.");
                 break;
             }
         }
 
-        ParseIncludeBlockIfPresent(includeBlocks);
+        ParseIncludeBlocksIfPresent(includeBlocks);
 
-        EatKind(TokenKind.CloseBraceToken);
+        Eat(TokenKind.CloseBraceToken);
 
         return new ShaderNode
         {
@@ -796,36 +965,45 @@ public class ShaderLabParser
             Properties = properties,
             SubShaders = subshaders,
             Fallback = fallback,
+            FallbackDisabledExplicitly = fallbackDisabledExplicitly,
             CustomEditor = customEditor,
             IncludeBlocks = includeBlocks,
         };
     }
 
-    public void ParseIncludeBlockIfPresent(List<string> outIncludeBlocks)
+    public void ParseIncludeBlocksIfPresent(List<string> outIncludeBlocks)
     {
-        Token next = Peek();
-        if (next.Kind == TokenKind.IncludeBlock && !string.IsNullOrEmpty(next.Identifier)) 
+        while (true)
         {
-            outIncludeBlocks.Add(next.Identifier);
+            Token next = Peek();
+            if (next.Kind == TokenKind.IncludeBlock && !string.IsNullOrEmpty(next.Identifier))
+            {
+                outIncludeBlocks.Add(next.Identifier);
+                Advance();
+            }
+            else
+            {
+                break;
+            }
         }
     }
 
     public void ParsePropertySection(List<PropertyNode> outProperties)
     {
-        EatKind(TokenKind.PropertiesKeyword);
-        EatKind(TokenKind.OpenBraceToken);
+        Eat(TokenKind.PropertiesKeyword);
+        Eat(TokenKind.OpenBraceToken);
 
-        while (Peek().Kind == TokenKind.IdentifierToken)
+        while (Match(TokenKind.IdentifierToken, TokenKind.BracketedStringLiteralToken))
         {
             outProperties.Add(ParseProperty());
         }
 
-        EatKind(TokenKind.CloseBraceToken);
+        Eat(TokenKind.CloseBraceToken);
     }
 
     public string ParseIdentifier()
     {
-        Token identifierToken = EatKind(TokenKind.IdentifierToken);
+        Token identifierToken = Eat(TokenKind.IdentifierToken);
         string identifier = identifierToken.Identifier ?? string.Empty;
         if (string.IsNullOrEmpty(identifier))
             Error("a valid identifier", identifierToken);
@@ -834,16 +1012,22 @@ public class ShaderLabParser
 
     public string ParseStringLiteral()
     {
-        Token literalToken = EatKind(TokenKind.StringLiteralToken);
+        Token literalToken = Eat(TokenKind.StringLiteralToken);
+        return literalToken.Identifier ?? string.Empty;
+    }
+
+    public string ParseBracketedStringLiteral()
+    {
+        Token literalToken = Eat(TokenKind.BracketedStringLiteralToken);
         string literal = literalToken.Identifier ?? string.Empty;
         if (string.IsNullOrEmpty(literal))
-            Error("a valid string literal", literalToken);
+            Error("a valid bracketed string literal / property reference", literalToken);
         return literal;
     }
 
     public float ParseNumericLiteral()
     {
-        Token literalToken = Eat(tok => tok.Kind == TokenKind.FloatLiteralToken || tok.Kind == TokenKind.IntegerLiteralToken);
+        Token literalToken = Eat(TokenKind.FloatLiteralToken, TokenKind.IntegerLiteralToken);
         string literal = literalToken.Identifier ?? string.Empty;
         if (string.IsNullOrEmpty(literal))
             Error("a valid numeric literal", literalToken);
@@ -853,21 +1037,17 @@ public class ShaderLabParser
     public PropertyNode ParseProperty()
     {
         List<string> attributes = new();
-        while (Peek().Kind == TokenKind.OpenBracketToken)
+        while (Match(TokenKind.BracketedStringLiteralToken))
         {
-            EatKind(TokenKind.OpenBracketToken);
-
-            attributes.Add(ParseIdentifier());
-
-            EatKind(TokenKind.CloseBracketToken);
+            attributes.Add(ParseBracketedStringLiteral());
         }
 
         string uniform = ParseIdentifier();
 
-        EatKind(TokenKind.OpenParenToken);
+        Eat(TokenKind.OpenParenToken);
 
         string name = ParseStringLiteral();
-        EatKind(TokenKind.CommaToken);
+        Eat(TokenKind.CommaToken);
 
         PropertyKind kind = PropertyKind.None;
         (float Min, float Max)? rangeMinMax = null;
@@ -882,12 +1062,14 @@ public class ShaderLabParser
             case TokenKind._2DKeyword: kind = PropertyKind.Texture2D; break;
             case TokenKind._3DKeyword: kind = PropertyKind.Texture3D; break;
             case TokenKind.CubeKeyword: kind = PropertyKind.TextureCube; break;
+            case TokenKind.AnyKeyword: kind = PropertyKind.TextureAny; break;
             case TokenKind.RangeKeyword:
-                EatKind(TokenKind.OpenParenToken);
+                kind = PropertyKind.Range;
+                Eat(TokenKind.OpenParenToken);
                 float min = ParseNumericLiteral();
-                EatKind(TokenKind.CommaToken);
+                Eat(TokenKind.CommaToken);
                 float max = ParseNumericLiteral();
-                EatKind(TokenKind.CloseParenToken);
+                Eat(TokenKind.CloseParenToken);
                 rangeMinMax = (min, max);
                 break;
             default:
@@ -895,49 +1077,44 @@ public class ShaderLabParser
                 break;
         }
 
-        EatKind(TokenKind.CloseParenToken);
+        Eat(TokenKind.CloseParenToken);
 
-        EatKind(TokenKind.EqualsToken);
+        Eat(TokenKind.EqualsToken);
 
         PropertyValueNode valueNode = new();
         switch (kind)
         {
-            case PropertyKind.Color:
-            case PropertyKind.Vector:
-                EatKind(TokenKind.OpenParenToken);
+            case PropertyKind.Color or PropertyKind.Vector:
+                Eat(TokenKind.OpenParenToken);
                 float x = ParseNumericLiteral();
-                EatKind(TokenKind.CommaToken);
+                Eat(TokenKind.CommaToken);
                 float y = ParseNumericLiteral();
-                EatKind(TokenKind.CommaToken);
+                Eat(TokenKind.CommaToken);
                 float z = ParseNumericLiteral();
                 float w = 0;
                 bool hasLastChannel = false;
-                if (Peek().Kind == TokenKind.CommaToken)
+                if (Match(TokenKind.CommaToken))
                 {
-                    EatKind(TokenKind.CommaToken);
+                    Eat(TokenKind.CommaToken);
                     w = ParseNumericLiteral();
                     hasLastChannel = true;
                 }
-                EatKind(TokenKind.CloseParenToken);
+                Eat(TokenKind.CloseParenToken);
                 if (kind == PropertyKind.Color)
                     valueNode = new PropertyValueColorNode { HasAlphaChannel = hasLastChannel, Color = (x, y, z, w) };
                 else
                     valueNode = new PropertyValueVectorNode { HasWChannel = hasLastChannel, Vector = (x, y, z, w) };
                 break;
 
-            case PropertyKind.TextureCube:
-            case PropertyKind.Texture2D:
-            case PropertyKind.Texture3D:
+            case PropertyKind.TextureCube or PropertyKind.Texture2D or PropertyKind.Texture3D or PropertyKind.TextureAny:
                 valueNode = new PropertyValueTextureNode { TextureName = ParseStringLiteral() };
                 break;
 
-            case PropertyKind.Integer:
-            case PropertyKind.Int:
+            case PropertyKind.Integer or PropertyKind.Int:
                 valueNode = new PropertyValueIntegerNode { Number = (int)ParseNumericLiteral() };
                 break;
 
-            case PropertyKind.Float:
-            case PropertyKind.Range:
+            case PropertyKind.Float or PropertyKind.Range:
                 valueNode = new PropertyValueFloatNode { Number = ParseNumericLiteral() };
                 break;
 
@@ -945,12 +1122,12 @@ public class ShaderLabParser
                 break;
         }
 
-        if (Peek().Kind == TokenKind.OpenBraceToken)
+        if (Match(TokenKind.OpenBraceToken))
         {
-            EatKind(TokenKind.OpenBraceToken);
+            Eat(TokenKind.OpenBraceToken);
             while (Peek().Kind != TokenKind.CloseBraceToken)
                 Advance();
-            EatKind(TokenKind.CloseBraceToken);
+            Eat(TokenKind.CloseBraceToken);
         }
 
         return new PropertyNode
@@ -966,17 +1143,16 @@ public class ShaderLabParser
 
     public SubShaderNode ParseSubShader()
     {
-        EatKind(TokenKind.SubShaderKeyword);
-        EatKind(TokenKind.OpenBraceToken);
+        Eat(TokenKind.SubShaderKeyword);
+        Eat(TokenKind.OpenBraceToken);
 
         List<ShaderPassNode> passes = new();
         List<ShaderLabCommandNode> commands = new();
+        List<string> programBlocks = new();
         List<string> includeBlocks = new();
 
         while (!IsAtEnd())
         {
-            ParseIncludeBlockIfPresent(includeBlocks);
-
             int lastPosition = position;
 
             Token next = Peek();
@@ -988,8 +1164,9 @@ public class ShaderLabParser
                 case TokenKind.PassKeyword: passes.Add(ParseCodePass()); break;
                 case TokenKind.GrabPassKeyword: passes.Add(ParseGrabPass()); break;
                 case TokenKind.UsePassKeyword: passes.Add(ParseUsePass()); break;
+                case TokenKind.ProgramBlock: programBlocks.Add(Eat(TokenKind.ProgramBlock).Identifier ?? string.Empty); break;
                 default:
-                    commands.AddRange(ParseCommands());
+                    ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
                     break;
             }
 
@@ -1000,9 +1177,9 @@ public class ShaderLabParser
             }
         }
 
-        ParseIncludeBlockIfPresent(includeBlocks);
+        ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
 
-        EatKind(TokenKind.CloseBraceToken);
+        Eat(TokenKind.CloseBraceToken);
 
         return new SubShaderNode
         {
@@ -1014,27 +1191,26 @@ public class ShaderLabParser
 
     public ShaderCodePassNode ParseCodePass()
     {
-        EatKind(TokenKind.PassKeyword);
-        EatKind(TokenKind.OpenBraceToken);
+        Eat(TokenKind.PassKeyword);
+        Eat(TokenKind.OpenBraceToken);
 
-        string? program = null;
         List<ShaderLabCommandNode> commands = new();
+        List<string> programBlocks = new();
         List<string> includeBlocks = new();
 
-        // TODO: Parse commands
+        ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
 
-        if (Peek().Kind == TokenKind.ProgramBlock)
+        while (Match(TokenKind.ProgramBlock))
         {
-            program = EatKind(TokenKind.ProgramBlock).Identifier;
+            programBlocks.Add(Eat(TokenKind.ProgramBlock).Identifier ?? string.Empty);
+            ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
         }
 
-        // TODO: Parse comamnds
-
-        EatKind(TokenKind.CloseBraceToken);
+        Eat(TokenKind.CloseBraceToken);
 
         return new ShaderCodePassNode
         {
-            ProgramBlock = program,
+            ProgramBlocks = programBlocks,
             Commands = commands,
             IncludeBlocks = includeBlocks
         };
@@ -1042,25 +1218,24 @@ public class ShaderLabParser
 
     public ShaderGrabPassNode ParseGrabPass()
     {
-        EatKind(TokenKind.GrabPassKeyword);
-        EatKind(TokenKind.OpenBraceToken);
+        Eat(TokenKind.GrabPassKeyword);
+        Eat(TokenKind.OpenBraceToken);
 
         List<ShaderLabCommandNode> commands = new();
         List<string> includeBlocks = new();
 
-        ParseIncludeBlockIfPresent(includeBlocks);
-        // TODO: Parse commands
+        ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
 
         string? name = null;
         if (Peek().Kind != TokenKind.CloseParenToken)
         {
             name = ParseStringLiteral();
 
-            ParseIncludeBlockIfPresent(includeBlocks);
+            ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
         }
 
         // TODO: Parse commands
-        EatKind(TokenKind.CloseBraceToken);
+        Eat(TokenKind.CloseBraceToken);
 
         return new ShaderGrabPassNode
         {
@@ -1072,48 +1247,76 @@ public class ShaderLabParser
 
     public ShaderUsePassNode ParseUsePass()
     {
-        EatKind(TokenKind.UsePassKeyword);
+        Eat(TokenKind.UsePassKeyword);
         return new ShaderUsePassNode
         {
             PassName = ParseStringLiteral()
         };
     }
 
-    public List<ShaderLabCommandNode> ParseCommands()
+    public void ParseCommandsAndIncludeBlocksIfPresent(List<ShaderLabCommandNode> outCommands, List<string> outIncludeBlocks)
     {
-        List<ShaderLabCommandNode> commands = new();
+        while (true)
+        {
+            int lastPosition = position;
+
+            ParseCommandsIfPresent(outCommands);
+            ParseIncludeBlocksIfPresent(outIncludeBlocks);
+
+            if (lastPosition == position)
+                break;
+        }
+    }
+
+    public void ParseCommandsIfPresent(List<ShaderLabCommandNode> outCommands)
+    {
         bool run = true;
         while (run)
         {
-            switch (Peek().Kind)
+            int lastPosition = position;
+
+            Token next = Peek();
+            switch (next.Kind)
             {
-                case TokenKind.TagsKeyword: commands.Add(ParseTagsCommand()); break;
-                case TokenKind.LodKeyword: commands.Add(ParseLodCommand()); break;
+                case TokenKind.TagsKeyword: outCommands.Add(ParseTagsCommand()); break;
+                case TokenKind.LodKeyword: outCommands.Add(ParseLodCommand()); break;
+                case TokenKind.LightingKeyword: outCommands.Add(ParseLightingCommand()); break;
+                case TokenKind.CullKeyword: outCommands.Add(ParseCullCommand()); break;
+                case TokenKind.ZTestKeyword: outCommands.Add(ParseZTestCommand()); break;
+                case TokenKind.ZWriteKeyword: outCommands.Add(ParseZWriteCommand()); break;
+                case TokenKind.BlendKeyword: outCommands.Add(ParseBlendCommand()); break;
+                case TokenKind.OffsetKeyword: outCommands.Add(ParseOffsetCommand()); break;
+                case TokenKind.ColorMaskKeyword: outCommands.Add(ParseColorMaskCommand()); break;
 
                 default:
                     run = false;
                     break;
             }
+
+            if (run && position == lastPosition)
+            {
+                Error($"Parser got stuck on token type '{next.Kind}'. Please file a bug report.");
+                break;
+            }
         }
-        return commands;
     }
 
     public ShaderLabCommandTagsNode ParseTagsCommand()
     {
-        EatKind(TokenKind.TagsKeyword);
-        EatKind(TokenKind.OpenBraceToken);
+        Eat(TokenKind.TagsKeyword);
+        Eat(TokenKind.OpenBraceToken);
 
         Dictionary<string, string> tags = new();
         while (Peek().Kind != TokenKind.CloseBraceToken)
         {
             string key = ParseStringLiteral();
-            EatKind(TokenKind.EqualsToken);
+            Eat(TokenKind.EqualsToken);
             string val = ParseStringLiteral();
 
             tags.Add(key, val);
         }
 
-        EatKind(TokenKind.CloseBraceToken);
+        Eat(TokenKind.CloseBraceToken);
 
         return new ShaderLabCommandTagsNode
         {
@@ -1123,12 +1326,183 @@ public class ShaderLabParser
 
     public ShaderLabCommandLodNode ParseLodCommand()
     {
-        EatKind(TokenKind.LodKeyword);
+        Eat(TokenKind.LodKeyword);
         int level = (int)ParseNumericLiteral();
         return new ShaderLabCommandLodNode
         {
             LodLevel = level,
         };
+    }
+
+    public PropertyReferenceOr<TOther> ParsePropertyReferenceOr<TOther>(Func<TOther> otherParser)
+    {
+        if (Match(TokenKind.BracketedStringLiteralToken))
+        {
+            return new PropertyReferenceOr<TOther> { Property = ParseBracketedStringLiteral() };
+        }
+        else
+        {
+            return new PropertyReferenceOr<TOther> { Value = otherParser() };
+        }
+    }
+
+    public ShaderLabCommandLightingNode ParseLightingCommand()
+    {
+        Eat(TokenKind.LightingKeyword);
+        var prop = ParsePropertyReferenceOr(() =>
+        {
+            var kind = Eat(TokenKind.OnKeyword, TokenKind.OffKeyword, TokenKind.TrueKeyword, TokenKind.FalseKeyword).Kind;
+            return kind is TokenKind.OnKeyword or TokenKind.TrueKeyword;
+        });
+        return new ShaderLabCommandLightingNode { Enabled = prop };
+    }
+
+    public ShaderLabCommandCullNode ParseCullCommand()
+    {
+        Eat(TokenKind.CullKeyword);
+        var prop = ParsePropertyReferenceOr(() =>
+        {
+            var kind = Eat(TokenKind.OffKeyword, TokenKind.FrontKeyword, TokenKind.BackKeyword, TokenKind.FalseKeyword).Kind;
+            CullMode mode = default;
+            if (kind is TokenKind.OffKeyword or TokenKind.FalseKeyword)
+                mode = CullMode.Off;
+            else if (kind == TokenKind.FrontKeyword)
+                mode = CullMode.Front;
+            else if (kind == TokenKind.BackKeyword)
+                mode = CullMode.Back;
+            return mode;
+        });
+        return new ShaderLabCommandCullNode { Mode = prop };
+    }
+
+    private static readonly Dictionary<TokenKind, ZTestMode> zTestModes = new()
+    {
+        { TokenKind.TrueKeyword, ZTestMode.Always },
+        { TokenKind.FalseKeyword, ZTestMode.Off },
+        { TokenKind.OnKeyword, ZTestMode.Always },
+        { TokenKind.OffKeyword, ZTestMode.Off },
+        { TokenKind.NeverKeyword, ZTestMode.Never },
+        { TokenKind.LessKeyword, ZTestMode.Less },
+        { TokenKind.EqualKeyword, ZTestMode.Equal },
+        { TokenKind.LEqualKeyword, ZTestMode.LEqual },
+        { TokenKind.GreaterKeyword, ZTestMode.Greater },
+        { TokenKind.GEqualKeyword, ZTestMode.GEqual },
+        { TokenKind.AlwaysKeyword, ZTestMode.Always },
+    };
+    private static readonly TokenKind[] zTestModesKeys = zTestModes.Keys.ToArray();
+
+    public ShaderLabCommandZTestNode ParseZTestCommand()
+    {
+        Eat(TokenKind.ZTestKeyword);
+        var prop = ParsePropertyReferenceOr(() =>
+        {
+            var kind = Eat(zTestModesKeys).Kind;
+            return zTestModes.GetValueOrDefault(kind);
+        });
+        return new ShaderLabCommandZTestNode { Mode = prop };
+    }
+
+    public ShaderLabCommandZWriteNode ParseZWriteCommand()
+    {
+        Eat(TokenKind.ZWriteKeyword);
+        var prop = ParsePropertyReferenceOr(() =>
+        {
+            var kind = Eat(TokenKind.OnKeyword, TokenKind.OffKeyword, TokenKind.TrueKeyword, TokenKind.FalseKeyword).Kind;
+            return kind is TokenKind.OnKeyword or TokenKind.TrueKeyword;
+        });
+        return new ShaderLabCommandZWriteNode { Enabled = prop };
+    }
+
+    private static readonly Dictionary<TokenKind, BlendFactor> blendFactors = new()
+    {
+        { TokenKind.OneKeyword, BlendFactor.One },
+        { TokenKind.ZeroKeyword, BlendFactor.Zero },
+        { TokenKind.SrcColorKeyword, BlendFactor.SrcColor },
+        { TokenKind.SrcAlphaKeyword, BlendFactor.SrcAlpha },
+        { TokenKind.SrcAlphaSaturateKeyword, BlendFactor.SrcAlphaSaturate },
+        { TokenKind.DstColorKeyword, BlendFactor.DstColor },
+        { TokenKind.DstAlphaKeyword, BlendFactor.DstAlpha },
+        { TokenKind.OneMinusSrcColorKeyword, BlendFactor.OneMinusSrcColor },
+        { TokenKind.OneMinusSrcAlphaKeyword, BlendFactor.OneMinusSrcAlpha },
+        { TokenKind.OneMinusDstColorKeyword, BlendFactor.OneMinusDstColor },
+        { TokenKind.OneMinusDstAlphaKeyword, BlendFactor.OneMinusDstAlpha }
+    };
+    private static readonly TokenKind[] blendFactorsKeys = blendFactors.Keys.ToArray();
+
+    public ShaderLabCommandBlendNode ParseBlendCommand()
+    {
+        Eat(TokenKind.BlendKeyword);
+
+        int renderTarget = 0;
+        if (Match(TokenKind.FloatLiteralToken, TokenKind.IntegerLiteralToken))
+        {
+            renderTarget = (int)ParseNumericLiteral();
+        }
+
+        if (Match(TokenKind.OffKeyword, TokenKind.FalseKeyword))
+        {
+            return new ShaderLabCommandBlendNode { RenderTarget = renderTarget, Enabled = false };
+        }
+
+        var srcRGB = ParsePropertyReferenceOr(() => blendFactors.GetValueOrDefault(Eat(blendFactorsKeys).Kind));
+        var dstRGB = ParsePropertyReferenceOr(() => blendFactors.GetValueOrDefault(Eat(blendFactorsKeys).Kind));
+
+        var srcAlpha = srcRGB;
+        var dstAlpha = dstRGB;
+        if (Match(TokenKind.CommaToken))
+        {
+            Eat(TokenKind.CommaToken);
+            srcAlpha = ParsePropertyReferenceOr(() => blendFactors.GetValueOrDefault(Eat(blendFactorsKeys).Kind));
+            dstAlpha = ParsePropertyReferenceOr(() => blendFactors.GetValueOrDefault(Eat(blendFactorsKeys).Kind));
+        }
+
+        return new ShaderLabCommandBlendNode
+        {
+            RenderTarget = renderTarget,
+            Enabled = true,
+            SourceFactorRGB = srcRGB,
+            DestinationFactorRGB = dstRGB,
+            SourceFactorAlpha = srcAlpha,
+            DestinationFactorAlpha = dstAlpha
+        };
+    }
+
+    public ShaderLabCommandOffsetNode ParseOffsetCommand()
+    {
+        Eat(TokenKind.OffsetKeyword);
+        var factor = ParsePropertyReferenceOr(ParseNumericLiteral);
+        Eat(TokenKind.CommaToken);
+        var units = ParsePropertyReferenceOr(ParseNumericLiteral);
+        return new ShaderLabCommandOffsetNode { Factor = factor, Units = units };
+    }
+
+    public ShaderLabCommandColorMaskNode ParseColorMaskCommand()
+    {
+        Eat(TokenKind.ColorMaskKeyword);
+        var mask = ParsePropertyReferenceOr(() =>
+        {
+            Token next = Peek();
+            if (next.Kind is TokenKind.FloatLiteralToken or TokenKind.IntegerLiteralToken)
+            {
+                string result = ParseNumericLiteral().ToString();
+                if (result != "0")
+                    Error("the numeric literal 0", next);
+                return result;
+            }
+            else
+            {
+                string result = ParseIdentifier();
+                if (!result.ToLower().All(x => x is 'r' or 'g' or 'b' or 'a'))
+                    Error("a valid mask containing only the letter 'r', 'g', 'b', 'a'", next);
+                return result;
+            }
+        });
+        int renderTarget = 0;
+        if (Match(TokenKind.FloatLiteralToken, TokenKind.IntegerLiteralToken))
+        {
+            renderTarget = (int)ParseNumericLiteral();
+        }
+        return new ShaderLabCommandColorMaskNode { RenderTarget = renderTarget, Mask = mask };
     }
 }
 

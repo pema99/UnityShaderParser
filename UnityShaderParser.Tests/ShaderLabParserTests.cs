@@ -20,7 +20,7 @@ namespace UnityShaderParser.Tests
             Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
 
             ShaderLabParser.Parse(tokens, out ShaderNode shader, out var parserDiags);
-            Assert.IsEmpty(lexerDiags, $"Expected no parser errors, got: {parserDiags.FirstOrDefault()}");
+            Assert.IsEmpty(parserDiags, $"Expected no parser errors, got: {parserDiags.FirstOrDefault()}");
         }
     }
 }
