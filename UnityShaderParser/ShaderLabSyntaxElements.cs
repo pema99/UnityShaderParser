@@ -270,6 +270,17 @@
         Range,
     }
 
+    public enum TextureType
+    {
+        Texture2D,
+        Texture3D,
+        TextureCube,
+        TextureAny,
+        Texture2DArray,
+        Texture3DArray,
+        TextureCubeArray,
+    }
+
     public enum CullMode
     {
         Off,
@@ -385,6 +396,11 @@
     #region Syntax Tree
     public abstract class ShaderLabSyntaxNode
     {
+        protected static IEnumerable<ShaderLabSyntaxNode> MergeChildren(params IEnumerable<ShaderLabSyntaxNode>[] children)
+            => children.SelectMany(x => x);
+        public abstract IEnumerable<ShaderLabSyntaxNode> Children { get; }
+        public abstract void Accept(ShaderLabSyntaxVisitor visitor);
+
         // TODO: Feed in span data
         public SourceSpan Span { get; set; } = new();
     }
@@ -399,6 +415,9 @@
         public string? CustomEditor { get; set; }
         public Dictionary<string, string> Dependencies { get; set; } = new();
         public List<string> IncludeBlocks { get; set; } = new();
+
+        public override IEnumerable<ShaderLabSyntaxNode> Children => MergeChildren(Properties, SubShaders);
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderNode(this);
     }
 
     public class ShaderPropertyNode : ShaderLabSyntaxNode
@@ -409,50 +428,71 @@
         public ShaderPropertyKind Kind = ShaderPropertyKind.None;
         public (float Min, float Max)? RangeMinMax { get; set; }
         public ShaderPropertyValueNode Value { get; set; } = new();
+
+        public override IEnumerable<ShaderLabSyntaxNode> Children => new[] { Value };
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPropertyNode(this);
     }
 
     public class ShaderPropertyValueNode : ShaderLabSyntaxNode
     {
+        public override IEnumerable<ShaderLabSyntaxNode> Children => Enumerable.Empty<ShaderLabSyntaxNode>();
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPropertyValueNode(this);
     }
 
     public class ShaderPropertyValueFloatNode : ShaderPropertyValueNode
     {
         public float Number { get; set; } = 0;
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPropertyValueFloatNode(this);
     }
 
     public class ShaderPropertyValueIntegerNode : ShaderPropertyValueNode
     {
         public int Number { get; set; } = 0;
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPropertyValueIntegerNode(this);
     }
 
     public class ShaderPropertyValueVectorNode : ShaderPropertyValueNode
     {
         public bool HasWChannel { get; set; } = false;
         public (float x, float y, float z, float w) Vector { get; set; } = default;
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPropertyValueVectorNode(this);
     }
 
     public class ShaderPropertyValueColorNode : ShaderPropertyValueNode
     {
         public bool HasAlphaChannel { get; set; } = false;
         public (float x, float y, float z, float w) Color { get; set; } = default;
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPropertyValueColorNode(this);
     }
 
     public class ShaderPropertyValueTextureNode : ShaderPropertyValueNode
     {
+        public TextureType Kind { get; set; }
         public string TextureName { get; set; } = string.Empty;
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPropertyValueTextureNode(this);
     }
 
     public class SubShaderNode : ShaderLabSyntaxNode
     {
-        public List<ShaderPassNode> Passes { get; set; } = new();
         public List<ShaderLabCommandNode> Commands { get; set; } = new();
+        public List<ShaderPassNode> Passes { get; set; } = new();
         public List<string> ProgramBlocks { get; set; } = new();
         public List<string> IncludeBlocks { get; set; } = new();
         public string? ProgramBlock => ProgramBlocks.Count > 0 ? ProgramBlocks[0] : null;
+
+        public override IEnumerable<ShaderLabSyntaxNode> Children => MergeChildren(Passes, Commands);
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitSubShaderNode(this);
     }
 
     public class ShaderPassNode : ShaderLabSyntaxNode
     {
+        public override IEnumerable<ShaderLabSyntaxNode> Children => Enumerable.Empty<ShaderLabSyntaxNode>();
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPassNode(this);
     }
 
     public class ShaderCodePassNode : ShaderPassNode
@@ -461,6 +501,9 @@
         public List<string> ProgramBlocks { get; set; } = new();
         public List<string> IncludeBlocks { get; set; } = new();
         public string? ProgramBlock => ProgramBlocks.Count > 0 ? ProgramBlocks[0] : null;
+
+        public override IEnumerable<ShaderLabSyntaxNode> Children => Commands;
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderCodePassNode(this);
     }
 
     public class ShaderGrabPassNode : ShaderPassNode
@@ -471,47 +514,86 @@
         public List<string> IncludeBlocks { get; set; } = new();
 
         public bool IsUnnamed => string.IsNullOrEmpty(TextureName);
+        public override IEnumerable<ShaderLabSyntaxNode> Children => Commands;
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderGrabPassNode(this);
     }
 
     public class ShaderUsePassNode : ShaderPassNode
     {
         public string? PassName { get; set; } = string.Empty;
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderUsePassNode(this);
     }
 
     public class ShaderLabCommandNode : ShaderLabSyntaxNode
     {
+        public override IEnumerable<ShaderLabSyntaxNode> Children => Enumerable.Empty<ShaderLabSyntaxNode>();
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandNode(this);
     }
 
     public class ShaderLabCommandTagsNode : ShaderLabCommandNode
     {
         public Dictionary<string, string> Tags { get; set; } = new();
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandTagsNode(this);
     }
 
     public class ShaderLabCommandLodNode : ShaderLabCommandNode
     {
         public int LodLevel { get; set; } = 0;
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandLodNode(this);
     }
 
     public class ShaderLabBasicToggleCommandNode : ShaderLabCommandNode
     {
         public PropertyReferenceOr<bool> Enabled { get; set; }
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabBasicToggleCommandNode(this);
     }
 
-    public class ShaderLabCommandLightingNode : ShaderLabBasicToggleCommandNode { }
-    public class ShaderLabCommandSeparateSpecularNode : ShaderLabBasicToggleCommandNode { }
-    public class ShaderLabCommandZWriteNode : ShaderLabBasicToggleCommandNode { }
-    public class ShaderLabCommandAlphaToMaskNode : ShaderLabBasicToggleCommandNode { }
-    public class ShaderLabCommandZClipNode : ShaderLabBasicToggleCommandNode { }
-    public class ShaderLabCommandConservativeNode : ShaderLabBasicToggleCommandNode { }
+    public class ShaderLabCommandLightingNode : ShaderLabBasicToggleCommandNode
+    {
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandLightingNode(this);
+    }
+
+    public class ShaderLabCommandSeparateSpecularNode : ShaderLabBasicToggleCommandNode
+    {
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandSeparateSpecularNode(this);
+    }
+
+    public class ShaderLabCommandZWriteNode : ShaderLabBasicToggleCommandNode
+    {
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandZWriteNode(this);
+    }
+
+    public class ShaderLabCommandAlphaToMaskNode : ShaderLabBasicToggleCommandNode
+    {
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandAlphaToMaskNode(this);
+    }
+
+    public class ShaderLabCommandZClipNode : ShaderLabBasicToggleCommandNode
+    {
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandZClipNode(this);
+    }
+
+    public class ShaderLabCommandConservativeNode : ShaderLabBasicToggleCommandNode
+    {
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandConservativeNode(this);
+    }
 
     public class ShaderLabCommandCullNode : ShaderLabCommandNode
     {
         public PropertyReferenceOr<CullMode> Mode { get; set; }
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandCullNode(this);
     }
 
     public class ShaderLabCommandZTestNode : ShaderLabCommandNode
     {
         public PropertyReferenceOr<ComparisonMode> Mode { get; set; }
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandZTestNode(this);
     }
 
     public class ShaderLabCommandBlendNode : ShaderLabCommandNode
@@ -522,12 +604,16 @@
         public PropertyReferenceOr<BlendFactor>? DestinationFactorRGB { get; set; } = null;
         public PropertyReferenceOr<BlendFactor>? SourceFactorAlpha { get; set; } = null;
         public PropertyReferenceOr<BlendFactor>? DestinationFactorAlpha { get; set; } = null;
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandBlendNode(this);
     }
 
     public class ShaderLabCommandOffsetNode : ShaderLabCommandNode
     {
         public PropertyReferenceOr<float> Factor { get; set; }
         public PropertyReferenceOr<float> Units { get; set; }
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandOffsetNode(this);
     }
 
     public class ShaderLabCommandColorMaskNode : ShaderLabCommandNode
@@ -536,44 +622,60 @@
         public int RenderTarget { get; set; } = 0;
 
         public bool IsZeroMask => Mask.Value == "0";
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandColorMaskNode(this);
     }
 
     public class ShaderLabCommandAlphaTestNode : ShaderLabCommandNode
     {
         public PropertyReferenceOr<ComparisonMode> Mode { get; set; }
         public PropertyReferenceOr<float>? AlphaValue { get; set; }
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandAlphaTestNode(this);
     }
 
     public class ShaderLabCommandFogNode : ShaderLabCommandNode
     {
         public bool Enabled { get; set; } = false;
         public (float r, float g, float b, float a)? Color { get; set; }
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandFogNode(this);
     }
 
     public class ShaderLabCommandNameNode : ShaderLabCommandNode
     {
         public string Name { get; set; } = string.Empty;
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandNameNode(this);
     }
 
     public class ShaderLabCommandBindChannelsNode : ShaderLabCommandNode
     {
         public Dictionary<BindChannel, BindChannel> Bindings { get; set; } = new();
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandBindChannelsNode(this);
     }
 
     public class ShaderLabCommandColorNode : ShaderLabCommandNode
     {
         public bool HasAlphaChannel { get; set; } = false;
         public PropertyReferenceOr<(float r, float g, float b, float a)> Color { get; set; }
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandColorNode(this);
     }
 
     public class ShaderLabCommandBlendOpNode : ShaderLabCommandNode
     {
         public PropertyReferenceOr<BlendOp> BlendOp { get; set; }
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandBlendOpNode(this);
     }
 
     public class ShaderLabCommandMaterialNode : ShaderLabCommandNode
     {
         public Dictionary<FixedFunctionMaterialProperty, PropertyReferenceOr<(float r, float g, float b, float a)>> Properties { get; set; } = new();
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandMaterialNode(this);
     }
 
     public class ShaderLabCommandSetTextureNode : ShaderLabCommandNode
@@ -581,12 +683,16 @@
         // TODO: Not the lazy way
         public string TextureName { get; set; } = string.Empty;
         public List<Token> Body { get; set; } = new();
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandSetTextureNode(this);
     }
 
     public class ShaderLabCommandColorMaterialNode : ShaderLabCommandNode
     {
         public bool AmbientAndDiffuse { get; set; } = false;
         public bool Emission => !AmbientAndDiffuse;
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandColorMaterialNode(this);
     }
 
     public class ShaderLabCommandStencilNode : ShaderLabCommandNode
@@ -607,6 +713,7 @@
         public PropertyReferenceOr<StencilOp> FailOperation => FailOperationFront;
         public PropertyReferenceOr<StencilOp> ZFailOperation => ZFailOperationFront;
 
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandStencilNode(this);
     }
     #endregion
 }

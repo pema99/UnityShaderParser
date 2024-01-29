@@ -97,7 +97,7 @@ namespace UnityShaderParser.ShaderLab
                         LexString('"', '"', TokenKind.StringLiteralToken);
                         break;
 
-                    case '[' when SyntaxFacts.IsAlphaNumericOrUnderscore(LookAhead()):
+                    case '[' when ShaderLabSyntaxFacts.IsAlphaNumericOrUnderscore(LookAhead()):
                         LexString('[', ']', TokenKind.BracketedStringLiteralToken);
                         break;
 
@@ -240,12 +240,12 @@ namespace UnityShaderParser.ShaderLab
         private void LexIdentifier()
         {
             StringBuilder builder = new();
-            while (SyntaxFacts.IsAlphaNumericOrUnderscore(Peek()))
+            while (ShaderLabSyntaxFacts.IsAlphaNumericOrUnderscore(Peek()))
             {
                 builder.Append(Advance());
             }
             string identifier = builder.ToString();
-            if (SyntaxFacts.TryParseShaderLabKeyword(identifier, out TokenKind token))
+            if (ShaderLabSyntaxFacts.TryParseShaderLabKeyword(identifier, out TokenKind token))
             {
                 if (token == TokenKind.CgProgramKeyword)
                 {

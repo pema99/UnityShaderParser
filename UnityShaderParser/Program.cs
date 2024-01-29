@@ -2,6 +2,22 @@
 
 public class Program
 {
+    // This example visitor implementation just counts the amount of properties which are 2D textures
+    public class TestVisitor : ShaderLabSyntaxVisitor
+    {
+        public int Num2DTextureProperties { get; private set; } = 0;
+
+        public override void VisitShaderPropertyValueTextureNode(ShaderPropertyValueTextureNode node)
+        {
+            if (node.Kind == TextureType.Texture2D)
+            {
+                Num2DTextureProperties++;
+            }
+
+            base.VisitShaderPropertyValueTextureNode(node);
+        }
+    }
+
     public static void Main()
     {
         ShaderLabLexer.Lex(File.ReadAllText("NewUnlitShader 1.shader"), out var tokens, out var lexerDiags);
@@ -17,5 +33,10 @@ public class Program
         {
             Console.WriteLine(diag);
         }
+
+        TestVisitor test = new TestVisitor();
+        test.VisitSyntaxNode(shader);
+
+        Console.WriteLine(test.Num2DTextureProperties);
     }
 }

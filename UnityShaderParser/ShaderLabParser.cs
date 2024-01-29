@@ -324,7 +324,7 @@
 
                 case ShaderPropertyKind.TextureCube or ShaderPropertyKind.Texture2D or ShaderPropertyKind.Texture3D or ShaderPropertyKind.TextureAny or
                      ShaderPropertyKind.TextureCubeArray or ShaderPropertyKind.Texture2DArray or ShaderPropertyKind.Texture3DArray:
-                    valueNode = new ShaderPropertyValueTextureNode { TextureName = ParseStringLiteral() };
+                    valueNode = new ShaderPropertyValueTextureNode { Kind = ShaderLabSyntaxFacts.ShaderPropertyTypeToTextureType(kind), TextureName = ParseStringLiteral() };
                     break;
 
                 case ShaderPropertyKind.Integer or ShaderPropertyKind.Int:
@@ -788,8 +788,8 @@
                 Token targetToken = Advance();
                 // Handle ShaderLab's ambiguous syntax: Could be a keyword or an identifier here, in the case of color.
                 string target = targetToken.Kind == TokenKind.ColorKeyword ? "color" : targetToken.Identifier ?? String.Empty;
-                if (SyntaxFacts.TryParseBindChannelName(source, out BindChannel sourceChannel) &&
-                    SyntaxFacts.TryParseBindChannelName(target, out BindChannel targetChannel))
+                if (ShaderLabSyntaxFacts.TryParseBindChannelName(source, out BindChannel sourceChannel) &&
+                    ShaderLabSyntaxFacts.TryParseBindChannelName(target, out BindChannel targetChannel))
                 {
                     bindings[sourceChannel] = targetChannel;
                 }

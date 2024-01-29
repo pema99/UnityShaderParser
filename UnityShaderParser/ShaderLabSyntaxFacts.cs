@@ -1,6 +1,6 @@
 ﻿namespace UnityShaderParser.ShaderLab
 {
-    public static class SyntaxFacts
+    public static class ShaderLabSyntaxFacts
     {
         public static bool IsAlphaNumericOrUnderscore(char c) => c == '_' || char.IsLetterOrDigit(c);
 
@@ -171,6 +171,21 @@
                 case "texcoord7": bindChannel = BindChannel.TexCoord7; return true;
                 case "color": bindChannel = BindChannel.Color; return true;
                 default: return false;
+            }
+        }
+
+        public static TextureType ShaderPropertyTypeToTextureType(ShaderPropertyKind kind)
+        {
+            switch (kind)
+            {
+                case ShaderPropertyKind.Texture2D: return TextureType.Texture2D; 
+                case ShaderPropertyKind.Texture3D: return TextureType.Texture3D; 
+                case ShaderPropertyKind.TextureCube: return TextureType.TextureCube; 
+                case ShaderPropertyKind.TextureAny: return TextureType.TextureAny; 
+                case ShaderPropertyKind.Texture2DArray: return TextureType.Texture2DArray; 
+                case ShaderPropertyKind.Texture3DArray: return TextureType.Texture3DArray; 
+                case ShaderPropertyKind.TextureCubeArray: return TextureType.TextureCubeArray;
+                default: return default;
             }
         }
     }
