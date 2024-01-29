@@ -13,9 +13,6 @@ namespace UnityShaderParser.Tests
                 .ToArray();
         }
 
-        // TODO:
-        // Category
-
         [Test, TestCaseSource(nameof(GetBuiltinUnityShaders))]
         public void ParseUnityShader(string path)
         {
