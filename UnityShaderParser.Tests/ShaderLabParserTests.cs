@@ -20,8 +20,6 @@ namespace UnityShaderParser.Tests
         public void ParseUnityShader(string path)
         {
             string source = File.ReadAllText(path);
-            if (source.Contains("Category"))
-                Assert.Ignore("Stencil's not yet supported");
 
             ShaderLabLexer.Lex(source, out var tokens, out var lexerDiags);
             Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
