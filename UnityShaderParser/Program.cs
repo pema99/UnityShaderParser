@@ -85,6 +85,9 @@ public enum TokenKind
     HlslProgramKeyword,
     HlslIncludeKeyword,
     EndHlslKeyword,
+    GlslProgramKeyword,
+    GlslIncludeKeyword,
+    EndGlslKeyword,
     FallbackKeyword,
     CustomEditorKeyword,
     CullKeyword,
@@ -196,6 +199,9 @@ public static class SyntaxFacts
             case "hlslprogram": token = TokenKind.HlslProgramKeyword; return true;
             case "hlslinclude": token = TokenKind.HlslIncludeKeyword; return true;
             case "endhlsl": token = TokenKind.EndHlslKeyword; return true;
+            case "glslprogram": token = TokenKind.GlslProgramKeyword; return true;
+            case "glslinclude": token = TokenKind.GlslIncludeKeyword; return true;
+            case "endglsl": token = TokenKind.EndGlslKeyword; return true;
             case "fallback": token = TokenKind.FallbackKeyword; return true;
             case "customeditor": token = TokenKind.CustomEditorKeyword; return true;
             case "cull": token = TokenKind.CullKeyword; return true;
@@ -351,6 +357,14 @@ public class ShaderLabLexer
                     Advance();
                     break;
 
+                case '/' when LookAhead('/'):
+                    Advance(2);
+                    while (!Match('\n'))
+                    {
+                        Advance();
+                    }
+                    break;
+
                 case '(': Advance(); Add(TokenKind.OpenParenToken); break;
                 case ')': Advance(); Add(TokenKind.CloseParenToken); break;
                 case '[': Advance(); Add(TokenKind.OpenBracketToken); break;
@@ -475,6 +489,16 @@ public class ShaderLabLexer
             else if (token == TokenKind.HlslIncludeKeyword)
             {
                 string body = SkipProgramBody("ENDHLSL");
+                Add(body, TokenKind.IncludeBlock);
+            }
+            else if (token == TokenKind.GlslProgramKeyword)
+            {
+                string body = SkipProgramBody("ENDGLSL");
+                Add(body, TokenKind.ProgramBlock);
+            }
+            else if (token == TokenKind.GlslIncludeKeyword)
+            {
+                string body = SkipProgramBody("ENDGLSL");
                 Add(body, TokenKind.IncludeBlock);
             }
             else

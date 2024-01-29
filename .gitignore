@@ -1,3 +1,5 @@
 .vs/
 UnityShaderParser/bin/
 UnityShaderParser/obj/
+UnityShaderParser.Tests/bin/
+UnityShaderParser.Tests/obj/

@@ -1,0 +1,883 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
+    <PackageReference Include="NUnit" Version="3.13.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.0.0" />
+    <PackageReference Include="coverlet.collector" Version="3.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UnityShaderParser\UnityShaderParser.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="TestShaders\UnityBuiltinShaders\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Alpha-Bumped.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Alpha-BumpSpec.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Alpha-Diffuse.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Alpha-Glossy.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Alpha-Parallax.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Alpha-ParallaxSpec.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Alpha-VertexLit.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\AlphaTest-Bumped.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\AlphaTest-BumpSpec.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\AlphaTest-Diffuse.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\AlphaTest-Glossy.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\AlphaTest-SoftEdgeUnlit.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\AlphaTest-VertexLit.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\AutodeskInteractive.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Compositing.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Cubemaps\CubeBlend.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Cubemaps\CubeBlur.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Cubemaps\CubeBlurOdd.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Cubemaps\CubeCopy.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Decal.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Flare.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\GIDebug\ShowLightMask.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\GIDebug\TextureUV.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\GIDebug\UV1sAsPositions.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\GIDebug\VertexColors.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Illumin-Bumped.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Illumin-BumpSpec.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Illumin-Diffuse.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Illumin-Glossy.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Illumin-Parallax.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Illumin-ParallaxSpec.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Illumin-VertexLit.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-BlitCopy.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-BlitCopyDepth.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-BlitCopyHDRTonemap.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-BlitCopyHDRTonemappedToHDRTonemap.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-BlitCopyHDRTonemappedToSDR.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-BlitCopyWithDepth.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-BlitToDepth.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-BlitToDepth_MSAA.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-CombineDepthNormals.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-ConvertTexture.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-CubemapToEquirect.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-DebugPattern.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-DeferredReflections.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-DeferredShading.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-DepthNormalsTexture.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-Flare.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-GUIRoundedRect.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-GUIRoundedRectWithColorPerBorder.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-GUITexture.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-GUITextureBlit.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-GUITextureClip.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-GUITextureClipText.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-Halo.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-MotionVectors.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-ODSWorldTexture.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-ScreenSpaceShadows.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Internal-StencilWrite.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Lightmap-Bumped.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Lightmap-BumpSpec.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Lightmap-Diffuse.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Lightmap-Glossy.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Lightmap-VertexLit.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Mobile\Mobile-Bumped.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Mobile\Mobile-BumpSpec-1DirectionalLight.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Mobile\Mobile-BumpSpec.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Mobile\Mobile-Diffuse.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Mobile\Mobile-Lightmap-Unlit.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Mobile\Mobile-Particle-Add.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Mobile\Mobile-Particle-Alpha-VertexLit.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Mobile\Mobile-Particle-Alpha.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Mobile\Mobile-Particle-Multiply.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Mobile\Mobile-Skybox.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Mobile\Mobile-VertexLit-OnlyDirectionalLights.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Mobile\Mobile-VertexLit.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Nature\SoftOcclusion\TreeSoftOcclusionBark.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Nature\SoftOcclusion\TreeSoftOcclusionBarkRendertex.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Nature\SoftOcclusion\TreeSoftOcclusionLeaves.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Nature\SoftOcclusion\TreeSoftOcclusionLeavesRendertex.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Nature\SpeedTree.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Nature\SpeedTree8.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Nature\SpeedTreeBillboard.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Nature\TreeCreator\TreeCreatorAlbedoRenderTex.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Nature\TreeCreator\TreeCreatorBark.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Nature\TreeCreator\TreeCreatorBarkOptimized.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Nature\TreeCreator\TreeCreatorBarkRendertex.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Nature\TreeCreator\TreeCreatorLeaves.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Nature\TreeCreator\TreeCreatorLeavesFast.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Nature\TreeCreator\TreeCreatorLeavesFastOptimized.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Nature\TreeCreator\TreeCreatorLeavesOptimized.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Nature\TreeCreator\TreeCreatorLeavesRendertex.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Nature\TreeCreator\TreeCreatorNormalRendertex.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Normal-Bumped.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Normal-BumpSpec.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Normal-Diffuse.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Normal-DiffuseDetail.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Normal-DiffuseFast.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Normal-Glossy.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Normal-Parallax.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Normal-ParallaxSpec.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Normal-VertexLit.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Particle Add.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Particle AddMultiply.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Particle AddSmooth.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Particle Alpha Blend.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Particle Anim Alpha Blend.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Particle Blend.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Particle Multiply.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Particle MultiplyDouble.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Particle Premultiply Blend.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Particle Standard Surface.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Particle Standard Unlit.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Particle VertexLit Blended.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Reflect-Bumped.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Reflect-BumpNolight.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Reflect-BumpSpec.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Reflect-BumpVertexLit.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Reflect-Diffuse.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Reflect-Glossy.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Reflect-Parallax.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Reflect-ParallaxSpec.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Reflect-VertexLit.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Skybox-Cubed.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Skybox-Panoramic.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Skybox-Procedural.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Skybox.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Sprites-Default.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Sprites-Diffuse.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Sprites-Mask.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Standard.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\StandardSpecular.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Details\VertexLit.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Details\WavingGrass.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Details\WavingGrassBillboard.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Splats\AddPass.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Splats\DiffuseBase.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Splats\DiffuseBaseGen.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Splats\FirstPass.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Splats\Specular-AddPass.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Splats\Specular-Base.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Splats\Specular-FirstPass.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Splats\Standard-AddPass.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Splats\Standard-Base.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Splats\Standard-BaseGen.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Splats\Standard-FirstPass.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Splats\Terrain-Utilities.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Trees\BillboardTree.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Trees\CameraFacingBillboardTree.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Utils\BrushPreview.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Utils\CrossBlendNeighbors.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Utils\GenNormalmap.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Utils\PaintHeight.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Utils\TerrainBlitCopyZWrite.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Utils\TerrainHeightBlitCopy.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TerrainShaders\Utils\TerrainLayerUtils.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TextCore\Sprite.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TextCore\TextCore-SDF-SSD.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\TextCore\TextCore-SDF.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\UI\UI-CompositeOverdraw.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\UI\UI-Default.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\UI\UI-DefaultETC1.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\UI\UI-DefaultFont.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\UI\UI-Lit-Bumped.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\UI\UI-Lit-Detail.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\UI\UI-Lit-Refraction.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\UI\UI-Lit-RefractionDetail.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\UI\UI-Lit-Transparent.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\UI\UI-Overdraw.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\UI\UI-Unlit-Detail.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\UI\UI-Unlit-Text.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\UI\UI-Unlit-TextDetail.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\UI\UI-Unlit-Transparent.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Unlit\Unlit-Alpha.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Unlit\Unlit-AlphaTest.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Unlit\Unlit-Color.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\Unlit\Unlit-Normal.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\VideoComposite.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\VideoDecode.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\VideoDecodeAndroid.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\VideoDecodeOSX.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\VR\Shaders\BlitCopyHDRTonemappedToHDRTonemapTexArraySlice.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\VR\Shaders\BlitCopyHDRTonemappedToSDRTexArraySlice.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\VR\Shaders\BlitCopyHDRTonemapTexArraySlice.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\VR\Shaders\BlitFromTex2DToTexArraySlice.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\VR\Shaders\BlitTexArraySlice.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\VR\Shaders\BlitTexArraySliceToDepth.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\VR\Shaders\BlitTexArraySliceToDepth_MSAA.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\VR\Shaders\Internal-VRDistortion.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\VR\Shaders\SpatialMappingOcclusion.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResourcesExtra\VR\Shaders\SpatialMappingWireframe.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResources\Font.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResources\Internal-Clear.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResources\Internal-Colored.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResources\Internal-ErrorShader.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResources\Internal-Loading.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\DefaultResources\PerformanceTools\FrameDebuggerRenderTargetDisplay.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Avatar\Materials\Avatar.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Avatar\Materials\Avatar_Transparent.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Avatar\Shaders\Editor-AlphaDiffuse.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Avatar\Shaders\Editor-AlphaTestDiffuse.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Avatar\Shaders\Editor-BumpSpec.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Avatar\Shaders\Editor-Diffuse.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Editors\AnimationWindow\ControlPoint.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Editors\AnimationWindow\Curve.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\GraphView\AAEdge.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Inspectors\InactiveGUI.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Inspectors\Internal-GUITextureClipVertically.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Inspectors\TreeCreator\TreeTextureCombiner.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\MeshPreviewShader.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\Preview2DTextureArray.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\Preview3DSDF.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\Preview3DSliced.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\Preview3DVolume.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\PreviewAlpha.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\PreviewAlphaVT.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\PreviewAudioClipWaveform.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\PreviewColor2D.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\PreviewColor2DVT.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\PreviewCubemap.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\PreviewCubemapArray.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\PreviewEncodedLightmapDoubleLDR.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\PreviewEncodedLightmapFullHDR.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\PreviewEncodedLightmapRGBM.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\PreviewEncodedNormals.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\PreviewEncodedNormalsVT.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\PreviewPlaneWithShadow.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\PreviewShadowMask.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\PreviewShadowPlaneClip.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\PreviewTransparent.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Previews\PreviewTransparentVT.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\2DHandleDottedLinesShader.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\2DHandleLinesShader.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\AlphaBasedSelection.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\AlphaBasedSelectionNoZWrite.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\BlitSceneViewCapture.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\BoneHandles.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\CircularArc.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\ColoredTexture.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\GizmoColorOcclusion.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\GizmoIconPicking.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\GizmoLit.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\GizmoText.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\GizmoTexture.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\GizmoWire.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\GizmoWireNoDepthTest.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\GridGap.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\GridOrthoShader.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\GridShader.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\GUITextureBlit2Linear.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\GUITextureBlit2SRGB.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\GUITextureBlitSceneGUI.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\HandleDottedLinesShader.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\HandleIconShader.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\HandleLinesShader.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\HandlesLit.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\HighlightBackfaces.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\LightProbeGroupTetrahedra.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\LightProbeHandles.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\LightProbeLines.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\OpaqueSelection.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\ParticleShapeGizmo.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\ParticleShapeGizmoSphere.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\SceneViewAlphaShader.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\SceneViewApplyFilter.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\SceneViewAura.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\SceneViewBuildFilter.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\SceneViewDeferredShader.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\SceneViewGrayscaleEffectFade.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\SceneViewSelected.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\SceneViewShowLightmap.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\SceneViewShowMips.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\SceneViewShowOverdraw.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\SceneViewShowTextureStreaming.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\SH.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\ShowOverlap.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\ShowShadowCascadeSplits.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\VertexSelectedShader.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\VertexSelectionBackfacesShader.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\VertexSelectionShader.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SceneView\Wireframe.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\Shaders\UIElements\AACurveField.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\SplashScreen\SeparableBlur.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\TextCore\Shaders\Sprite.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestShaders\UnityBuiltinShaders\EditorDefaultResources\TextCore\Shaders\TextCore-SDF-SSD.shader">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

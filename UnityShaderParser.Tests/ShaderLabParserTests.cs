@@ -1,0 +1,26 @@
+using NUnit.Framework;
+using System.IO;
+using System.Linq;
+
+namespace UnityShaderParser.Tests
+{
+    public class Tests
+    {
+        public static string[] GetBuiltinUnityShaders()
+        {
+            return Directory.EnumerateFiles(Directory.GetCurrentDirectory(), "*.shader", SearchOption.AllDirectories)
+                .Select(path => Path.GetRelativePath(Directory.GetCurrentDirectory(), path))
+                .ToArray();
+        }
+
+        [Test, TestCaseSource(nameof(GetBuiltinUnityShaders))]
+        public void ParseUnityShader(string path)
+        {
+            ShaderLabLexer.Lex(File.ReadAllText(path), out var tokens, out var lexerDiags);
+            Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
+
+            ShaderLabParser.Parse(tokens, out ShaderNode shader, out var parserDiags);
+            Assert.IsEmpty(lexerDiags, $"Expected no parser errors, got: {parserDiags.FirstOrDefault()}");
+        }
+    }
+}
