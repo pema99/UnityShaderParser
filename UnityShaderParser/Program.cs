@@ -742,7 +742,7 @@ public abstract class ShaderLabSyntaxNode
 public class ShaderNode : ShaderLabSyntaxNode
 {
     public string Name { get; set; } = string.Empty;
-    public List<PropertyNode> Properties { get; set; } = new();
+    public List<ShaderPropertyNode> Properties { get; set; } = new();
     public List<SubShaderNode> SubShaders { get; set; } = new();
     public string? Fallback { get; set; }
     public bool FallbackDisabledExplicitly { get; set; }
@@ -751,48 +751,48 @@ public class ShaderNode : ShaderLabSyntaxNode
     public List<string> IncludeBlocks { get; set; } = new();
 }
 
-public class PropertyNode : ShaderLabSyntaxNode
+public class ShaderPropertyNode : ShaderLabSyntaxNode
 {
     public List<string> Attributes { get; set; } = new();
     public string Uniform { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
-    public PropertyKind Kind = PropertyKind.None;
+    public ShaderPropertyKind Kind = ShaderPropertyKind.None;
     public (float Min, float Max)? RangeMinMax { get; set; }
-    public PropertyValueNode Value { get; set; } = new();
+    public ShaderPropertyValueNode Value { get; set; } = new();
 }
 
-public class PropertyValueNode : ShaderLabSyntaxNode
+public class ShaderPropertyValueNode : ShaderLabSyntaxNode
 {
 }
 
-public class PropertyValueFloatNode : PropertyValueNode
+public class ShaderPropertyValueFloatNode : ShaderPropertyValueNode
 {
     public float Number { get; set; } = 0;
 }
 
-public class PropertyValueIntegerNode : PropertyValueNode
+public class ShaderPropertyValueIntegerNode : ShaderPropertyValueNode
 {
     public int Number { get; set; } = 0;
 }
 
-public class PropertyValueVectorNode : PropertyValueNode
+public class ShaderPropertyValueVectorNode : ShaderPropertyValueNode
 {
     public bool HasWChannel { get; set; } = false;
     public (float x, float y, float z, float w) Vector { get; set; } = default;
 }
 
-public class PropertyValueColorNode : PropertyValueNode
+public class ShaderPropertyValueColorNode : ShaderPropertyValueNode
 {
     public bool HasAlphaChannel { get; set; } = false;
     public (float x, float y, float z, float w) Color { get; set; } = default;
 }
 
-public class PropertyValueTextureNode : PropertyValueNode
+public class ShaderPropertyValueTextureNode : ShaderPropertyValueNode
 {
     public string TextureName { get; set; } = string.Empty;
 }
 
-public enum PropertyKind
+public enum ShaderPropertyKind
 {
     None,
     Texture2D,
@@ -1189,7 +1189,7 @@ public class ShaderLabParser
 
         ParseIncludeBlocksIfPresent(includeBlocks);
 
-        List<PropertyNode> properties = new();
+        List<ShaderPropertyNode> properties = new();
         if (Match(TokenKind.PropertiesKeyword))
         {
             ParsePropertySection(properties);
@@ -1306,7 +1306,7 @@ public class ShaderLabParser
         }
     }
 
-    public void ParsePropertySection(List<PropertyNode> outProperties)
+    public void ParsePropertySection(List<ShaderPropertyNode> outProperties)
     {
         Eat(TokenKind.PropertiesKeyword);
         Eat(TokenKind.OpenBraceToken);
@@ -1362,7 +1362,7 @@ public class ShaderLabParser
         return (byte)ParseNumericLiteral();
     }
 
-    public PropertyNode ParseProperty()
+    public ShaderPropertyNode ParseProperty()
     {
         List<string> attributes = new();
         while (Match(TokenKind.BracketedStringLiteralToken))
@@ -1377,25 +1377,25 @@ public class ShaderLabParser
         string name = ParseStringLiteral();
         Eat(TokenKind.CommaToken);
 
-        PropertyKind kind = PropertyKind.None;
+        ShaderPropertyKind kind = ShaderPropertyKind.None;
         (float Min, float Max)? rangeMinMax = null;
         Token typeToken = Advance();
         switch (typeToken.Kind)
         {
-            case TokenKind.FloatKeyword: kind = PropertyKind.Float; break;
-            case TokenKind.IntegerKeyword: kind = PropertyKind.Integer; break;
-            case TokenKind.IntKeyword: kind = PropertyKind.Int; break;
-            case TokenKind.ColorKeyword: kind = PropertyKind.Color; break;
-            case TokenKind.VectorKeyword: kind = PropertyKind.Vector; break;
-            case TokenKind._2DKeyword or TokenKind.RectKeyword: kind = PropertyKind.Texture2D; break;
-            case TokenKind._3DKeyword: kind = PropertyKind.Texture3D; break;
-            case TokenKind.CubeKeyword: kind = PropertyKind.TextureCube; break;
-            case TokenKind._2DArrayKeyword: kind = PropertyKind.Texture2DArray; break;
-            case TokenKind._3DArrayKeyword: kind = PropertyKind.Texture3DArray; break;
-            case TokenKind.CubeArrayKeyword: kind = PropertyKind.TextureCubeArray; break;
-            case TokenKind.AnyKeyword: kind = PropertyKind.TextureAny; break;
+            case TokenKind.FloatKeyword: kind = ShaderPropertyKind.Float; break;
+            case TokenKind.IntegerKeyword: kind = ShaderPropertyKind.Integer; break;
+            case TokenKind.IntKeyword: kind = ShaderPropertyKind.Int; break;
+            case TokenKind.ColorKeyword: kind = ShaderPropertyKind.Color; break;
+            case TokenKind.VectorKeyword: kind = ShaderPropertyKind.Vector; break;
+            case TokenKind._2DKeyword or TokenKind.RectKeyword: kind = ShaderPropertyKind.Texture2D; break;
+            case TokenKind._3DKeyword: kind = ShaderPropertyKind.Texture3D; break;
+            case TokenKind.CubeKeyword: kind = ShaderPropertyKind.TextureCube; break;
+            case TokenKind._2DArrayKeyword: kind = ShaderPropertyKind.Texture2DArray; break;
+            case TokenKind._3DArrayKeyword: kind = ShaderPropertyKind.Texture3DArray; break;
+            case TokenKind.CubeArrayKeyword: kind = ShaderPropertyKind.TextureCubeArray; break;
+            case TokenKind.AnyKeyword: kind = ShaderPropertyKind.TextureAny; break;
             case TokenKind.RangeKeyword:
-                kind = PropertyKind.Range;
+                kind = ShaderPropertyKind.Range;
                 Eat(TokenKind.OpenParenToken);
                 float min = ParseNumericLiteral();
                 Eat(TokenKind.CommaToken);
@@ -1412,10 +1412,10 @@ public class ShaderLabParser
 
         Eat(TokenKind.EqualsToken);
 
-        PropertyValueNode valueNode = new();
+        ShaderPropertyValueNode valueNode = new();
         switch (kind)
         {
-            case PropertyKind.Color or PropertyKind.Vector:
+            case ShaderPropertyKind.Color or ShaderPropertyKind.Vector:
                 Eat(TokenKind.OpenParenToken);
                 float x = ParseNumericLiteral();
                 Eat(TokenKind.CommaToken);
@@ -1431,23 +1431,23 @@ public class ShaderLabParser
                     hasLastChannel = true;
                 }
                 Eat(TokenKind.CloseParenToken);
-                if (kind == PropertyKind.Color)
-                    valueNode = new PropertyValueColorNode { HasAlphaChannel = hasLastChannel, Color = (x, y, z, w) };
+                if (kind == ShaderPropertyKind.Color)
+                    valueNode = new ShaderPropertyValueColorNode { HasAlphaChannel = hasLastChannel, Color = (x, y, z, w) };
                 else
-                    valueNode = new PropertyValueVectorNode { HasWChannel = hasLastChannel, Vector = (x, y, z, w) };
+                    valueNode = new ShaderPropertyValueVectorNode { HasWChannel = hasLastChannel, Vector = (x, y, z, w) };
                 break;
 
-            case PropertyKind.TextureCube or PropertyKind.Texture2D or PropertyKind.Texture3D or PropertyKind.TextureAny or
-                 PropertyKind.TextureCubeArray or PropertyKind.Texture2DArray or PropertyKind.Texture3DArray:
-                valueNode = new PropertyValueTextureNode { TextureName = ParseStringLiteral() };
+            case ShaderPropertyKind.TextureCube or ShaderPropertyKind.Texture2D or ShaderPropertyKind.Texture3D or ShaderPropertyKind.TextureAny or
+                 ShaderPropertyKind.TextureCubeArray or ShaderPropertyKind.Texture2DArray or ShaderPropertyKind.Texture3DArray:
+                valueNode = new ShaderPropertyValueTextureNode { TextureName = ParseStringLiteral() };
                 break;
 
-            case PropertyKind.Integer or PropertyKind.Int:
-                valueNode = new PropertyValueIntegerNode { Number = ParseIntegerLiteral() };
+            case ShaderPropertyKind.Integer or ShaderPropertyKind.Int:
+                valueNode = new ShaderPropertyValueIntegerNode { Number = ParseIntegerLiteral() };
                 break;
 
-            case PropertyKind.Float or PropertyKind.Range:
-                valueNode = new PropertyValueFloatNode { Number = ParseNumericLiteral() };
+            case ShaderPropertyKind.Float or ShaderPropertyKind.Range:
+                valueNode = new ShaderPropertyValueFloatNode { Number = ParseNumericLiteral() };
                 break;
 
             default:
@@ -1462,7 +1462,7 @@ public class ShaderLabParser
             Eat(TokenKind.CloseBraceToken);
         }
 
-        return new PropertyNode
+        return new ShaderPropertyNode
         {
             Attributes = attributes,
             Uniform = uniform,
