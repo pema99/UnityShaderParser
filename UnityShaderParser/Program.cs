@@ -1541,7 +1541,7 @@ public class ShaderLabParser
         ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
 
         string? name = null;
-        if (Peek().Kind != TokenKind.CloseParenToken)
+        if (Peek().Kind != TokenKind.CloseBraceToken)
         {
             name = ParseStringLiteral();
 
@@ -1614,6 +1614,7 @@ public class ShaderLabParser
                 case TokenKind.MaterialKeyword: outCommands.Add(ParseMaterialCommand()); break;
                 case TokenKind.SetTextureKeyword: outCommands.Add(ParseSetTextureCommand()); break;
                 case TokenKind.ColorMaterialKeyword: outCommands.Add(ParseColorMaterialNode()); break;
+                case TokenKind.StencilKeyword: outCommands.Add(ParseStencilNode()); break;
 
                 default:
                     run = false;
@@ -1707,7 +1708,10 @@ public class ShaderLabParser
         where TEnum : struct
     {
         Token next = Advance();
-        if (Enum.TryParse<TEnum>(next.Identifier, true, out TEnum result))
+        // ShaderLab has a lot of ambiguous syntax, many keywords are reused in multiple places as regular identifiers.
+        // If we fail to use the identifier directly, it might be an overlapping keyword, so try that instead.
+        string identifier = next.Identifier ?? next.Kind.ToString().Replace("Keyword", "");
+        if (Enum.TryParse(identifier, true, out TEnum result))
         {
             return result;
         }
