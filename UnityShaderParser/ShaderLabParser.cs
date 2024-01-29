@@ -443,7 +443,6 @@
                 ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
             }
 
-            // TODO: Parse commands
             Eat(TokenKind.CloseBraceToken);
 
             return new ShaderGrabPassNode
