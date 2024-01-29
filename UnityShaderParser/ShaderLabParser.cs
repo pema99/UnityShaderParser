@@ -107,8 +107,6 @@
                 if (categoryCommands.Count > 0)
                     ParseCommandsIfPresent(categoryCommands.Peek());
 
-                int lastPosition = position;
-
                 Token next = Peek();
                 if (next.Kind == TokenKind.CloseBraceToken)
                     break;
@@ -156,13 +154,6 @@
                         Advance();
                         Error($"SubShader, Fallback, Dependency or CustomEditor", next);
                         break;
-                }
-
-                if (position == lastPosition)
-                {
-                    // TODO: Get rid of these
-                    Error($"Parser got stuck on token type '{next.Kind}'. Please file a bug report.");
-                    break;
                 }
             }
 
@@ -379,8 +370,6 @@
 
             while (!IsAtEnd())
             {
-                int lastPosition = position;
-
                 Token next = Peek();
                 if (next.Kind == TokenKind.CloseBraceToken)
                     break;
@@ -394,12 +383,6 @@
                     default:
                         ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
                         break;
-                }
-
-                if (position == lastPosition)
-                {
-                    Error($"Parser got stuck on token type '{next.Kind}'. Please file a bug report.");
-                    break;
                 }
             }
 
@@ -499,8 +482,6 @@
             bool run = true;
             while (run)
             {
-                int lastPosition = position;
-
                 Token next = Peek();
                 switch (next.Kind)
                 {
@@ -531,12 +512,6 @@
                     default:
                         run = false;
                         break;
-                }
-
-                if (run && position == lastPosition)
-                {
-                    Error($"Parser got stuck on token type '{next.Kind}'. Please file a bug report.");
-                    break;
                 }
             }
         }
