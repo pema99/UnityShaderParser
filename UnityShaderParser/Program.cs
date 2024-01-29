@@ -113,6 +113,12 @@ public enum TokenKind
     CompFrontKeyword,
     FailKeyword,
     ZFailKeyword,
+    FailBackKeyword,
+    FailFrontKeyword,
+    ZFailBackKeyword,
+    ZFailFrontKeyword,
+    PassFrontKeyword,
+    PassBackKeyword,
     UsePassKeyword,
     GrabPassKeyword,
     DependencyKeyword,
@@ -157,14 +163,6 @@ public enum TokenKind
     OneMinusSrcAlphaKeyword,
     OneMinusDstColorKeyword,
     OneMinusDstAlphaKeyword,
-    NeverKeyword,
-    LessKeyword,
-    EqualKeyword,
-    LEqualKeyword,
-    GreaterKeyword,
-    NotEqualKeyword,
-    GEqualKeyword,
-    AlwaysKeyword,
     GlobalKeyword,
     AddKeyword,
     SubKeyword,
@@ -296,6 +294,12 @@ public static class SyntaxFacts
             case "compfront": token = TokenKind.CompFrontKeyword; return true;
             case "fail": token = TokenKind.FailKeyword; return true;
             case "zfail": token = TokenKind.ZFailKeyword; return true;
+            case "failback": token = TokenKind.FailBackKeyword; return true;
+            case "failfront": token = TokenKind.FailFrontKeyword; return true;
+            case "zfailback": token = TokenKind.ZFailBackKeyword; return true;
+            case "zfailfront": token = TokenKind.ZFailFrontKeyword; return true;
+            case "passfront": token = TokenKind.PassFrontKeyword; return true;
+            case "passback": token = TokenKind.PassBackKeyword; return true;
             case "usepass": token = TokenKind.UsePassKeyword; return true;
             case "grabpass": token = TokenKind.GrabPassKeyword; return true;
             case "dependency": token = TokenKind.DependencyKeyword; return true;
@@ -339,14 +343,6 @@ public static class SyntaxFacts
             case "oneminussrcalpha": token = TokenKind.OneMinusSrcAlphaKeyword; return true;
             case "oneminusdstcolor": token = TokenKind.OneMinusDstColorKeyword; return true;
             case "oneminusdstalpha": token = TokenKind.OneMinusDstAlphaKeyword; return true;
-            case "never": token = TokenKind.NeverKeyword; return true;
-            case "less": token = TokenKind.LessKeyword; return true;
-            case "equal": token = TokenKind.EqualKeyword; return true;
-            case "lequal": token = TokenKind.LEqualKeyword; return true;
-            case "greater": token = TokenKind.GreaterKeyword; return true;
-            case "notequal": token = TokenKind.NotEqualKeyword; return true;
-            case "gequal": token = TokenKind.GEqualKeyword; return true;
-            case "always": token = TokenKind.AlwaysKeyword; return true;
             case "global": token = TokenKind.GlobalKeyword; return true;
             case "add": token = TokenKind.AddKeyword; return true;
             case "sub": token = TokenKind.SubKeyword; return true;
@@ -1079,6 +1075,38 @@ public class ShaderLabCommandColorMaterialNode : ShaderLabCommandNode
     public bool Emission => !AmbientAndDiffuse;
 }
 
+public enum StencilOp
+{
+    Keep,
+    Zero,
+    Replace,
+    IncrSat,
+    DecrSat,
+    Invert,
+    IncrWrap,
+    DecrWrap,
+}
+
+public class ShaderLabCommandStencilNode : ShaderLabCommandNode
+{
+    public PropertyReferenceOr<byte> Ref { get; set; }
+    public PropertyReferenceOr<byte> ReadMask { get; set; }
+    public PropertyReferenceOr<byte> WriteMask { get; set; }
+    public PropertyReferenceOr<ComparisonMode> ComparisonOperationBack { get; set; }
+    public PropertyReferenceOr<StencilOp> PassOperationBack { get; set; }
+    public PropertyReferenceOr<StencilOp> FailOperationBack { get; set; }
+    public PropertyReferenceOr<StencilOp> ZFailOperationBack { get; set; }
+    public PropertyReferenceOr<ComparisonMode> ComparisonOperationFront { get; set; }
+    public PropertyReferenceOr<StencilOp> PassOperationFront { get; set; }
+    public PropertyReferenceOr<StencilOp> FailOperationFront { get; set; }
+    public PropertyReferenceOr<StencilOp> ZFailOperationFront { get; set; }
+    public PropertyReferenceOr<ComparisonMode> ComparisonOperation => ComparisonOperationFront;
+    public PropertyReferenceOr<StencilOp> PassOperation => PassOperationFront;
+    public PropertyReferenceOr<StencilOp> FailOperation => FailOperationFront;
+    public PropertyReferenceOr<StencilOp> ZFailOperation => ZFailOperationFront;
+
+}
+
 public class ShaderLabParser
 {
     private List<Token> tokens = new();
@@ -1306,6 +1334,16 @@ public class ShaderLabParser
         return float.Parse(literal, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture);
     }
 
+    public int ParseIntegerLiteral()
+    {
+        return (int)ParseNumericLiteral();
+    }
+
+    public byte ParseByteLiteral()
+    {
+        return (byte)ParseNumericLiteral();
+    }
+
     public PropertyNode ParseProperty()
     {
         List<string> attributes = new();
@@ -1387,7 +1425,7 @@ public class ShaderLabParser
                 break;
 
             case PropertyKind.Integer or PropertyKind.Int:
-                valueNode = new PropertyValueIntegerNode { Number = (int)ParseNumericLiteral() };
+                valueNode = new PropertyValueIntegerNode { Number = ParseIntegerLiteral() };
                 break;
 
             case PropertyKind.Float or PropertyKind.Range:
@@ -1616,7 +1654,7 @@ public class ShaderLabParser
     public ShaderLabCommandLodNode ParseLodCommand()
     {
         Eat(TokenKind.LodKeyword);
-        int level = (int)ParseNumericLiteral();
+        int level = ParseIntegerLiteral();
         return new ShaderLabCommandLodNode
         {
             LodLevel = level,
@@ -1665,30 +1703,25 @@ public class ShaderLabParser
         return new ShaderLabCommandCullNode { Mode = prop };
     }
 
-    private static readonly Dictionary<TokenKind, ComparisonMode> comparisonModes = new()
+    public TEnum ParseEnum<TEnum>(string expected)
+        where TEnum : struct
     {
-        { TokenKind.TrueKeyword, ComparisonMode.Always },
-        { TokenKind.FalseKeyword, ComparisonMode.Off },
-        { TokenKind.OnKeyword, ComparisonMode.Always },
-        { TokenKind.OffKeyword, ComparisonMode.Off },
-        { TokenKind.NeverKeyword, ComparisonMode.Never },
-        { TokenKind.LessKeyword, ComparisonMode.Less },
-        { TokenKind.EqualKeyword, ComparisonMode.Equal },
-        { TokenKind.LEqualKeyword, ComparisonMode.LEqual },
-        { TokenKind.GreaterKeyword, ComparisonMode.Greater },
-        { TokenKind.GEqualKeyword, ComparisonMode.GEqual },
-        { TokenKind.AlwaysKeyword, ComparisonMode.Always },
-    };
-    private static readonly TokenKind[] comparisonModesKeys = comparisonModes.Keys.ToArray();
+        Token next = Advance();
+        if (Enum.TryParse<TEnum>(next.Identifier, true, out TEnum result))
+        {
+            return result;
+        }
+        else
+        {
+            Error(expected, next);
+            return default;
+        }
+    }
 
     public ShaderLabCommandZTestNode ParseZTestCommand()
     {
         Eat(TokenKind.ZTestKeyword);
-        var prop = ParsePropertyReferenceOr(() =>
-        {
-            var kind = Eat(comparisonModesKeys).Kind;
-            return comparisonModes.GetValueOrDefault(kind);
-        });
+        var prop = ParsePropertyReferenceOr(() => ParseEnum<ComparisonMode>("a valid comparison operator"));
         return new ShaderLabCommandZTestNode { Mode = prop };
     }
 
@@ -1715,7 +1748,7 @@ public class ShaderLabParser
         int renderTarget = 0;
         if (Match(TokenKind.FloatLiteralToken, TokenKind.IntegerLiteralToken))
         {
-            renderTarget = (int)ParseNumericLiteral();
+            renderTarget = ParseIntegerLiteral();
         }
 
         if (Match(TokenKind.OffKeyword, TokenKind.FalseKeyword))
@@ -1780,7 +1813,7 @@ public class ShaderLabParser
         int renderTarget = 0;
         if (Match(TokenKind.FloatLiteralToken, TokenKind.IntegerLiteralToken))
         {
-            renderTarget = (int)ParseNumericLiteral();
+            renderTarget = ParseIntegerLiteral();
         }
         return new ShaderLabCommandColorMaskNode { RenderTarget = renderTarget, Mask = mask };
     }
@@ -1788,11 +1821,7 @@ public class ShaderLabParser
     public ShaderLabCommandAlphaTestNode ParseAlphaTestCommand()
     {
         Eat(TokenKind.AlphaTestKeyword);
-        var prop = ParsePropertyReferenceOr(() =>
-        {
-            var kind = Eat(comparisonModesKeys).Kind;
-            return comparisonModes.GetValueOrDefault(kind);
-        });
+        var prop = ParsePropertyReferenceOr(() => ParseEnum<ComparisonMode>("a valid comparison operator"));
         PropertyReferenceOr<float>? alpha = null;
         if (Match(TokenKind.FloatLiteralToken, TokenKind.IntegerLiteralToken, TokenKind.BracketedStringLiteralToken))
         {
@@ -1996,6 +2025,62 @@ public class ShaderLabParser
         Eat(TokenKind.ColorMaterialKeyword);
         bool ambient = Eat(TokenKind.EmissionKeyword, TokenKind.AmbientAndDiffuseKeyword).Kind == TokenKind.AmbientAndDiffuseKeyword;
         return new ShaderLabCommandColorMaterialNode { AmbientAndDiffuse = ambient };
+    }
+
+    public ShaderLabCommandStencilNode ParseStencilNode()
+    {
+        Eat(TokenKind.StencilKeyword);
+        Eat(TokenKind.OpenBraceToken);
+
+        // Set defaults
+        var result = new ShaderLabCommandStencilNode
+        {
+            Ref = new PropertyReferenceOr<byte> { Value = 0 },
+            ReadMask = new PropertyReferenceOr<byte> { Value = 255 },
+            WriteMask = new PropertyReferenceOr<byte> { Value = 255 },
+            ComparisonOperationBack = new PropertyReferenceOr<ComparisonMode> { Value = ComparisonMode.Always },
+            PassOperationBack = new PropertyReferenceOr<StencilOp> { Value = StencilOp.Keep },
+            FailOperationBack = new PropertyReferenceOr<StencilOp> { Value = StencilOp.Keep },
+            ZFailOperationBack = new PropertyReferenceOr<StencilOp> { Value = StencilOp.Keep },
+            ComparisonOperationFront = new PropertyReferenceOr<ComparisonMode> { Value = ComparisonMode.Always },
+            PassOperationFront = new PropertyReferenceOr<StencilOp> { Value = StencilOp.Keep },
+            FailOperationFront = new PropertyReferenceOr<StencilOp> { Value = StencilOp.Keep },
+            ZFailOperationFront = new PropertyReferenceOr<StencilOp> { Value = StencilOp.Keep },
+        };
+
+        StencilOp ParseStencilOp() => ParseEnum<StencilOp>("a valid stencil operator");
+        ComparisonMode ParseComparisonMode() => ParseEnum<ComparisonMode>("a valid stencil comparison operator");
+
+        while (!Match(TokenKind.CloseBraceToken))
+        {
+            Token next = Advance();
+            switch (next.Kind)
+            {
+                case TokenKind.RefKeyword: result.Ref = ParsePropertyReferenceOr(ParseByteLiteral); break;
+                case TokenKind.ReadMaskKeyword: result.ReadMask = ParsePropertyReferenceOr(ParseByteLiteral); break;
+                case TokenKind.WriteMaskKeyword: result.WriteMask = ParsePropertyReferenceOr(ParseByteLiteral); break;
+                case TokenKind.CompKeyword: result.ComparisonOperationBack = result.ComparisonOperationFront = ParsePropertyReferenceOr(ParseComparisonMode); break;
+                case TokenKind.PassKeyword: result.PassOperationBack = result.PassOperationFront = ParsePropertyReferenceOr(ParseStencilOp); break;
+                case TokenKind.FailKeyword: result.FailOperationBack = result.FailOperationFront = ParsePropertyReferenceOr(ParseStencilOp); break;
+                case TokenKind.ZFailKeyword: result.ZFailOperationBack = result.ZFailOperationFront = ParsePropertyReferenceOr(ParseStencilOp); break;
+                case TokenKind.CompBackKeyword: result.ComparisonOperationBack = ParsePropertyReferenceOr(ParseComparisonMode); break;
+                case TokenKind.PassBackKeyword: result.PassOperationBack = ParsePropertyReferenceOr(ParseStencilOp); break;
+                case TokenKind.FailBackKeyword: result.FailOperationBack = ParsePropertyReferenceOr(ParseStencilOp); break;
+                case TokenKind.ZFailBackKeyword: result.ZFailOperationBack = ParsePropertyReferenceOr(ParseStencilOp); break;
+                case TokenKind.CompFrontKeyword: result.ComparisonOperationFront = ParsePropertyReferenceOr(ParseComparisonMode); break;
+                case TokenKind.PassFrontKeyword: result.PassOperationFront = ParsePropertyReferenceOr(ParseStencilOp); break;
+                case TokenKind.FailFrontKeyword: result.FailOperationFront = ParsePropertyReferenceOr(ParseStencilOp); break;
+                case TokenKind.ZFailFrontKeyword: result.ZFailOperationFront = ParsePropertyReferenceOr(ParseStencilOp); break;
+
+                default:
+                    Error("a valid stencil operation", next);
+                    break;
+            }
+        }
+
+        Eat(TokenKind.CloseBraceToken);
+
+        return result;
     }
 }
 

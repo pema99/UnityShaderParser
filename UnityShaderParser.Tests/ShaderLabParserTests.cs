@@ -15,7 +15,6 @@ namespace UnityShaderParser.Tests
 
         // TODO:
         // Category
-        // Stencil
 
         [Test, TestCaseSource(nameof(GetBuiltinUnityShaders))]
         public void ParseUnityShader(string path)
