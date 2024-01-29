@@ -389,7 +389,7 @@ public class ShaderLabLexer
                 case '2' when LookAhead('D') || LookAhead('d'): Advance(2); Add(TokenKind._2DKeyword); break;
                 case '3' when LookAhead('D') || LookAhead('d'): Advance(2); Add(TokenKind._3DKeyword); break;
 
-                case char c when char.IsDigit(c) || c == '.':
+                case char c when char.IsDigit(c) || c == '.' || c == '-':
                     LexNumber();
                     break;
 
@@ -573,6 +573,10 @@ public class ShaderLabLexer
     private void LexNumber()
     {
         StringBuilder builder = new();
+        if (Match('-'))
+        {
+            builder.Append(Advance());
+        }
         while (true)
         {
             char c = Peek();
