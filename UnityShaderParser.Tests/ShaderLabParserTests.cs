@@ -2,7 +2,7 @@ using NUnit.Framework;
 using System.IO;
 using System.Linq;
 
-namespace UnityShaderParser.Tests
+namespace UnityShaderParser.ShaderLab.Tests
 {
     public class Tests
     {
