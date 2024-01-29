@@ -99,6 +99,8 @@ public enum TokenKind
     BlendOpKeyword,
     ColorMaskKeyword,
     AlphaToMaskKeyword,
+    ZClipKeyword,
+    ConservativeKeyword,
     LodKeyword,
     NameKeyword,
     LightingKeyword,
@@ -120,6 +122,7 @@ public enum TokenKind
     ShininessKeyword,
     SpecularKeyword,
     EmissionKeyword,
+    AmbientAndDiffuseKeyword,
     FogKeyword,
     ModeKeyword,
     DensityKeyword,
@@ -163,6 +166,41 @@ public enum TokenKind
     GEqualKeyword,
     AlwaysKeyword,
     GlobalKeyword,
+    AddKeyword,
+    SubKeyword,
+    RevSubKeyword,
+    MinKeyword,
+    MaxKeyword,
+    LogicalClearKeyword,
+    LogicalSetKeyword,
+    LogicalCopyKeyword,
+    LogicalCopyInvertedKeyword,
+    LogicalNoopKeyword,
+    LogicalInvertKeyword,
+    LogicalAndKeyword,
+    LogicalNandKeyword,
+    LogicalOrKeyword,
+    LogicalNorKeyword,
+    LogicalXorKeyword,
+    LogicalEquivKeyword,
+    LogicalAndReverseKeyword,
+    LogicalOrReverseKeyword,
+    LogicalOrInvertedKeyword,
+    MultiplyKeyword,
+    ScreenKeyword,
+    OverlayKeyword,
+    DarkenKeyword,
+    LightenKeyword,
+    ColorDodgeKeyword,
+    ColorBurnKeyword,
+    HardLightKeyword,
+    SoftLightKeyword,
+    DifferenceKeyword,
+    ExclusionKeyword,
+    HSLHueKeyword,
+    HSLSaturationKeyword,
+    HSLColorKeyword,
+    HSLLuminosityKeyword,
 
     IncludeBlock,
     ProgramBlock,
@@ -244,6 +282,8 @@ public static class SyntaxFacts
             case "blendop": token = TokenKind.BlendOpKeyword; return true;
             case "colormask": token = TokenKind.ColorMaskKeyword; return true;
             case "alphatomask": token = TokenKind.AlphaToMaskKeyword; return true;
+            case "zclip": token = TokenKind.ZClipKeyword; return true;
+            case "conservative": token = TokenKind.ConservativeKeyword; return true;
             case "lod": token = TokenKind.LodKeyword; return true;
             case "name": token = TokenKind.NameKeyword; return true;
             case "lighting": token = TokenKind.LightingKeyword; return true;
@@ -265,6 +305,7 @@ public static class SyntaxFacts
             case "shininess": token = TokenKind.ShininessKeyword; return true;
             case "specular": token = TokenKind.SpecularKeyword; return true;
             case "emission": token = TokenKind.EmissionKeyword; return true;
+            case "ambientanddiffuse": token = TokenKind.AmbientAndDiffuseKeyword; return true;
             case "fog": token = TokenKind.FogKeyword; return true;
             case "mode": token = TokenKind.ModeKeyword; return true;
             case "density": token = TokenKind.DensityKeyword; return true;
@@ -307,6 +348,41 @@ public static class SyntaxFacts
             case "gequal": token = TokenKind.GEqualKeyword; return true;
             case "always": token = TokenKind.AlwaysKeyword; return true;
             case "global": token = TokenKind.GlobalKeyword; return true;
+            case "add": token = TokenKind.AddKeyword; return true;
+            case "sub": token = TokenKind.SubKeyword; return true;
+            case "revsub": token = TokenKind.RevSubKeyword; return true;
+            case "min": token = TokenKind.MinKeyword; return true;
+            case "max": token = TokenKind.MaxKeyword; return true;
+            case "logicalclear": token = TokenKind.LogicalClearKeyword; return true;
+            case "logicalset": token = TokenKind.LogicalSetKeyword; return true;
+            case "logicalcopy": token = TokenKind.LogicalCopyKeyword; return true;
+            case "logicalcopyinverted": token = TokenKind.LogicalCopyInvertedKeyword; return true;
+            case "logicalnoop": token = TokenKind.LogicalNoopKeyword; return true;
+            case "logicalinvert": token = TokenKind.LogicalInvertKeyword; return true;
+            case "logicaland": token = TokenKind.LogicalAndKeyword; return true;
+            case "logicalnand": token = TokenKind.LogicalNandKeyword; return true;
+            case "logicalor": token = TokenKind.LogicalOrKeyword; return true;
+            case "logicalnor": token = TokenKind.LogicalNorKeyword; return true;
+            case "logicalxor": token = TokenKind.LogicalXorKeyword; return true;
+            case "logicalequiv": token = TokenKind.LogicalEquivKeyword; return true;
+            case "logicalandreverse": token = TokenKind.LogicalAndReverseKeyword; return true;
+            case "logicalorreverse": token = TokenKind.LogicalOrReverseKeyword; return true;
+            case "logicalorinverted": token = TokenKind.LogicalOrInvertedKeyword; return true;
+            case "multiply": token = TokenKind.MultiplyKeyword; return true;
+            case "screen": token = TokenKind.ScreenKeyword; return true;
+            case "overlay": token = TokenKind.OverlayKeyword; return true;
+            case "darken": token = TokenKind.DarkenKeyword; return true;
+            case "lighten": token = TokenKind.LightenKeyword; return true;
+            case "colordodge": token = TokenKind.ColorDodgeKeyword; return true;
+            case "colorburn": token = TokenKind.ColorBurnKeyword; return true;
+            case "hardlight": token = TokenKind.HardLightKeyword; return true;
+            case "softlight": token = TokenKind.SoftLightKeyword; return true;
+            case "difference": token = TokenKind.DifferenceKeyword; return true;
+            case "exclusion": token = TokenKind.ExclusionKeyword; return true;
+            case "hslhue": token = TokenKind.HSLHueKeyword; return true;
+            case "hslsaturation": token = TokenKind.HSLSaturationKeyword; return true;
+            case "hslcolor": token = TokenKind.HSLColorKeyword; return true;
+            case "hslluminosity": token = TokenKind.HSLLuminosityKeyword; return true;
             default: return false;
         }
     }
@@ -807,10 +883,17 @@ public struct PropertyReferenceOr<TOther>
     }
 }
 
-public class ShaderLabCommandLightingNode : ShaderLabCommandNode
+public class ShaderLabBasicToggleCommandNode : ShaderLabCommandNode
 {
     public PropertyReferenceOr<bool> Enabled { get; set; }
 }
+
+public class ShaderLabCommandLightingNode : ShaderLabBasicToggleCommandNode { }
+public class ShaderLabCommandSeparateSpecularNode : ShaderLabBasicToggleCommandNode { }
+public class ShaderLabCommandZWriteNode : ShaderLabBasicToggleCommandNode { }
+public class ShaderLabCommandAlphaToMaskNode : ShaderLabBasicToggleCommandNode { }
+public class ShaderLabCommandZClipNode : ShaderLabBasicToggleCommandNode { }
+public class ShaderLabCommandConservativeNode : ShaderLabBasicToggleCommandNode { }
 
 public enum CullMode
 {
@@ -840,11 +923,6 @@ public enum ComparisonMode
 public class ShaderLabCommandZTestNode : ShaderLabCommandNode
 {
     public PropertyReferenceOr<ComparisonMode> Mode { get; set; }
-}
-
-public class ShaderLabCommandZWriteNode : ShaderLabCommandNode
-{
-    public PropertyReferenceOr<bool> Enabled { get; set; }
 }
 
 public enum BlendFactor
@@ -892,11 +970,6 @@ public class ShaderLabCommandAlphaTestNode : ShaderLabCommandNode
     public PropertyReferenceOr<float>? AlphaValue { get; set; }
 }
 
-public class ShaderLabCommandAlphaToMaskNode : ShaderLabCommandNode
-{
-    public PropertyReferenceOr<bool> Enabled { get; set; }
-}
-
 public class ShaderLabCommandFogNode : ShaderLabCommandNode
 {
     public bool Enabled { get; set; } = false;
@@ -933,6 +1006,77 @@ public class ShaderLabCommandColorNode : ShaderLabCommandNode
 {
     public bool HasAlphaChannel { get; set; } = false;
     public PropertyReferenceOr<(float r, float g, float b, float a)> Color { get; set; }
+}
+
+public enum BlendOp
+{
+    Add,
+    Sub,
+    RevSub,
+    Min,
+    Max,
+    LogicalClear,
+    LogicalSet,
+    LogicalCopy,
+    LogicalCopyInverted,
+    LogicalNoop,
+    LogicalInvert,
+    LogicalAnd,
+    LogicalNand,
+    LogicalOr,
+    LogicalNor,
+    LogicalXor,
+    LogicalEquiv,
+    LogicalAndReverse,
+    LogicalOrReverse,
+    LogicalOrInverted,
+    Multiply,
+    Screen,
+    Overlay,
+    Darken,
+    Lighten,
+    ColorDodge,
+    ColorBurn,
+    HardLight,
+    SoftLight,
+    Difference,
+    Exclusion,
+    HSLHue,
+    HSLSaturation,
+    HSLColor,
+    HSLLuminosity,
+}
+
+public class ShaderLabCommandBlendOpNode : ShaderLabCommandNode
+{
+    public PropertyReferenceOr<BlendOp> BlendOp { get; set; }
+}
+
+public enum FixedFunctionMaterialProperty
+{
+    Diffuse,
+    Ambient,
+    Shininess,
+    Specular,
+    Emission,
+}
+
+public class ShaderLabCommandMaterialNode : ShaderLabCommandNode
+{
+    public Dictionary<FixedFunctionMaterialProperty, PropertyReferenceOr<(float r, float g, float b, float a)>> Properties { get; set; } = new();
+}
+
+public class ShaderLabCommandSetTextureNode : ShaderLabCommandNode
+{
+    // TODO: Not the lazy way
+    public string TextureName { get; set; } = string.Empty;
+    public List<Token> Body { get; set; } = new();
+}
+
+public class ShaderLabCommandColorMaterialNode : ShaderLabCommandNode
+{
+    public bool AmbientAndDiffuse { get; set; } = false;
+    public bool Emission => !AmbientAndDiffuse;
 }
 
 public class ShaderLabParser
@@ -1222,7 +1366,7 @@ public class ShaderLabParser
                 float y = ParseNumericLiteral();
                 Eat(TokenKind.CommaToken);
                 float z = ParseNumericLiteral();
-                float w = 0;
+                float w = 1;
                 bool hasLastChannel = false;
                 if (Match(TokenKind.CommaToken))
                 {
@@ -1410,21 +1554,28 @@ public class ShaderLabParser
             Token next = Peek();
             switch (next.Kind)
             {
+                case TokenKind.LightingKeyword: outCommands.Add(ParseBasicToggleCommand<ShaderLabCommandLightingNode>(next.Kind)); break;
+                case TokenKind.SeparateSpecularKeyword: outCommands.Add(ParseBasicToggleCommand<ShaderLabCommandSeparateSpecularNode>(next.Kind)); break;
+                case TokenKind.ZWriteKeyword: outCommands.Add(ParseBasicToggleCommand<ShaderLabCommandZWriteNode>(next.Kind)); break;
+                case TokenKind.AlphaToMaskKeyword: outCommands.Add(ParseBasicToggleCommand<ShaderLabCommandAlphaToMaskNode>(next.Kind)); break;
+                case TokenKind.ZClipKeyword: outCommands.Add(ParseBasicToggleCommand<ShaderLabCommandZClipNode>(next.Kind)); break;
+                case TokenKind.ConservativeKeyword: outCommands.Add(ParseBasicToggleCommand<ShaderLabCommandConservativeNode>(next.Kind)); break;
                 case TokenKind.TagsKeyword: outCommands.Add(ParseTagsCommand()); break;
                 case TokenKind.LodKeyword: outCommands.Add(ParseLodCommand()); break;
-                case TokenKind.LightingKeyword: outCommands.Add(ParseLightingCommand()); break;
                 case TokenKind.CullKeyword: outCommands.Add(ParseCullCommand()); break;
                 case TokenKind.ZTestKeyword: outCommands.Add(ParseZTestCommand()); break;
-                case TokenKind.ZWriteKeyword: outCommands.Add(ParseZWriteCommand()); break;
                 case TokenKind.BlendKeyword: outCommands.Add(ParseBlendCommand()); break;
                 case TokenKind.OffsetKeyword: outCommands.Add(ParseOffsetCommand()); break;
                 case TokenKind.ColorMaskKeyword: outCommands.Add(ParseColorMaskCommand()); break;
                 case TokenKind.AlphaTestKeyword: outCommands.Add(ParseAlphaTestCommand()); break;
-                case TokenKind.AlphaToMaskKeyword: outCommands.Add(ParseAlphaToMaskCommand()); break;
                 case TokenKind.FogKeyword: outCommands.Add(ParseFogCommand()); break;
                 case TokenKind.NameKeyword: outCommands.Add(ParseNameCommand()); break;
                 case TokenKind.BindChannelsKeyword: outCommands.Add(ParseBindChannelsCommand()); break;
                 case TokenKind.ColorKeyword: outCommands.Add(ParseColorCommand()); break;
+                case TokenKind.BlendOpKeyword: outCommands.Add(ParseBlendOpCommand()); break;
+                case TokenKind.MaterialKeyword: outCommands.Add(ParseMaterialCommand()); break;
+                case TokenKind.SetTextureKeyword: outCommands.Add(ParseSetTextureCommand()); break;
+                case TokenKind.ColorMaterialKeyword: outCommands.Add(ParseColorMaterialNode()); break;
 
                 default:
                     run = false;
@@ -1484,15 +1635,16 @@ public class ShaderLabParser
         }
     }
 
-    public ShaderLabCommandLightingNode ParseLightingCommand()
+    public T ParseBasicToggleCommand<T>(TokenKind keyword)
+        where T : ShaderLabBasicToggleCommandNode, new()
     {
-        Eat(TokenKind.LightingKeyword);
+        Eat(keyword);
         var prop = ParsePropertyReferenceOr(() =>
         {
             var kind = Eat(TokenKind.OnKeyword, TokenKind.OffKeyword, TokenKind.TrueKeyword, TokenKind.FalseKeyword).Kind;
             return kind is TokenKind.OnKeyword or TokenKind.TrueKeyword;
         });
-        return new ShaderLabCommandLightingNode { Enabled = prop };
+        return new T { Enabled = prop };
     }
 
     public ShaderLabCommandCullNode ParseCullCommand()
@@ -1538,17 +1690,6 @@ public class ShaderLabParser
             return comparisonModes.GetValueOrDefault(kind);
         });
         return new ShaderLabCommandZTestNode { Mode = prop };
-    }
-
-    public ShaderLabCommandZWriteNode ParseZWriteCommand()
-    {
-        Eat(TokenKind.ZWriteKeyword);
-        var prop = ParsePropertyReferenceOr(() =>
-        {
-            var kind = Eat(TokenKind.OnKeyword, TokenKind.OffKeyword, TokenKind.TrueKeyword, TokenKind.FalseKeyword).Kind;
-            return kind is TokenKind.OnKeyword or TokenKind.TrueKeyword;
-        });
-        return new ShaderLabCommandZWriteNode { Enabled = prop };
     }
 
     private static readonly Dictionary<TokenKind, BlendFactor> blendFactors = new()
@@ -1660,15 +1801,24 @@ public class ShaderLabParser
         return new ShaderLabCommandAlphaTestNode { Mode = prop, AlphaValue = alpha };
     }
 
-    public ShaderLabCommandAlphaToMaskNode ParseAlphaToMaskCommand()
+    private void ParseColor(out (float r, float g, float b, float a) color, out bool hasAlphaChannel)
     {
-        Eat(TokenKind.AlphaToMaskKeyword);
-        var prop = ParsePropertyReferenceOr(() =>
+        hasAlphaChannel = false;
+        float r, g, b, a = 1;
+        Eat(TokenKind.OpenParenToken);
+        r = ParseNumericLiteral();
+        Eat(TokenKind.CommaToken);
+        g = ParseNumericLiteral();
+        Eat(TokenKind.CommaToken);
+        b = ParseNumericLiteral();
+        if (Match(TokenKind.CommaToken))
         {
-            var kind = Eat(TokenKind.OnKeyword, TokenKind.OffKeyword, TokenKind.TrueKeyword, TokenKind.FalseKeyword).Kind;
-            return kind is TokenKind.OnKeyword or TokenKind.TrueKeyword;
-        });
-        return new ShaderLabCommandAlphaToMaskNode { Enabled = prop };
+            Eat(TokenKind.CommaToken);
+            a = ParseNumericLiteral();
+            hasAlphaChannel = true;
+        }
+        Eat(TokenKind.CloseParenToken);
+        color = (r, g, b, a);
     }
 
     public ShaderLabCommandFogNode ParseFogCommand()
@@ -1680,20 +1830,11 @@ public class ShaderLabParser
         bool isEnabled;
         if (Match(TokenKind.ColorKeyword))
         {
-            float r, g, b, a;
-            Eat(TokenKind.ColorKeyword);
-            Eat(TokenKind.OpenParenToken);
-            r = ParseNumericLiteral();
-            Eat(TokenKind.CommaToken);
-            g = ParseNumericLiteral();
-            Eat(TokenKind.CommaToken);
-            b = ParseNumericLiteral();
-            Eat(TokenKind.CommaToken);
-            a = ParseNumericLiteral();
-            Eat(TokenKind.CloseParenToken);
-
             isEnabled = true;
-            color = (r, g, b, a);
+
+            Eat(TokenKind.ColorKeyword);
+            ParseColor(out var parsedColor, out _);
+            color = parsedColor;
         }
         else
         {
@@ -1750,23 +1891,111 @@ public class ShaderLabParser
         bool hasAlphaChannel = false;
         var prop = ParsePropertyReferenceOr(() =>
         {
-            float r, g, b, a = 0;
-            Eat(TokenKind.OpenParenToken);
-            r = ParseNumericLiteral();
-            Eat(TokenKind.CommaToken);
-            g = ParseNumericLiteral();
-            Eat(TokenKind.CommaToken);
-            b = ParseNumericLiteral();
-            if (Match(TokenKind.CommaToken))
-            {
-                Eat(TokenKind.CommaToken);
-                a = ParseNumericLiteral();
-                hasAlphaChannel = true;
-            }
-            Eat(TokenKind.CloseParenToken);
-            return (r, g, b, a);
+            ParseColor(out var color, out hasAlphaChannel);
+            return color;
         });
         return new ShaderLabCommandColorNode { Color = prop, HasAlphaChannel = hasAlphaChannel };
+    }
+
+    private static readonly Dictionary<TokenKind, BlendOp> blendOps = new()
+    {
+        { TokenKind.AddKeyword, BlendOp.Add }, 
+        { TokenKind.SubKeyword, BlendOp.Sub }, 
+        { TokenKind.RevSubKeyword, BlendOp.RevSub }, 
+        { TokenKind.MinKeyword, BlendOp.Min }, 
+        { TokenKind.MaxKeyword, BlendOp.Max }, 
+        { TokenKind.LogicalClearKeyword, BlendOp.LogicalClear }, 
+        { TokenKind.LogicalSetKeyword, BlendOp.LogicalSet }, 
+        { TokenKind.LogicalCopyKeyword, BlendOp.LogicalCopy }, 
+        { TokenKind.LogicalCopyInvertedKeyword, BlendOp.LogicalCopyInverted }, 
+        { TokenKind.LogicalNoopKeyword, BlendOp.LogicalNoop }, 
+        { TokenKind.LogicalInvertKeyword, BlendOp.LogicalInvert }, 
+        { TokenKind.LogicalAndKeyword, BlendOp.LogicalAnd }, 
+        { TokenKind.LogicalNandKeyword, BlendOp.LogicalNand }, 
+        { TokenKind.LogicalOrKeyword, BlendOp.LogicalOr }, 
+        { TokenKind.LogicalNorKeyword, BlendOp.LogicalNor }, 
+        { TokenKind.LogicalXorKeyword, BlendOp.LogicalXor }, 
+        { TokenKind.LogicalEquivKeyword, BlendOp.LogicalEquiv }, 
+        { TokenKind.LogicalAndReverseKeyword, BlendOp.LogicalAndReverse }, 
+        { TokenKind.LogicalOrReverseKeyword, BlendOp.LogicalOrReverse }, 
+        { TokenKind.LogicalOrInvertedKeyword, BlendOp.LogicalOrInverted }, 
+        { TokenKind.MultiplyKeyword, BlendOp.Multiply }, 
+        { TokenKind.ScreenKeyword, BlendOp.Screen }, 
+        { TokenKind.OverlayKeyword, BlendOp.Overlay }, 
+        { TokenKind.DarkenKeyword, BlendOp.Darken }, 
+        { TokenKind.LightenKeyword, BlendOp.Lighten }, 
+        { TokenKind.ColorDodgeKeyword, BlendOp.ColorDodge }, 
+        { TokenKind.ColorBurnKeyword, BlendOp.ColorBurn }, 
+        { TokenKind.HardLightKeyword, BlendOp.HardLight }, 
+        { TokenKind.SoftLightKeyword, BlendOp.SoftLight }, 
+        { TokenKind.DifferenceKeyword, BlendOp.Difference }, 
+        { TokenKind.ExclusionKeyword, BlendOp.Exclusion }, 
+        { TokenKind.HSLHueKeyword, BlendOp.HSLHue }, 
+        { TokenKind.HSLSaturationKeyword, BlendOp.HSLSaturation }, 
+        { TokenKind.HSLColorKeyword, BlendOp.HSLColor }, 
+        { TokenKind.HSLLuminosityKeyword, BlendOp.HSLLuminosity }, 
+    };
+    private static readonly TokenKind[] blendOpsKeys = blendOps.Keys.ToArray();
+    public ShaderLabCommandBlendOpNode ParseBlendOpCommand()
+    {
+        Eat(TokenKind.BlendOpKeyword);
+        var op = ParsePropertyReferenceOr(() => blendOps.GetValueOrDefault(Eat(blendOpsKeys).Kind));
+        return new ShaderLabCommandBlendOpNode { BlendOp = op };
+    }
+
+    private static readonly Dictionary<TokenKind, FixedFunctionMaterialProperty> fixedFunctionsMatProps = new()
+    {
+        { TokenKind.DiffuseKeyword, FixedFunctionMaterialProperty.Diffuse },
+        { TokenKind.SpecularKeyword, FixedFunctionMaterialProperty.Specular },
+        { TokenKind.AmbientKeyword, FixedFunctionMaterialProperty.Ambient },
+        { TokenKind.EmissionKeyword, FixedFunctionMaterialProperty.Emission },
+        { TokenKind.ShininessKeyword, FixedFunctionMaterialProperty.Shininess },
+    };
+    private static readonly TokenKind[] fixedFunctionsMatPropsKeys = fixedFunctionsMatProps.Keys.ToArray();
+    public ShaderLabCommandMaterialNode ParseMaterialCommand()
+    {
+        Eat(TokenKind.MaterialKeyword);
+        Eat(TokenKind.OpenBraceToken);
+
+        Dictionary<FixedFunctionMaterialProperty, PropertyReferenceOr<(float, float, float, float)>> props = new();
+        while (!Match(TokenKind.CloseBraceToken))
+        {
+            var prop = fixedFunctionsMatProps.GetValueOrDefault(Eat(fixedFunctionsMatPropsKeys).Kind);
+            var val = ParsePropertyReferenceOr(() =>
+            {
+                ParseColor(out var color, out _);
+                return color;
+            });
+
+        }
+
+        Eat(TokenKind.CloseBraceToken);
+
+        return new ShaderLabCommandMaterialNode { Properties = props };
+    }
+
+    public ShaderLabCommandSetTextureNode ParseSetTextureCommand()
+    {
+        Eat(TokenKind.SetTextureKeyword);
+        string name = ParseBracketedStringLiteral();
+        Eat(TokenKind.OpenBraceToken);
+
+        List<Token> tokens = new();
+        while (!Match(TokenKind.CloseBraceToken))
+        {
+            tokens.Add(Advance());
+        }
+
+        Eat(TokenKind.CloseBraceToken);
+
+        return new ShaderLabCommandSetTextureNode { TextureName = name, Body = tokens };
+    }
+
+    public ShaderLabCommandColorMaterialNode ParseColorMaterialNode()
+    {
+        Eat(TokenKind.ColorMaterialKeyword);
+        bool ambient = Eat(TokenKind.EmissionKeyword, TokenKind.AmbientAndDiffuseKeyword).Kind == TokenKind.AmbientAndDiffuseKeyword;
+        return new ShaderLabCommandColorMaterialNode { AmbientAndDiffuse = ambient };
     }
 }
 

@@ -13,11 +13,15 @@ namespace UnityShaderParser.Tests
                 .ToArray();
         }
 
+        // TODO:
+        // Category
+        // Stencil
+
         [Test, TestCaseSource(nameof(GetBuiltinUnityShaders))]
         public void ParseUnityShader(string path)
         {
             string source = File.ReadAllText(path);
-            if (source.Contains("Stencil") || source.Contains("Category") || source.Contains("Material") ||source.Contains("SetTexture") || source.Contains("BlendOp"))
+            if (source.Contains("Stencil") || source.Contains("Category"))
                 Assert.Ignore("Stencil's not yet supported");
 
             ShaderLabLexer.Lex(source, out var tokens, out var lexerDiags);
