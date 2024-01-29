@@ -743,7 +743,6 @@ public class ShaderNode : ShaderLabSyntaxNode
 {
     public string Name { get; set; } = string.Empty;
     public List<PropertyNode> Properties { get; set; } = new();
-
     public List<SubShaderNode> SubShaders { get; set; } = new();
     public string? Fallback { get; set; }
     public bool FallbackDisabledExplicitly { get; set; }
@@ -1202,9 +1201,17 @@ public class ShaderLabParser
         string? customEditor = null;
         Dictionary<string, string> dependencies = new();
 
+        // Keep track of commands inherited by categories as we parse.
+        // We essentially pretend categories don't exist, since they are a niche feature.
+        Stack<List<ShaderLabCommandNode>> categoryCommands = new();
+
         while (!IsAtEnd())
         {
             ParseIncludeBlocksIfPresent(includeBlocks);
+
+            // If we are in a category, put the commands there
+            if (categoryCommands.Count > 0)
+                ParseCommandsIfPresent(categoryCommands.Peek());
 
             int lastPosition = position;
 
@@ -1215,7 +1222,9 @@ public class ShaderLabParser
             switch (next.Kind)
             {
                 case TokenKind.SubShaderKeyword:
-                    subshaders.Add(ParseSubShader());
+                    var subShader = ParseSubShader();
+                    subShader.Commands.AddRange(categoryCommands.SelectMany(x => x));
+                    subshaders.Add(subShader);
                     break;
                 case TokenKind.FallbackKeyword:
                     Advance();
@@ -1239,6 +1248,15 @@ public class ShaderLabParser
                 case TokenKind.CustomEditorKeyword:
                     Advance();
                     customEditor = Eat(TokenKind.StringLiteralToken).Identifier ?? string.Empty;
+                    break;
+                case TokenKind.CategoryKeyword:
+                    Advance();
+                    Eat(TokenKind.OpenBraceToken);
+                    categoryCommands.Push(new());
+                    break;
+                case TokenKind.CloseBraceToken when categoryCommands.Count > 0:
+                    Advance();
+                    categoryCommands.Pop();
                     break;
                 default:
                     Advance();
@@ -2105,7 +2123,5 @@ public class Program
         {
             Console.WriteLine(diag);
         }
-
-        ;
     }
 }
