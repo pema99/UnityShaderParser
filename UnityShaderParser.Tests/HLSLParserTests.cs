@@ -6,21 +6,23 @@ namespace UnityShaderParser.HLSL.Tests
 {
     public class Tests
     {
-        public static string[] GetBuiltinUnityShaders()
+        public static string[] GetTestShaders()
         {
-            return Directory.EnumerateFiles(Directory.GetCurrentDirectory(), "*.shader", SearchOption.AllDirectories)
+            string[] extensions = { "*.hlsl", "*.fx", "*.vert", "*.frag", "*.fxh" };
+            return extensions
+                .SelectMany(ext => Directory.EnumerateFiles(Directory.GetCurrentDirectory(), ext, SearchOption.AllDirectories))
                 .Select(path => Path.GetRelativePath(Directory.GetCurrentDirectory(), path))
                 .ToArray();
         }
 
-        [Test, TestCaseSource(nameof(GetBuiltinUnityShaders))]
-        public void LexUnityShaderWithoutMacros(string path)
+        [Test, TestCaseSource(nameof(GetTestShaders))]
+        public void LexTestShadersWithoutMacros(string path)
         {
             // Read text
             string[] source = File.ReadAllLines(path);
 
             // De-macro-ify
-            source = source.Where(line => !line.Trim().StartsWith("#")).ToArray();
+            source = source.Where(line => !line.Trim().StartsWith("#") && !line.Trim().EndsWith('\\')).ToArray();
             string concatted = string.Join('\n', source);
 
             // Lex

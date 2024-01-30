@@ -374,6 +374,7 @@ namespace UnityShaderParser.HLSL
         StateblockStateKeyword,
         StateblockKeyword,
 
+        // TODO: All tokens
         OpenParenToken,
         CloseParenToken,
         OpenBracketToken,
@@ -425,7 +426,7 @@ namespace UnityShaderParser.HLSL
         IdentifierToken,
         IntegerLiteralToken,
         FloatLiteralToken,
-        CharacterLiteralToken,
+        CharacterLiteralToken, // TODO
         StringLiteralToken,
         BracketedStringLiteralToken,
     }
