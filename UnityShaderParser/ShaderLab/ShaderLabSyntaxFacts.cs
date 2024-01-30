@@ -2,8 +2,6 @@
 {
     public static class ShaderLabSyntaxFacts
     {
-        public static bool IsAlphaNumericOrUnderscore(char c) => c == '_' || char.IsLetterOrDigit(c);
-
         public static bool TryParseShaderLabKeyword(string keyword, out TokenKind token)
         {
             token = default;

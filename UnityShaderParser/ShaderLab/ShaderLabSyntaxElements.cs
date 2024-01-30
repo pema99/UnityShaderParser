@@ -1,14 +1,8 @@
-﻿namespace UnityShaderParser.ShaderLab
+﻿using UnityShaderParser.Common;
+
+namespace UnityShaderParser.ShaderLab
 {
     #region Tokens
-    public struct SourceSpan
-    {
-        public (int Line, int Column) Start;
-        public (int Line, int Column) End;
-
-        public override string ToString() => $"({Start.Line}:{Start.Column} - {End.Line}:{End.Column})";
-    }
-
     public enum TokenKind
     {
         None,
@@ -211,25 +205,6 @@
 
         IncludeBlock,
         ProgramBlock,
-    }
-
-    public struct Token
-    {
-        public TokenKind Kind;
-        public string? Identifier;
-        public SourceSpan Span;
-
-        public override string ToString()
-        {
-            if (Identifier == null)
-                return Kind.ToString();
-            else if (Kind == TokenKind.BracketedStringLiteralToken)
-                return $"{Kind}: [{Identifier}]";
-            else if (Kind == TokenKind.StringLiteralToken)
-                return $"{Kind}: \"{Identifier}\"";
-            else
-                return $"{Kind}: {Identifier}";
-        }
     }
     #endregion
 
@@ -682,7 +657,7 @@
     {
         // TODO: Not the lazy way
         public string TextureName { get; set; } = string.Empty;
-        public List<Token> Body { get; set; } = new();
+        public List<Token<TokenKind>> Body { get; set; } = new();
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandSetTextureNode(this);
     }

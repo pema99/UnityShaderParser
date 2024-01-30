@@ -1,5 +1,9 @@
-﻿namespace UnityShaderParser.ShaderLab
+﻿using UnityShaderParser.Common;
+
+namespace UnityShaderParser.ShaderLab
 {
+    using Token = Token<TokenKind>;
+
     public class ShaderLabParser
     {
         private List<Token> tokens = new();

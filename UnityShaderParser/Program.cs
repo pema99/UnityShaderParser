@@ -36,7 +36,6 @@ public class Program
 
         TestVisitor test = new TestVisitor();
         test.VisitSyntaxNode(shader);
-
         Console.WriteLine(test.Num2DTextureProperties);
     }
 }
