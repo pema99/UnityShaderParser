@@ -5,7 +5,12 @@ VisualStudioVersion = 17.0.31919.166
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnityShaderParser", "UnityShaderParser\UnityShaderParser.csproj", "{131A448C-E061-43DB-9856-CD34F4B36CC1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnityShaderParser.Tests", "UnityShaderParser.Tests\UnityShaderParser.Tests.csproj", "{5CCF18ED-3F5A-434E-88B7-AA5A1AFF1141}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnityShaderParser.Tests", "UnityShaderParser.Tests\UnityShaderParser.Tests.csproj", "{5CCF18ED-3F5A-434E-88B7-AA5A1AFF1141}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9CA68DCB-B8E7-4EC3-A30B-0CCABD753329}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
