@@ -134,5 +134,109 @@
                 return default;
             }
         }
+
+        #region Parser combinators
+        protected List<P> ParseSeparatedList1<P>(Func<bool> seperator, Func<P> parser)
+        {
+            List<P> result = new();
+
+            result.Add(parser());
+            while (seperator())
+            {
+                Advance();
+                result.Add(parser());
+            }
+
+            return result;
+        }
+
+        protected List<P> ParseSeparatedList0<P>(Func<bool> first, T separator, Func<P> parser)
+        {
+            if (!first())
+                return new();
+
+            return ParseSeparatedList1(separator, parser);
+        }
+
+        protected List<P> ParseSeparatedList1<P>(T seperator, Func<P> parser)
+        {
+            List<P> result = new();
+
+            result.Add(parser());
+            while (Match(seperator))
+            {
+                Eat(seperator);
+                result.Add(parser());
+            }
+
+            return result;
+        }
+
+        protected List<P> ParseSeparatedList0<P>(T first, T separator, Func<P> parser)
+        {
+            if (!Match(first))
+                return new();
+
+            return ParseSeparatedList1(separator, parser);
+        }
+
+        protected List<P> ParseMany1<P>(T first, Func<P> parser)
+        {
+            List<P> result = new();
+
+            result.Add(parser());
+
+            while (Match(first))
+            {
+                result.Add(parser());
+            }
+
+            return result;
+        }
+
+        protected List<P> ParseMany0<P>(T first, Func<P> parser)
+        {
+            if (!Match(first))
+                return new();
+
+            return ParseMany1(first, parser);
+        }
+
+        protected List<P> ParseMany1<P>(Func<bool> first, Func<P> parser)
+        {
+            List<P> result = new();
+
+            result.Add(parser());
+
+            while (first())
+            {
+                result.Add(parser());
+            }
+
+            return result;
+        }
+
+        protected List<P> ParseMany0<P>(Func<bool> first, Func<P> parser)
+        {
+            if (!first())
+                return new();
+
+            return ParseMany1(first, parser);
+        }
+
+        protected P? ParseOptional<P>(T first, Func<P> parser)
+        {
+            if (Match(first))
+                return parser();
+            return default;
+        }
+
+        protected P? ParseOptional<P>(Func<bool> first, Func<P> parser)
+        {
+            if (first())
+                return parser();
+            return default;
+        }
+        #endregion
     }
 }

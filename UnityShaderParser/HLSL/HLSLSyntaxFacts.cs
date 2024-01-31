@@ -384,5 +384,26 @@ namespace UnityShaderParser.HLSL
                 default: token = TokenKind.None; return false;
             }
         }
+
+        public static bool TryConvertToScalarType(TokenKind kind, out ScalarType type)
+        {
+            switch (kind)
+            {
+                case TokenKind.VoidKeyword: type = ScalarType.Void; return true;
+                case TokenKind.BoolKeyword: type = ScalarType.Bool; return true;
+                case TokenKind.IntKeyword: type = ScalarType.Int; return true;
+                case TokenKind.UintKeyword: type = ScalarType.Uint; return true;
+                case TokenKind.HalfKeyword: type = ScalarType.Half; return true;
+                case TokenKind.FloatKeyword: type = ScalarType.Float; return true;
+                case TokenKind.DoubleKeyword: type = ScalarType.Double; return true;
+                case TokenKind.Min16FloatKeyword: type = ScalarType.Min16Float; return true;
+                case TokenKind.Min10FloatKeyword: type = ScalarType.Min10Float; return true;
+                case TokenKind.Min16IntKeyword: type = ScalarType.Min16Int; return true;
+                case TokenKind.Min12IntKeyword: type = ScalarType.Min12Int; return true;
+                case TokenKind.Min16UintKeyword: type = ScalarType.Min16Uint; return true;
+                case TokenKind.StringKeyword: type = ScalarType.String; return true;
+                default: type = ScalarType.Void; return false;
+            }
+        }
     }
 }
