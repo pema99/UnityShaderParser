@@ -4,70 +4,16 @@ namespace UnityShaderParser.ShaderLab
 {
     using Token = Token<TokenKind>;
 
-    public class ShaderLabParser
+    public class ShaderLabParser : BaseParser<TokenKind>
     {
-        private List<Token> tokens = new();
-        private int position = 0;
-        private SourceSpan anchorSpan = default;
+        public ShaderLabParser(List<Token> tokens)
+            : base(tokens) { }
 
-        private List<string> diagnostics = new();
-
-        private ShaderLabParser(List<Token> tokens)
-        {
-            this.tokens = tokens;
-        }
-
-        private Token Peek() => IsAtEnd() ? default : tokens[position];
-        private Token LookAhead(int offset = 1) => IsAtEnd(offset) ? default : tokens[position + offset];
-        private bool Match(Func<Token, bool> predicate) => predicate(Peek());
-        private bool Match(TokenKind kind) => Match(tok => tok.Kind == kind);
-        private bool Match(params TokenKind[] alternatives) => Match(tok => alternatives.Contains(tok.Kind));
-        private bool IsAtEnd(int offset = 0) => position + offset >= tokens.Count;
-        private Token Eat(Func<Token, bool> predicate)
-        {
-            if (!Match(predicate))
-                Error($"Unexpected token '{Peek()}'.");
-            return Advance();
-        }
-        private Token Eat(TokenKind kind)
-        {
-            if (!Match(kind))
-                Error($"Expected token type '{kind}', got '{Peek().Kind}'.");
-            return Advance();
-        }
-        private Token Eat(params TokenKind[] alternatives)
-        {
-            if (!Match(alternatives))
-            {
-                string allowed = string.Join(", ", alternatives);
-                Error($"Unexpected token '{Peek()}', expected one of the following token types: {allowed}.");
-            }
-            return Advance();
-        }
-        private Token Advance(int amount = 1)
-        {
-            if (IsAtEnd(amount - 1))
-                return default;
-            Token result = tokens[position];
-            position += amount;
-            anchorSpan = Peek().Span;
-            return result;
-        }
-        private void Error(string msg)
-        {
-            diagnostics.Add($"Error at line {anchorSpan.Start.Line} column {anchorSpan.Start.Column}: {msg}");
-        }
-
-        private void Error(string msg, SourceSpan span)
-        {
-            anchorSpan = span;
-            Error(msg);
-        }
-
-        private void Error(string expected, Token token)
-        {
-            Error($"Expected {expected}, got token ({token})", token.Span);
-        }
+        protected override TokenKind StringLiteralTokenKind => TokenKind.StringLiteralToken;
+        protected override TokenKind BracketedStringLiteralTokenKind => TokenKind.BracketedStringLiteralToken;
+        protected override TokenKind IntegerLiteralTokenKind => TokenKind.IntegerLiteralToken;
+        protected override TokenKind FloatLiteralTokenKind => TokenKind.FloatLiteralToken;
+        protected override TokenKind IdentifierTokenKind => TokenKind.IdentifierToken;
 
         public static void Parse(List<Token> tokens, out ShaderNode rootNode, out List<string> diagnostics)
         {
@@ -206,49 +152,6 @@ namespace UnityShaderParser.ShaderLab
             }
 
             Eat(TokenKind.CloseBraceToken);
-        }
-
-        private string ParseIdentifier()
-        {
-            Token identifierToken = Eat(TokenKind.IdentifierToken);
-            string identifier = identifierToken.Identifier ?? string.Empty;
-            if (string.IsNullOrEmpty(identifier))
-                Error("a valid identifier", identifierToken);
-            return identifier;
-        }
-
-        private string ParseStringLiteral()
-        {
-            Token literalToken = Eat(TokenKind.StringLiteralToken);
-            return literalToken.Identifier ?? string.Empty;
-        }
-
-        private string ParseBracketedStringLiteral()
-        {
-            Token literalToken = Eat(TokenKind.BracketedStringLiteralToken);
-            string literal = literalToken.Identifier ?? string.Empty;
-            if (string.IsNullOrEmpty(literal))
-                Error("a valid bracketed string literal / property reference", literalToken);
-            return literal;
-        }
-
-        private float ParseNumericLiteral()
-        {
-            Token literalToken = Eat(TokenKind.FloatLiteralToken, TokenKind.IntegerLiteralToken);
-            string literal = literalToken.Identifier ?? string.Empty;
-            if (string.IsNullOrEmpty(literal))
-                Error("a valid numeric literal", literalToken);
-            return float.Parse(literal, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture);
-        }
-
-        private int ParseIntegerLiteral()
-        {
-            return (int)ParseNumericLiteral();
-        }
-
-        private byte ParseByteLiteral()
-        {
-            return (byte)ParseNumericLiteral();
         }
 
         private ShaderPropertyNode ParseProperty()
@@ -594,24 +497,6 @@ namespace UnityShaderParser.ShaderLab
             return new ShaderLabCommandCullNode { Mode = prop };
         }
 
-        private TEnum ParseEnum<TEnum>(string expected)
-            where TEnum : struct
-        {
-            Token next = Advance();
-            // ShaderLab has a lot of ambiguous syntax, many keywords are reused in multiple places as regular identifiers.
-            // If we fail to use the identifier directly, it might be an overlapping keyword, so try that instead.
-            string identifier = next.Identifier ?? next.Kind.ToString().Replace("Keyword", "");
-            if (Enum.TryParse(identifier, true, out TEnum result))
-            {
-                return result;
-            }
-            else
-            {
-                Error(expected, next);
-                return default;
-            }
-        }
-
         private ShaderLabCommandZTestNode ParseZTestCommand()
         {
             Eat(TokenKind.ZTestKeyword);
@@ -875,6 +760,7 @@ namespace UnityShaderParser.ShaderLab
             { TokenKind.ShininessKeyword, FixedFunctionMaterialProperty.Shininess },
         };
         private static readonly TokenKind[] fixedFunctionsMatPropsKeys = fixedFunctionsMatProps.Keys.ToArray();
+
         private ShaderLabCommandMaterialNode ParseMaterialCommand()
         {
             Eat(TokenKind.MaterialKeyword);
