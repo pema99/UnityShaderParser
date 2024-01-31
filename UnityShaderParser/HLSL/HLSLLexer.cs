@@ -34,6 +34,10 @@ namespace UnityShaderParser.HLSL
                     Add(num, kind);
                     break;
 
+                case '\'':
+                    Add(EatStringLiteral('\'', '\''), TokenKind.CharacterLiteralToken);
+                    break;
+
                 case '"':
                     Add(EatStringLiteral('"', '"'), TokenKind.StringLiteralToken);
                     break;
@@ -124,6 +128,9 @@ namespace UnityShaderParser.HLSL
 
                 case '!' when LookAhead('='): Advance(2); Add(TokenKind.ExclamationEqualsToken); break;
                 case '!': Advance(); Add(TokenKind.NotToken); break;
+
+                case '#' when LookAhead('#'): Advance(2); Add(TokenKind.HashHashToken); break;
+                case '#': Advance(); Add(TokenKind.HashToken); break;
 
                 case char c:
                     Advance();
