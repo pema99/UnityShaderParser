@@ -461,7 +461,7 @@ namespace UnityShaderParser.HLSL
     public abstract class FunctionNode : HLSLSyntaxNode
     {
         public List<AttributeNode> Attributes { get; set; }
-        //public List<Modifier> Modifiers { get; set; }
+        // TODO public List<Modifier> Modifiers { get; set; }
         public TypeNode ReturnType { get; set; }
         public NameNode Name { get; set; }
         public List<ParameterNode> Parameters { get; set; }
@@ -473,7 +473,7 @@ namespace UnityShaderParser.HLSL
     public class ParameterNode : HLSLSyntaxNode
     {
         public List<AttributeNode> Attributes { get; set; }
-        //public List<Modifier> Modifiers { get; set; }
+        // TODO public List<Modifier> Modifiers { get; set; }
         public TypeNode ParamType { get; set; }
         public VariableDeclaratorNode Declarator { get; set; }
 
@@ -483,9 +483,9 @@ namespace UnityShaderParser.HLSL
     public class VariableDeclaratorNode : HLSLSyntaxNode
     {
         public string Name { get; set; }
-        //public List<ArraySpecifierNode> 
+        // TODO public List<ArraySpecifierNode> 
         public List<VariableDeclaratorQualifierNode> Qualifiers { get; set; }
-        //List<annotation> s
+        // TODO List<annotation> s
         public ExpressionNode? Initializer { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children => throw new NotImplementedException();
@@ -527,6 +527,13 @@ namespace UnityShaderParser.HLSL
         public List<StatementNode> Statements { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children => MergeChildren(base.Children, Statements);
+    }
+
+    public class VariableDeclarationStatementNode : StatementNode
+    {
+        // TODO: modifiers
+        public TypeNode Kind { get; set; }
+        public List<VariableDeclaratorNode> Declarators { get; set; }
     }
 
     public class AttributeNode : HLSLSyntaxNode

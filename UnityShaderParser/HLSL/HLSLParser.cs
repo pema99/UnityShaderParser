@@ -230,10 +230,68 @@ namespace UnityShaderParser.HLSL
             };
         }
 
+        private bool IsVariableDeclaration(TokenKind nextKind)
+        {
+            if (HLSLSyntaxFacts.IsModifier(nextKind))
+                return true;
+            if ((HLSLSyntaxFacts.IsBuiltinType(nextKind) || nextKind == TokenKind.IdentifierToken) && LookAhead().Kind == TokenKind.IdentifierToken)
+                return true;
+            return false;
+        }
+
         private StatementNode ParseStatement()
         {
-            throw new NotImplementedException();
-            return null;
+            List<AttributeNode> attributes = ParseMany0(TokenKind.OpenBracketToken, ParseAttribute);
+
+            Token next = Peek();
+            switch (next.Kind)
+            {
+                case TokenKind.OpenBraceToken:
+                case TokenKind.SemiToken:
+                case TokenKind.BreakKeyword:
+                case TokenKind.ContinueKeyword:
+                case TokenKind.DiscardKeyword:
+                case TokenKind.DoKeyword:
+                case TokenKind.ForKeyword:
+                case TokenKind.IfKeyword:
+                case TokenKind.ReturnKeyword:
+                case TokenKind.SwitchKeyword:
+                case TokenKind.WhileKeyword:
+                case TokenKind.TypedefKeyword:
+                    throw new NotImplementedException($"{next.Kind}");
+                    break;
+
+                case TokenKind.InterfaceKeyword:
+                case TokenKind.StructKeyword:
+                    throw new NotImplementedException();
+                    break;
+
+                case TokenKind kind when IsVariableDeclaration(kind):
+                    return ParseVariableDeclarationStatement(attributes);
+
+                default:
+                    // Rest could be:
+                    // - Expression
+                    // - Variable decl
+                    Error($"Unimplemented statement starting with {next.Kind}");
+                    ParseMany0(() => !Match(TokenKind.SemiToken), () => Advance(1));
+                    Eat(TokenKind.SemiToken);
+                    return null;
+            }
+        }
+
+        private VariableDeclarationStatementNode ParseVariableDeclarationStatement(List<AttributeNode> attributes)
+        {
+            TypeNode kind = ParseType();
+            List<VariableDeclaratorNode> variables = ParseSeparatedList1(TokenKind.CommaToken, ParseVariableDeclarator);
+            Eat(TokenKind.SemiToken);
+
+            return new VariableDeclarationStatementNode
+            {
+                Kind = kind,
+                Declarators = variables,
+                Attributes = attributes,
+            };
         }
     }
 }
