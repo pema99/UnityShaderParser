@@ -232,7 +232,7 @@ namespace UnityShaderParser.HLSL
                     TokenKind op = Eat(HLSLSyntaxFacts.IsPrefixUnaryToken).Kind;
                     return new PrefixUnaryExpressionNode { Operator = op, Expression = ParsePrefixOrPostFixExpression() };
 
-                case TokenKind.OpenParenToken:
+                case TokenKind.OpenParenToken: // TODO: Conflicts with paranthesized expressions
                     Eat(TokenKind.OpenParenToken);
                     var type = ParseType();
                     Eat(TokenKind.CloseParenToken);
@@ -248,34 +248,40 @@ namespace UnityShaderParser.HLSL
                     }
 
                     var higher = ParseTerminalExpression();
-                    switch (Peek().Kind)
+                    while (true)
                     {
-                        case TokenKind.PlusPlusToken:
-                        case TokenKind.MinusMinusToken:
-                            throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
+                        switch (Peek().Kind)
+                        {
+                            case TokenKind.PlusPlusToken:
+                            case TokenKind.MinusMinusToken:
+                                throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
 
-                        case TokenKind.OpenParenToken when higher is NamedExpressionNode target:
-                            var funcArgs = ParseParameterList();
-                            return new FunctionCallExpressionNode { Name = target, Arguments = funcArgs };
+                            case TokenKind.OpenParenToken when higher is NamedExpressionNode target:
+                                var funcArgs = ParseParameterList();
+                                higher = new FunctionCallExpressionNode { Name = target, Arguments = funcArgs };
+                                break;
 
-                        case TokenKind.OpenBracketToken:
-                            throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
+                            case TokenKind.OpenBracketToken:
+                                throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
 
-                        case TokenKind.DotToken:
-                            Eat(TokenKind.DotToken);
-                            string identifier = ParseIdentifier();
-                            if (Match(TokenKind.OpenParenToken))
-                            {
-                                var methodArgs = ParseParameterList();
-                                return new MethodCallExpressionNode { Target = higher, Name = identifier, Arguments = methodArgs };
-                            }
-                            else
-                            {
-                                return new FieldAccessExpressionNode { Target = higher, Name = identifier };
-                            }
+                            case TokenKind.DotToken:
+                                Eat(TokenKind.DotToken);
+                                string identifier = ParseIdentifier();
 
-                        default:
-                            return higher;
+                                if (Match(TokenKind.OpenParenToken))
+                                {
+                                    var methodArgs = ParseParameterList();
+                                    higher = new MethodCallExpressionNode { Target = higher, Name = identifier, Arguments = methodArgs };
+                                }
+                                else
+                                {
+                                    higher = new FieldAccessExpressionNode { Target = higher, Name = identifier };
+                                }
+                                break;
+
+                            default:
+                                return higher;
+                        }
                     }
             }
         }
