@@ -41,16 +41,17 @@ namespace UnityShaderParser.HLSL
                     // TODO: variable declaration statement
                     // TODO: struct definition
                     // TODO: constant buffer
-                    // TODO: function definition
-                    // TODO: function prototype (declaration)
                     case TokenKind.ClassKeyword:
                     case TokenKind.InterfaceKeyword:
                     case TokenKind.StructKeyword:
                     case TokenKind.ConstantBufferKeyword:
-                        throw new NotImplementedException();
+                        throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
+
+                    case TokenKind kind when IsTopLevelVariableDeclaration(kind):
+                        ParseVariableDeclarationStatement(new());
+                        break;
 
                     default:
-                        // TODO: Disambguiate function prototypes and variable declarations (fuck C syntax)
                         result.Add(ParseFunction());
                         break;
                 }
@@ -251,14 +252,14 @@ namespace UnityShaderParser.HLSL
                     {
                         case TokenKind.PlusPlusToken:
                         case TokenKind.MinusMinusToken:
-                            throw new NotImplementedException();
+                            throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
 
                         case TokenKind.OpenParenToken when higher is NamedExpressionNode target:
                             var funcArgs = ParseParameterList();
                             return new FunctionCallExpressionNode { Name = target, Arguments = funcArgs };
 
                         case TokenKind.OpenBracketToken:
-                            throw new NotImplementedException();
+                            throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
 
                         case TokenKind.DotToken:
                             Eat(TokenKind.DotToken);
@@ -356,6 +357,7 @@ namespace UnityShaderParser.HLSL
             // Function prototype
             if (Match(TokenKind.SemiToken))
             {
+                Eat(TokenKind.SemiToken);
                 return new FunctionDeclarationNode
                 {
                     Attributes = attributes,
@@ -406,9 +408,14 @@ namespace UnityShaderParser.HLSL
             {
                 return new VectorTypeNode { Kind = vectorType, Dimension = dimension };
             }
+
+            if (HLSLSyntaxFacts.TryConvertToMonomorphicMatrixType(typeToken.Kind, out ScalarType matrixType, out int dimX, out int dimY))
+            {
+                return new MatrixTypeNode { Kind = matrixType, FirstDimension = dimX, SecondDimension = dimY };
+            }
             // TODO: Generic vector and matrix types
 
-            throw new NotImplementedException();
+            throw new NotImplementedException(anchorSpan + ": " + typeToken.ToString());
         }
 
         private UserDefinedTypeNode ParseName()
@@ -487,12 +494,35 @@ namespace UnityShaderParser.HLSL
             };
         }
 
-        private bool IsVariableDeclaration(TokenKind nextKind)
+        private bool IsVariableDeclarationStatement(TokenKind nextKind)
         {
             if (HLSLSyntaxFacts.IsModifier(nextKind))
                 return true;
             if ((HLSLSyntaxFacts.IsBuiltinType(nextKind) || nextKind == TokenKind.IdentifierToken) && LookAhead().Kind == TokenKind.IdentifierToken)
                 return true;
+            return false;
+        }
+
+        private bool IsTopLevelVariableDeclaration(TokenKind nextKind)
+        {
+            // Skip modifiers (they don't disambguiate top level declarations)
+            int offset = 0;
+            if (HLSLSyntaxFacts.IsModifier(nextKind))
+            {
+                offset = 1;
+                while (HLSLSyntaxFacts.IsModifier(LookAhead(offset).Kind))
+                {
+                    offset++;
+                }
+            }
+            nextKind = LookAhead(offset).Kind;
+
+            // TODO: This will break for qualified return types
+            if ((HLSLSyntaxFacts.IsBuiltinType(nextKind) || nextKind == TokenKind.IdentifierToken) &&
+                LookAhead(offset + 1).Kind == TokenKind.IdentifierToken &&
+                LookAhead(offset + 2).Kind != TokenKind.OpenParenToken)
+                return true;
+
             return false;
         }
 
@@ -520,15 +550,15 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.SwitchKeyword:
                 case TokenKind.WhileKeyword:
                 case TokenKind.TypedefKeyword:
-                    throw new NotImplementedException($"{next.Kind}");
+                    throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
                     break;
 
                 case TokenKind.InterfaceKeyword:
                 case TokenKind.StructKeyword:
-                    throw new NotImplementedException();
+                    throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
                     break;
 
-                case TokenKind kind when IsVariableDeclaration(kind):
+                case TokenKind kind when IsVariableDeclarationStatement(kind):
                     return ParseVariableDeclarationStatement(attributes);
 
                 default:

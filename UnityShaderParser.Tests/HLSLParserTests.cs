@@ -29,5 +29,34 @@ namespace UnityShaderParser.HLSL.Tests
             HLSLLexer.Lex(concatted, out var tokens, out var lexerDiags);
             Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
         }
+
+        public static string[] GetTestShadersNotContainingMacros()
+        {
+            string[] extensions = { "*.hlsl", "*.fx", "*.vert", "*.frag", "*.fxh" };
+            return extensions
+                .SelectMany(ext => Directory.EnumerateFiles(Directory.GetCurrentDirectory(), ext, SearchOption.AllDirectories))
+                .Select(path => Path.GetRelativePath(Directory.GetCurrentDirectory(), path))
+                .Where(path => !File.ReadAllText(path).Contains("#"))
+                .ToArray();
+        }
+
+        [Test, TestCaseSource(nameof(GetTestShadersNotContainingMacros))]
+        public void ParseTestShadersNotContainingMacros(string path)
+        {
+            // Read text
+            string[] source = File.ReadAllLines(path);
+
+            // De-macro-ify
+            source = source.Where(line => !line.Trim().StartsWith("#") && !line.Trim().EndsWith('\\')).ToArray();
+            string concatted = string.Join('\n', source);
+
+            // Lex
+            HLSLLexer.Lex(concatted, out var tokens, out var lexerDiags);
+            Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
+
+            // Lex
+            HLSLParser.Parse(tokens, out var nodes, out var parserDiags);
+            Assert.IsEmpty(lexerDiags, $"Expected no parser errors, got: {parserDiags.FirstOrDefault()}");
+        }
     }
 }
