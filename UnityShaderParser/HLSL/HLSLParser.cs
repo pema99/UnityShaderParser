@@ -38,9 +38,6 @@ namespace UnityShaderParser.HLSL
                 {
                     // TODO: class definition
                     // TODO: intereface definition
-                    // TODO: variable declaration statement
-                    // TODO: struct definition
-                    // TODO: constant buffer
                     case TokenKind.ClassKeyword:
                     case TokenKind.InterfaceKeyword:
                         throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
