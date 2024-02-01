@@ -406,28 +406,62 @@ namespace UnityShaderParser.HLSL
             }
         }
 
-        public static bool IsBuiltinType(TokenKind kind)
+        public static bool TryConvertToMonomorphicVectorType(TokenKind kind, out ScalarType type, out int dimension)
         {
             switch (kind)
             {
-                case TokenKind.BoolKeyword:
-                case TokenKind.IntKeyword:
-                case TokenKind.UnsignedKeyword:
-                case TokenKind.DwordKeyword:
-                case TokenKind.UintKeyword:
-                case TokenKind.HalfKeyword:
-                case TokenKind.FloatKeyword:
-                case TokenKind.DoubleKeyword:
-                case TokenKind.Min16FloatKeyword:
-                case TokenKind.Min10FloatKeyword:
-                case TokenKind.Min16IntKeyword:
-                case TokenKind.Min12IntKeyword:
-                case TokenKind.Min16UintKeyword:
-                case TokenKind.VoidKeyword:
-                case TokenKind.StringKeyword:
-                case TokenKind.SNormKeyword:
-                case TokenKind.UNormKeyword:
+                case TokenKind.Bool1Keyword: type = ScalarType.Bool; dimension = 1; return true;
+                case TokenKind.Bool2Keyword: type = ScalarType.Bool; dimension = 2; return true;
+                case TokenKind.Bool3Keyword: type = ScalarType.Bool; dimension = 3; return true;
+                case TokenKind.Bool4Keyword: type = ScalarType.Bool; dimension = 4; return true;
+                case TokenKind.Half1Keyword: type = ScalarType.Half; dimension = 1; return true;
+                case TokenKind.Half2Keyword: type = ScalarType.Half; dimension = 2; return true;
+                case TokenKind.Half3Keyword: type = ScalarType.Half; dimension = 3; return true;
+                case TokenKind.Half4Keyword: type = ScalarType.Half; dimension = 4; return true;
+                case TokenKind.Int1Keyword: type = ScalarType.Int; dimension = 1; return true;
+                case TokenKind.Int2Keyword: type = ScalarType.Int; dimension = 2; return true;
+                case TokenKind.Int3Keyword: type = ScalarType.Int; dimension = 3; return true;
+                case TokenKind.Int4Keyword: type = ScalarType.Int; dimension = 4; return true;
+                case TokenKind.Uint1Keyword: type = ScalarType.Uint; dimension = 1; return true;
+                case TokenKind.Uint2Keyword: type = ScalarType.Uint; dimension = 2; return true;
+                case TokenKind.Uint3Keyword: type = ScalarType.Uint; dimension = 3; return true;
+                case TokenKind.Uint4Keyword: type = ScalarType.Uint; dimension = 4; return true;
+                case TokenKind.Float1Keyword: type = ScalarType.Float; dimension = 1; return true;
+                case TokenKind.Float2Keyword: type = ScalarType.Float; dimension = 2; return true;
+                case TokenKind.Float3Keyword: type = ScalarType.Float; dimension = 3; return true;
+                case TokenKind.Float4Keyword: type = ScalarType.Float; dimension = 4; return true;
+                case TokenKind.Double1Keyword: type = ScalarType.Double; dimension = 1; return true;
+                case TokenKind.Double2Keyword: type = ScalarType.Double; dimension = 2; return true;
+                case TokenKind.Double3Keyword: type = ScalarType.Double; dimension = 3; return true;
+                case TokenKind.Double4Keyword: type = ScalarType.Double; dimension = 4; return true;
+                case TokenKind.Min16Float1Keyword: type = ScalarType.Min16Float; dimension = 1; return true;
+                case TokenKind.Min16Float2Keyword: type = ScalarType.Min16Float; dimension = 2; return true;
+                case TokenKind.Min16Float3Keyword: type = ScalarType.Min16Float; dimension = 3; return true;
+                case TokenKind.Min16Float4Keyword: type = ScalarType.Min16Float; dimension = 4; return true;
+                case TokenKind.Min10Float1Keyword: type = ScalarType.Min10Float; dimension = 1; return true;
+                case TokenKind.Min10Float2Keyword: type = ScalarType.Min10Float; dimension = 2; return true;
+                case TokenKind.Min10Float3Keyword: type = ScalarType.Min10Float; dimension = 3; return true;
+                case TokenKind.Min10Float4Keyword: type = ScalarType.Min10Float; dimension = 4; return true;
+                case TokenKind.Min16Int1Keyword: type = ScalarType.Min16Int; dimension = 1; return true;
+                case TokenKind.Min16Int2Keyword: type = ScalarType.Min16Int; dimension = 2; return true;
+                case TokenKind.Min16Int3Keyword: type = ScalarType.Min16Int; dimension = 3; return true;
+                case TokenKind.Min16Int4Keyword: type = ScalarType.Min16Int; dimension = 4; return true;
+                case TokenKind.Min12Int1Keyword: type = ScalarType.Min12Int; dimension = 1; return true;
+                case TokenKind.Min12Int2Keyword: type = ScalarType.Min12Int; dimension = 2; return true;
+                case TokenKind.Min12Int3Keyword: type = ScalarType.Min12Int; dimension = 3; return true;
+                case TokenKind.Min12Int4Keyword: type = ScalarType.Min12Int; dimension = 4; return true;
+                case TokenKind.Min16Uint1Keyword: type = ScalarType.Min16Uint; dimension = 1; return true;
+                case TokenKind.Min16Uint2Keyword: type = ScalarType.Min16Uint; dimension = 2; return true;
+                case TokenKind.Min16Uint3Keyword: type = ScalarType.Min16Uint; dimension = 3; return true;
+                case TokenKind.Min16Uint4Keyword: type = ScalarType.Min16Uint; dimension = 4; return true;
+                default: type = default; dimension = 0; return false;
+            }
+        }
 
+        public static bool IsNumericConstructor(TokenKind kind)
+        {
+            switch (kind)
+            {
                 case TokenKind.VectorKeyword:
                 case TokenKind.Bool1Keyword:
                 case TokenKind.Bool2Keyword:
@@ -473,8 +507,8 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.Min16Uint2Keyword:
                 case TokenKind.Min16Uint3Keyword:
                 case TokenKind.Min16Uint4Keyword:
-                //case TokenKind.SNormKeyword:
-                //case TokenKind.UNormKeyword:
+                case TokenKind.SNormKeyword:
+                case TokenKind.UNormKeyword:
 
                 case TokenKind.MatrixKeyword:
                 case TokenKind.Bool1x1Keyword:
@@ -655,6 +689,34 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.Uint4x4Keyword:
                 //case TokenKind.SNormKeyword:
                 //case TokenKind.UNormKeyword:
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        public static bool IsBuiltinType(TokenKind kind)
+        {
+            switch (kind)
+            {
+                case TokenKind.BoolKeyword:
+                case TokenKind.IntKeyword:
+                case TokenKind.UnsignedKeyword:
+                case TokenKind.DwordKeyword:
+                case TokenKind.UintKeyword:
+                case TokenKind.HalfKeyword:
+                case TokenKind.FloatKeyword:
+                case TokenKind.DoubleKeyword:
+                case TokenKind.Min16FloatKeyword:
+                case TokenKind.Min10FloatKeyword:
+                case TokenKind.Min16IntKeyword:
+                case TokenKind.Min12IntKeyword:
+                case TokenKind.Min16UintKeyword:
+                case TokenKind.VoidKeyword:
+                case TokenKind.StringKeyword:
+                case TokenKind.SNormKeyword:
+                case TokenKind.UNormKeyword:
 
                 case TokenKind.AppendStructuredBufferKeyword:
                 case TokenKind.BlendStateKeyword:
@@ -706,7 +768,7 @@ namespace UnityShaderParser.HLSL
                     return true;
 
                 default:
-                    return false;
+                    return IsNumericConstructor(kind);
             }
         }
 
@@ -743,6 +805,36 @@ namespace UnityShaderParser.HLSL
 
                 default:
                     return false;
+            }
+        }
+
+        public static bool IsPrefixUnaryToken(TokenKind kind)
+        {
+            switch (kind)
+            {
+                case TokenKind.PlusPlusToken:
+                case TokenKind.MinusMinusToken:
+                case TokenKind.PlusToken:
+                case TokenKind.MinusToken:
+                case TokenKind.NotToken:
+                case TokenKind.TildeToken:
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        public static bool TryConvertLiteralKind(TokenKind kind, out LiteralKind outKind)
+        {
+            switch (kind)
+            {
+                case TokenKind.StringLiteralToken: outKind = LiteralKind.String; return true;
+                case TokenKind.BracketedStringLiteralToken: outKind = LiteralKind.BracketedString; return true;
+                case TokenKind.FloatLiteralToken: outKind = LiteralKind.Float; return true;
+                case TokenKind.IntegerLiteralToken: outKind = LiteralKind.Integer; return true;
+                case TokenKind.CharacterLiteralToken: outKind = LiteralKind.Character; return true;
+                default: outKind = default; return false;
             }
         }
     }

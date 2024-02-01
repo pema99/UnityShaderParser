@@ -24,10 +24,17 @@
         protected Token<T> Peek() => IsAtEnd() ? default : tokens[position];
         protected Token<T> LookAhead(int offset = 1) => IsAtEnd(offset) ? default : tokens[position + offset];
         protected bool Match(Func<Token<T>, bool> predicate) => predicate(Peek());
+        protected bool Match(Func<T, bool> predicate) => predicate(Peek().Kind);
         protected bool Match(T kind) => Match(tok => EqualityComparer<T>.Default.Equals(tok.Kind, kind));
         protected bool Match(params T[] alternatives) => Match(tok => alternatives.Contains(tok.Kind));
         protected bool IsAtEnd(int offset = 0) => position + offset >= tokens.Count;
         protected Token<T> Eat(Func<Token<T>, bool> predicate)
+        {
+            if (!Match(predicate))
+                Error($"Unexpected token '{Peek()}'.");
+            return Advance();
+        }
+        protected Token<T> Eat(Func<T, bool> predicate)
         {
             if (!Match(predicate))
                 Error($"Unexpected token '{Peek()}'.");

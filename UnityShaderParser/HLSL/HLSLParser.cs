@@ -63,7 +63,7 @@ namespace UnityShaderParser.HLSL
         {                 // Associativity:
             Compound,     // left
             Assignment,   // right
-            Ternary,      // left
+            //Ternary,      // left
             LogicalOr,    // left
             LogicalAnd,   // left
             BitwiseOr,    // left
@@ -81,7 +81,8 @@ namespace UnityShaderParser.HLSL
         // https://en.cppreference.com/w/c/language/operator_precedence
         List<(HashSet<TokenKind> operators, bool rightAssociative, Func<ExpressionNode, TokenKind, ExpressionNode, ExpressionNode> ctor)> operatorGroups = new ()
         {
-            // TODO: Compound expression
+            // TODO: Compound expression (comma)
+            (new() { }, false, (l, op, r) => throw new NotImplementedException()),
 
             // Assignment
             (new() {
@@ -144,30 +145,59 @@ namespace UnityShaderParser.HLSL
             false,
             (l, op, r) => new BinaryExpressionNode { Left = l, Operator = op, Right = r }),
 
-            // TODO: Prefix unary
-            // TODO: Postfix unary
-
             // Binds most tightly
         };
 
-        private LiteralExpressionNode ParseLiteralExpression()
-        {
-            return new LiteralExpressionNode { Lexeme = ParseNumericLiteral().ToString() };
-        }
+        // TODO:
+        // - Function invocation            \
+        // - Method invocation              | - Group these 3
+        // - Numeric constructor invocation /
+        // - Array initializer
+        // - Assignment
+        // - Binary op
+        // - Cast
+        // - Compound
+        // - Ternary
+        // - Element access
+        // - Field access
+        // - Literal (incl strings)
+        // - Paranthesized expression
+        // - Prefix unary
+        // - Postfix unary?
+        // - Compile (wtf is this?)
 
-        private ExpressionNode ParseTermExpression()
-        {
-            return ParseLiteralExpression();
-        }
+        // Ambiguity groupings:
+        // - Function invocation i(
 
-        private ExpressionNode ParseBinaryExpression(int level = 0)
+        // - Literal (incl strings) num|"|keyword
+
+        // - Array initializer {e
+
+        // - Prefix unary _e
+
+        // - Paranthesized expression (e
+        // - Cast (i
+
+        // - Numeric constructor invocation k(
+        // - Compile (wtf is this?)
+
+        // - Method invocation e.
+        // - Ternary e?
+        // - Binary op e_
+        // - Compound e,
+        // - Element access e[
+        // - Field access e.
+        // - Postfix unary? e_
+        // - Assignment e=
+
+        private ExpressionNode ParseExpression(int level = 0)
         {
             if (level >= operatorGroups.Count)
             {
-                return ParseTermExpression();
+                return ParsePrefixOrPostFixExpression();
             }
 
-            ExpressionNode higher = ParseBinaryExpression(level + 1);
+            ExpressionNode higher = ParseExpression(level + 1);
 
             var group = operatorGroups[level];
             while (Match(tok => group.operators.Contains(tok.Kind)))
@@ -177,7 +207,7 @@ namespace UnityShaderParser.HLSL
                 higher = group.ctor(
                     higher,
                     next.Kind,
-                    ParseBinaryExpression(group.rightAssociative ? level : level + 1));
+                    ParseExpression(group.rightAssociative ? level : level + 1));
 
                 if (IsAtEnd())
                 {
@@ -188,51 +218,100 @@ namespace UnityShaderParser.HLSL
             return higher;
         }
 
-        private ExpressionNode ParseExpression()
+        private ExpressionNode ParsePrefixOrPostFixExpression()
         {
-            // TODO:
-            // - Function invocation            \
-            // - Method invocation              | - Group these 3
-            // - Numeric constructor invocation /
-            // - Array initializer
-            // - Assignment
-            // - Binary op
-            // - Cast
-            // - Compound
-            // - Ternary
-            // - Element access
-            // - Field access
-            // - Literal (incl strings)
-            // - Paranthesized expression
-            // - Prefix unary
-            // - Postfix unary?
-            // - Compile (wtf is this?)
+            switch (Peek().Kind)
+            {
+                case TokenKind.PlusPlusToken:
+                case TokenKind.MinusMinusToken:
+                case TokenKind.PlusToken:
+                case TokenKind.MinusToken:
+                case TokenKind.NotToken:
+                case TokenKind.TildeToken:
+                    TokenKind op = Eat(HLSLSyntaxFacts.IsPrefixUnaryToken).Kind;
+                    return new PrefixUnaryExpressionNode { Operator = op, Expression = ParsePrefixOrPostFixExpression() };
 
-            // Ambiguity groupings:
-            // - Function invocation i(
+                case TokenKind.OpenParenToken:
+                    Eat(TokenKind.OpenParenToken);
+                    var type = ParseType();
+                    Eat(TokenKind.CloseParenToken);
+                    return new CastExpressionNode { Kind = type, Expression = ParsePrefixOrPostFixExpression() };
 
-            // - Literal (incl strings) num|"|keyword
+                default:
+                    // Special case for constructors of built-in types. Their target is not an expression, but a keyword.
+                    if (Match(HLSLSyntaxFacts.IsNumericConstructor))
+                    {
+                        var kind = ParseNumericType();
+                        var ctorArgs = ParseParameterList();
+                        return new NumericConstructorCallExpressionNode { Kind = kind, Arguments = ctorArgs };
+                    }
 
-            // - Array initializer {e
+                    var higher = ParseTerminalExpression();
+                    switch (Peek().Kind)
+                    {
+                        case TokenKind.PlusPlusToken:
+                        case TokenKind.MinusMinusToken:
+                            throw new NotImplementedException();
 
-            // - Prefix unary _e
+                        case TokenKind.OpenParenToken when higher is NamedExpressionNode target:
+                            var funcArgs = ParseParameterList();
+                            return new FunctionCallExpressionNode { Name = target, Arguments = funcArgs };
 
-            // - Paranthesized expression (e
-            // - Cast (i
+                        case TokenKind.OpenBracketToken:
+                            throw new NotImplementedException();
 
-            // - Numeric constructor invocation k(
-            // - Compile (wtf is this?)
+                        case TokenKind.DotToken:
+                            Eat(TokenKind.DotToken);
+                            string identifier = ParseIdentifier();
+                            if (Match(TokenKind.OpenParenToken))
+                            {
+                                var methodArgs = ParseParameterList();
+                                return new MethodCallExpressionNode { Target = higher, Name = identifier, Arguments = methodArgs };
+                            }
+                            else
+                            {
+                                return new FieldAccessExpressionNode { Target = higher, Name = identifier };
+                            }
 
-            // - Method invocation e.
-            // - Ternary e?
-            // - Binary op e_
-            // - Compound e,
-            // - Element access e[
-            // - Field access e.
-            // - Postfix unary? e_
-            // - Assignment e=
+                        default:
+                            return higher;
+                    }
+            }
+        }
 
-            return ParseBinaryExpression();
+        private LiteralExpressionNode ParseLiteralExpression()
+        {
+            Token next = Advance();
+            string lexeme = next.Identifier ?? string.Empty;
+
+            if (!HLSLSyntaxFacts.TryConvertLiteralKind(next.Kind, out var literalKind))
+            {
+                Error("a valid literal expression", next);
+            }
+
+            return new LiteralExpressionNode { Lexeme = lexeme, Kind = literalKind };
+        }
+
+        private ExpressionNode ParseTerminalExpression()
+        {
+            if (Match(TokenKind.IdentifierToken))
+            {
+                string identifier = ParseIdentifier();
+                return new IdentifierExpressionNode { Name = identifier };
+            }
+
+            return ParseLiteralExpression();
+        }
+
+        private List<ExpressionNode> ParseParameterList()
+        {
+            Eat(TokenKind.OpenParenToken);
+            List<ExpressionNode> exprs = ParseSeparatedList0(
+                () => !Match(TokenKind.CloseParenToken),
+                TokenKind.CommaToken,
+                () => ParseExpression((int)PrecedenceLevel.Compound + 1));
+            Eat(TokenKind.CloseParenToken);
+            return exprs;
         }
 
         private AttributeNode ParseAttribute()
@@ -266,10 +345,10 @@ namespace UnityShaderParser.HLSL
 
             TypeNode returnType = ParseType(true);
 
-            NameNode name = ParseName();
+            UserDefinedTypeNode name = ParseName();
 
             Eat(TokenKind.OpenParenToken);
-            List<ParameterNode> parameters = ParseMany0(() => !Match(TokenKind.CloseParenToken), ParseParameter);
+            List<FormalParameterNode> parameters = ParseMany0(() => !Match(TokenKind.CloseParenToken), ParseFormalParameter);
             Eat(TokenKind.CloseParenToken);
 
             SemanticNode? semantic = ParseOptional(TokenKind.ColonToken, ParseSemantic);
@@ -308,6 +387,13 @@ namespace UnityShaderParser.HLSL
                 return ParseName();
             }
 
+            // TODO: Modifiers
+
+            return ParseNumericType();
+        }
+
+        private NumericTypeNode ParseNumericType(/* List<Modifier> Modifiers */)
+        {
             Token typeToken = Advance();
             if (HLSLSyntaxFacts.TryConvertToScalarType(typeToken.Kind, out ScalarType scalarType))
             {
@@ -316,19 +402,25 @@ namespace UnityShaderParser.HLSL
                 return new ScalarTypeNode { Kind = scalarType };
             }
 
+            if (HLSLSyntaxFacts.TryConvertToMonomorphicVectorType(typeToken.Kind, out ScalarType vectorType, out int dimension))
+            {
+                return new VectorTypeNode { Kind = vectorType, Dimension = dimension };
+            }
+            // TODO: Generic vector and matrix types
+
             throw new NotImplementedException();
         }
 
-        private NameNode ParseName()
+        private UserDefinedTypeNode ParseName()
         {
             string identifier = ParseIdentifier();
-            var name = new IdentifierNameNode { Name = identifier };
+            var name = new NamedTypeNode { Name = identifier };
 
             if (Match(TokenKind.ColonColonToken))
             {
                 Eat(TokenKind.ColonColonToken);
 
-                return new QualifiedNameNode { Left = name, Right = ParseName() };
+                return new QualifiedNamedTypeNode { Left = name, Right = ParseName() };
             }
             else
             {
@@ -336,13 +428,13 @@ namespace UnityShaderParser.HLSL
             }
         }
 
-        private ParameterNode ParseParameter()
+        private FormalParameterNode ParseFormalParameter()
         {
             List<AttributeNode> attributes = ParseMany0(TokenKind.OpenBracketToken, ParseAttribute);
             TypeNode type = ParseType();
             VariableDeclaratorNode declarator = ParseVariableDeclarator();
 
-            return new ParameterNode
+            return new FormalParameterNode
             {
                 Attributes = attributes,
                 ParamType = type,
@@ -359,7 +451,7 @@ namespace UnityShaderParser.HLSL
             ExpressionNode? initializer = null;
             if (Match(TokenKind.EqualsToken))
             {
-                Eat(TokenKind.SemiToken);
+                Eat(TokenKind.EqualsToken);
                 initializer = ParseExpression();
             }
 
@@ -411,6 +503,12 @@ namespace UnityShaderParser.HLSL
             Token next = Peek();
             switch (next.Kind)
             {
+                case TokenKind.ReturnKeyword:
+                    Advance();
+                    ExpressionNode returnExpr = ParseExpression();
+                    Eat(TokenKind.SemiToken);
+                    return new ReturnStatementNode { Attributes = attributes, Expression = returnExpr };
+
                 case TokenKind.OpenBraceToken:
                 case TokenKind.SemiToken:
                 case TokenKind.BreakKeyword:
@@ -419,7 +517,6 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.DoKeyword:
                 case TokenKind.ForKeyword:
                 case TokenKind.IfKeyword:
-                case TokenKind.ReturnKeyword:
                 case TokenKind.SwitchKeyword:
                 case TokenKind.WhileKeyword:
                 case TokenKind.TypedefKeyword:

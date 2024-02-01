@@ -28,7 +28,7 @@ namespace UnityShaderParser.HLSL
                     LexIdentifier();
                     break;
 
-                case char c when char.IsDigit(c) || c == '.' || c == '-':
+                case char c when char.IsDigit(c) || ((c == '.' || c == '-') && char.IsDigit(LookAhead())):
                     string num = EatNumber(out bool isFloat);
                     TokenKind kind = isFloat ? TokenKind.FloatLiteralToken : TokenKind.IntegerLiteralToken;
                     Add(num, kind);
