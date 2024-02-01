@@ -43,12 +43,15 @@ namespace UnityShaderParser.HLSL
                     // TODO: constant buffer
                     case TokenKind.ClassKeyword:
                     case TokenKind.InterfaceKeyword:
-                    case TokenKind.StructKeyword:
                     case TokenKind.ConstantBufferKeyword:
                         throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
 
+                    case TokenKind.StructKeyword:
+                        result.Add(ParseStructDefinition());
+                        break;
+
                     case TokenKind kind when IsTopLevelVariableDeclaration(kind):
-                        ParseVariableDeclarationStatement(new());
+                        result.Add(ParseVariableDeclarationStatement(new()));
                         break;
 
                     default:
@@ -352,10 +355,10 @@ namespace UnityShaderParser.HLSL
 
             TypeNode returnType = ParseType(true);
 
-            UserDefinedTypeNode name = ParseName();
+            UserDefinedTypeNode name = ParseUserDefinedTypeName();
 
             Eat(TokenKind.OpenParenToken);
-            List<FormalParameterNode> parameters = ParseMany0(() => !Match(TokenKind.CloseParenToken), ParseFormalParameter);
+            List<FormalParameterNode> parameters = ParseSeparatedList0(() => !Match(TokenKind.CloseParenToken), TokenKind.CommaToken, ParseFormalParameter);
             Eat(TokenKind.CloseParenToken);
 
             SemanticNode? semantic = ParseOptional(TokenKind.ColonToken, ParseSemantic);
@@ -387,12 +390,43 @@ namespace UnityShaderParser.HLSL
             };
         }
 
+        private StructDefinitionNode ParseStructDefinition()
+        {
+            Eat(TokenKind.StructKeyword);
+            var name = ParseUserDefinedTypeName();
+
+            // base list
+            List<UserDefinedTypeNode> baseList = new();
+            if (Match(TokenKind.ColonToken))
+            {
+                Eat(TokenKind.ColonToken);
+
+                baseList = ParseSeparatedList1(TokenKind.CommaToken, ParseUserDefinedTypeName);
+            }
+
+            Eat(TokenKind.OpenBraceToken);
+
+            List<VariableDeclarationStatementNode> decls = ParseMany0(
+                () => !Match(TokenKind.CloseBraceToken),
+                () => ParseVariableDeclarationStatement(new()));
+
+            Eat(TokenKind.CloseBraceToken);
+            Eat(TokenKind.SemiToken);
+
+            return new StructDefinitionNode
+            {
+                Name = name,
+                Inherits = baseList,
+                Variables = decls
+            };
+        }
+
         private TypeNode ParseType(bool allowVoid = false)
         {
             if (Match(TokenKind.IdentifierToken))
             {
                 // TODO: Predefined names !
-                return ParseName();
+                return ParseUserDefinedTypeName();
             }
 
             // TODO: Modifiers
@@ -424,7 +458,7 @@ namespace UnityShaderParser.HLSL
             throw new NotImplementedException(anchorSpan + ": " + typeToken.ToString());
         }
 
-        private UserDefinedTypeNode ParseName()
+        private UserDefinedTypeNode ParseUserDefinedTypeName()
         {
             string identifier = ParseIdentifier();
             var name = new NamedTypeNode { Name = identifier };
@@ -433,7 +467,7 @@ namespace UnityShaderParser.HLSL
             {
                 Eat(TokenKind.ColonColonToken);
 
-                return new QualifiedNamedTypeNode { Left = name, Right = ParseName() };
+                return new QualifiedNamedTypeNode { Left = name, Right = ParseUserDefinedTypeName() };
             }
             else
             {

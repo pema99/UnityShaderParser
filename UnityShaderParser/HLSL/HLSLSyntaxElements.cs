@@ -511,6 +511,15 @@ namespace UnityShaderParser.HLSL
         public override IEnumerable<HLSLSyntaxNode> Children => MergeChildren(base.Children, new[] { Body });
     }
 
+    public class StructDefinitionNode : HLSLSyntaxNode
+    {
+        public UserDefinedTypeNode Name { get; set; }
+        public List<UserDefinedTypeNode> Inherits { get; set; }
+        public List<VariableDeclarationStatementNode> Variables { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children => MergeChildren(new[] { Name }, Inherits, Variables);
+    }
+
     public abstract class VariableDeclaratorQualifierNode : HLSLSyntaxNode
     {
     }
