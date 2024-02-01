@@ -458,6 +458,65 @@ namespace UnityShaderParser.HLSL
             }
         }
 
+        public static bool TryConvertToPredefinedObjectType(TokenKind kind, out PredefinedObjectType type)
+        {
+            switch (kind)
+            {
+                case TokenKind.AppendStructuredBufferKeyword: type = PredefinedObjectType.AppendStructuredBuffer; return true;
+                case TokenKind.BlendStateKeyword: type = PredefinedObjectType.BlendState; return true;
+                case TokenKind.BufferKeyword: type = PredefinedObjectType.Buffer; return true;
+                case TokenKind.ByteAddressBufferKeyword: type = PredefinedObjectType.ByteAddressBuffer; return true;
+                case TokenKind.ConsumeStructuredBufferKeyword: type = PredefinedObjectType.ConsumeStructuredBuffer; return true;
+                case TokenKind.DepthStencilStateKeyword: type = PredefinedObjectType.DepthStencilState; return true;
+                case TokenKind.InputPatchKeyword: type = PredefinedObjectType.InputPatch; return true;
+                case TokenKind.LineStreamKeyword: type = PredefinedObjectType.LineStream; return true;
+                case TokenKind.OutputPatchKeyword: type = PredefinedObjectType.OutputPatch; return true;
+                case TokenKind.PointStreamKeyword: type = PredefinedObjectType.PointStream; return true;
+                case TokenKind.RasterizerStateKeyword: type = PredefinedObjectType.RasterizerState; return true;
+                case TokenKind.RWBufferKeyword: type = PredefinedObjectType.RWBuffer; return true;
+                case TokenKind.RWByteAddressBufferKeyword: type = PredefinedObjectType.RWByteAddressBuffer; return true;
+                case TokenKind.RWStructuredBufferKeyword: type = PredefinedObjectType.RWStructuredBuffer; return true;
+                case TokenKind.RWTexture1DKeyword: type = PredefinedObjectType.RWTexture1D; return true;
+                case TokenKind.RWTexture1DArrayKeyword: type = PredefinedObjectType.RWTexture1DArray; return true;
+                case TokenKind.RWTexture2DKeyword: type = PredefinedObjectType.RWTexture2D; return true;
+                case TokenKind.RWTexture2DArrayKeyword: type = PredefinedObjectType.RWTexture2DArray; return true;
+                case TokenKind.RWTexture3DKeyword: type = PredefinedObjectType.RWTexture3D; return true;
+                case TokenKind.Sampler1DKeyword: type = PredefinedObjectType.Sampler1D; return true;
+                case TokenKind.SamplerKeyword: type = PredefinedObjectType.Sampler; return true;
+                case TokenKind.Sampler2DKeyword: type = PredefinedObjectType.Sampler2D; return true;
+                case TokenKind.Sampler3DKeyword: type = PredefinedObjectType.Sampler3D; return true;
+                case TokenKind.SamplerCubeKeyword: type = PredefinedObjectType.SamplerCube; return true;
+                case TokenKind.SamplerStateKeyword: type = PredefinedObjectType.SamplerState; return true;
+                case TokenKind.SamplerComparisonStateKeyword: type = PredefinedObjectType.SamplerComparisonState; return true;
+                case TokenKind.StructuredBufferKeyword: type = PredefinedObjectType.StructuredBuffer; return true;
+                case TokenKind.TextureKeyword: type = PredefinedObjectType.Texture; return true;
+                case TokenKind.Texture2DLegacyKeyword: type = PredefinedObjectType.Texture; return true;
+                case TokenKind.TextureCubeLegacyKeyword: type = PredefinedObjectType.Texture; return true;
+                case TokenKind.Texture1DKeyword: type = PredefinedObjectType.Texture1D; return true;
+                case TokenKind.Texture1DArrayKeyword: type = PredefinedObjectType.Texture1DArray; return true;
+                case TokenKind.Texture2DKeyword: type = PredefinedObjectType.Texture2D; return true;
+                case TokenKind.Texture2DArrayKeyword: type = PredefinedObjectType.Texture2DArray; return true;
+                case TokenKind.Texture2DMSKeyword: type = PredefinedObjectType.Texture2DMS; return true;
+                case TokenKind.Texture2DMSArrayKeyword: type = PredefinedObjectType.Texture2DMSArray; return true;
+                case TokenKind.Texture3DKeyword: type = PredefinedObjectType.Texture3D; return true;
+                case TokenKind.TextureCubeKeyword: type = PredefinedObjectType.TextureCube; return true;
+                case TokenKind.TextureCubeArrayKeyword: type = PredefinedObjectType.TextureCubeArray; return true;
+                case TokenKind.TriangleStreamKeyword: type = PredefinedObjectType.TriangleStream; return true;
+                case TokenKind.RasterizerOrderedBufferKeyword: type = PredefinedObjectType.RasterizerOrderedBuffer; return true;
+                case TokenKind.RasterizerOrderedByteAddressBufferKeyword: type = PredefinedObjectType.RasterizerOrderedByteAddressBuffer; return true;
+                case TokenKind.RasterizerOrderedStructuredBufferKeyword: type = PredefinedObjectType.RasterizerOrderedStructuredBuffer; return true;
+                case TokenKind.RasterizerOrderedTexture1DArrayKeyword: type = PredefinedObjectType.RasterizerOrderedTexture1DArray; return true;
+                case TokenKind.RasterizerOrderedTexture1DKeyword: type = PredefinedObjectType.RasterizerOrderedTexture1D; return true;
+                case TokenKind.RasterizerOrderedTexture2DArrayKeyword: type = PredefinedObjectType.RasterizerOrderedTexture2DArray; return true;
+                case TokenKind.RasterizerOrderedTexture2DKeyword: type = PredefinedObjectType.RasterizerOrderedTexture2D; return true;
+                case TokenKind.RasterizerOrderedTexture3DKeyword: type = PredefinedObjectType.RasterizerOrderedTexture3D; return true;
+                case TokenKind.GeometryShaderKeyword: type = PredefinedObjectType.GeometryShader; return true;
+                case TokenKind.PixelShaderKeyword: type = PredefinedObjectType.PixelShader; return true;
+                case TokenKind.VertexShaderKeyword: type = PredefinedObjectType.VertexShader; return true;
+                default: type = default; return false;
+            }
+        }
+
         public static bool TryConvertToMonomorphicMatrixType(TokenKind kind, out ScalarType type, out int dimensionX, out int dimensionY)
         {
             switch (kind)

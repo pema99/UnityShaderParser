@@ -2,6 +2,7 @@
 
 namespace UnityShaderParser.HLSL
 {
+    #region Common types
     public enum TokenKind
     {
         None,
@@ -464,6 +465,64 @@ namespace UnityShaderParser.HLSL
         Buffer,
     }
 
+    public enum PredefinedObjectType
+    {
+        Texture,
+        Texture1D,
+        Texture1DArray,
+        Texture2D,
+        Texture2DArray,
+        Texture3D,
+        TextureCube,
+        TextureCubeArray,
+        Texture2DMS,
+        Texture2DMSArray,
+        RWTexture1D,
+        RWTexture1DArray,
+        RWTexture2D,
+        RWTexture2DArray,
+        RWTexture3D,
+        AppendStructuredBuffer,
+        Buffer,
+        ByteAddressBuffer,
+        ConsumeStructuredBuffer,
+        StructuredBuffer,
+        ConstantBuffer,
+        RasterizerOrderedBuffer,
+        RasterizerOrderedByteAddressBuffer,
+        RasterizerOrderedStructuredBuffer,
+        RasterizerOrderedTexture1D,
+        RasterizerOrderedTexture1DArray,
+        RasterizerOrderedTexture2D,
+        RasterizerOrderedTexture2DArray,
+        RasterizerOrderedTexture3D,
+        RWBuffer,
+        RWByteAddressBuffer,
+        RWStructuredBuffer,
+        InputPatch,
+        OutputPatch,
+        PointStream,
+        LineStream,
+        TriangleStream,
+        BlendState,
+        DepthStencilState,
+        RasterizerState,
+        Sampler,
+        Sampler1D,
+        Sampler2D,
+        Sampler3D,
+        SamplerCube,
+        SamplerState,
+        SamplerComparisonState,
+        GeometryShader,
+        PixelShader,
+        VertexShader,
+        BuiltInTriangleIntersectionAttributes,
+        RayDesc,
+        RaytracingAccelerationStructure
+    }
+    #endregion
+
     public abstract class HLSLSyntaxNode
     {
         protected static IEnumerable<HLSLSyntaxNode> MergeChildren(params IEnumerable<HLSLSyntaxNode>[] children)
@@ -734,17 +793,10 @@ namespace UnityShaderParser.HLSL
 
     public class PredefinedObjectTypeNode : PredefinedTypeNode
     {
-        public string ObjectType { get; set; } = string.Empty;
-        public TemplateArgumentListNode TemplateArgumentList { get; set; }
+        public PredefinedObjectType Kind { get; set; }
+        public List<ExpressionNode> TemplateArguments { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => new[] { TemplateArgumentList };
-    }
-
-    public class TemplateArgumentListNode : HLSLSyntaxNode
-    {
-        public List<ExpressionNode> Arguments { get; set; }
-
-        public override IEnumerable<HLSLSyntaxNode> Children => Arguments;
+        public override IEnumerable<HLSLSyntaxNode> Children => TemplateArguments;
     }
 
     public abstract class NumericTypeNode : PredefinedTypeNode { }

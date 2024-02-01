@@ -313,14 +313,14 @@ namespace UnityShaderParser.HLSL
             return ParseLiteralExpression();
         }
 
-        private List<ExpressionNode> ParseParameterList()
+        private List<ExpressionNode> ParseParameterList(TokenKind start = TokenKind.OpenParenToken, TokenKind end = TokenKind.CloseParenToken)
         {
-            Eat(TokenKind.OpenParenToken);
+            Eat(start);
             List<ExpressionNode> exprs = ParseSeparatedList0(
                 () => !Match(TokenKind.CloseParenToken),
                 TokenKind.CommaToken,
                 () => ParseExpression((int)PrecedenceLevel.Compound + 1));
-            Eat(TokenKind.CloseParenToken);
+            Eat(end);
             return exprs;
         }
 
@@ -455,6 +455,23 @@ namespace UnityShaderParser.HLSL
             {
                 // TODO: Predefined names !
                 return ParseUserDefinedTypeName();
+            }
+
+            if (HLSLSyntaxFacts.TryConvertToPredefinedObjectType(Peek().Kind, out PredefinedObjectType predefinedType))
+            {
+                Advance();
+
+                List<ExpressionNode> args = new();
+                if (Match(TokenKind.LessThanToken))
+                {
+                    args = ParseParameterList(TokenKind.LessThanToken, TokenKind.GreaterThanToken);
+                }
+
+                return new PredefinedObjectTypeNode
+                {
+                    Kind = predefinedType,
+                    TemplateArguments = args,
+                };
             }
 
             // TODO: Modifiers
