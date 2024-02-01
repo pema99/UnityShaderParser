@@ -439,7 +439,10 @@ namespace UnityShaderParser.HLSL
                 () => ParseVariableDeclarationStatement(new()));
 
             Eat(TokenKind.CloseBraceToken);
-            Eat(TokenKind.SemiToken);
+            if (Match(TokenKind.SemiToken))
+            {
+                Eat(TokenKind.SemiToken);
+            }
 
             return new ConstantBufferNode
             {
@@ -679,8 +682,11 @@ namespace UnityShaderParser.HLSL
                     Eat(TokenKind.SemiToken);
                     return new ReturnStatementNode { Attributes = attributes, Expression = returnExpr };
 
-                case TokenKind.OpenBraceToken:
                 case TokenKind.SemiToken:
+                    Advance();
+                    return new EmptyStatementNode { };
+
+                case TokenKind.OpenBraceToken:
                 case TokenKind.BreakKeyword:
                 case TokenKind.ContinueKeyword:
                 case TokenKind.DiscardKeyword:
@@ -690,12 +696,12 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.SwitchKeyword:
                 case TokenKind.WhileKeyword:
                 case TokenKind.TypedefKeyword:
-                    throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
+                    throw new NotImplementedException(anchorSpan + ": " + next.Kind.ToString());
                     break;
 
                 case TokenKind.InterfaceKeyword:
                 case TokenKind.StructKeyword:
-                    throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
+                    throw new NotImplementedException(anchorSpan + ": " + next.Kind.ToString());
                     break;
 
                 case TokenKind kind when IsVariableDeclarationStatement(kind):

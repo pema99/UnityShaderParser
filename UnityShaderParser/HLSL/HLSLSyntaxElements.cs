@@ -641,16 +641,26 @@ namespace UnityShaderParser.HLSL
         // TODO: modifiers
         public TypeNode Kind { get; set; }
         public List<VariableDeclaratorNode> Declarators { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children => MergeChildren(base.Children, new[] { Kind }, Declarators);
     }
 
     public class ReturnStatementNode : StatementNode
     {
         public ExpressionNode? Expression { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children => Expression != null ? MergeChildren(base.Children, new[] { Expression }) : base.Children;
+    }
+
+    public class EmptyStatementNode : StatementNode
+    {
     }
 
     public class ExpressionStatementNode : StatementNode
     {
         public ExpressionNode Expression { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children => MergeChildren(base.Children, new[] { Expression });
     }
 
     public class AttributeNode : HLSLSyntaxNode
