@@ -59,6 +59,135 @@ namespace UnityShaderParser.HLSL
             return result;
         }
 
+        enum PrecedenceLevel
+        {                 // Associativity:
+            Compound,     // left
+            Assignment,   // right
+            Ternary,      // left
+            LogicalOr,    // left
+            LogicalAnd,   // left
+            BitwiseOr,    // left
+            BitwiseXor,   // left
+            BitwiseAnd,   // left
+            Equality,     // left
+            Comparison,   // left
+            BitShift,     // left
+            AddSub,       // left
+            MulDivMod,    // left
+            PrefixUnary,  // right
+            PostFixUnary, // left
+        }
+
+        // https://en.cppreference.com/w/c/language/operator_precedence
+        List<(HashSet<TokenKind> operators, bool rightAssociative, Func<ExpressionNode, TokenKind, ExpressionNode, ExpressionNode> ctor)> operatorGroups = new ()
+        {
+            // TODO: Compound expression
+
+            // Assignment
+            (new() {
+                TokenKind.EqualsToken, TokenKind.PlusEqualsToken, TokenKind.MinusEqualsToken,
+                TokenKind.AsteriskEqualsToken, TokenKind.SlashEqualsToken, TokenKind.PercentEqualsToken,
+                TokenKind.LessThanLessThanEqualsToken, TokenKind.GreaterThanGreaterThanEqualsToken,
+                TokenKind.AmpersandEqualsToken, TokenKind.CaretEqualsToken, TokenKind.BarEqualsToken },
+            true,
+            (l, op, r) => new AssignmentExpressionNode { Left = l, Operator = op, Right = r }),
+
+            // TODO: Ternary
+
+            // LogicalOr
+            (new() { TokenKind.BarBarToken },
+            false,
+            (l, op, r) => new BinaryExpressionNode { Left = l, Operator = op, Right = r }),
+
+            // LogicalAnd
+            (new() { TokenKind.AmpersandAmpersandToken },
+            false,
+            (l, op, r) => new BinaryExpressionNode { Left = l, Operator = op, Right = r }),
+
+            // BitwiseOr
+            (new() { TokenKind.BarToken },
+            false,
+            (l, op, r) => new BinaryExpressionNode { Left = l, Operator = op, Right = r }),
+
+            // BitwiseXor
+            (new() { TokenKind.CaretToken },
+            false,
+            (l, op, r) => new BinaryExpressionNode { Left = l, Operator = op, Right = r }),
+
+            // BitwiseAnd
+            (new() { TokenKind.AmpersandToken },
+            false,
+            (l, op, r) => new BinaryExpressionNode { Left = l, Operator = op, Right = r }),
+
+            // Equality
+            (new() { TokenKind.EqualsEqualsToken, TokenKind.ExclamationEqualsToken },
+            false,
+            (l, op, r) => new BinaryExpressionNode { Left = l, Operator = op, Right = r }),
+
+            // Comparison
+            (new() { TokenKind.LessThanToken, TokenKind.LessThanEqualsToken, TokenKind.GreaterThanToken, TokenKind.GreaterThanEqualsToken },
+            false,
+            (l, op, r) => new BinaryExpressionNode { Left = l, Operator = op, Right = r }),
+
+            // BitShift
+            (new() { TokenKind.LessThanLessThanToken, TokenKind.GreaterThanGreaterThanToken },
+            false,
+            (l, op, r) => new BinaryExpressionNode { Left = l, Operator = op, Right = r }),
+
+            // AddSub
+            (new() { TokenKind.PlusToken, TokenKind.MinusToken },
+            false,
+            (l, op, r) => new BinaryExpressionNode { Left = l, Operator = op, Right = r }),
+
+            // MulDivMod
+            (new() { TokenKind.AsteriskToken, TokenKind.SlashToken, TokenKind.PercentToken },
+            false,
+            (l, op, r) => new BinaryExpressionNode { Left = l, Operator = op, Right = r }),
+
+            // TODO: Prefix unary
+            // TODO: Postfix unary
+
+            // Binds most tightly
+        };
+
+        private LiteralExpressionNode ParseLiteralExpression()
+        {
+            return new LiteralExpressionNode { Lexeme = ParseNumericLiteral().ToString() };
+        }
+
+        private ExpressionNode ParseTermExpression()
+        {
+            return ParseLiteralExpression();
+        }
+
+        private ExpressionNode ParseBinaryExpression(int level = 0)
+        {
+            if (level >= operatorGroups.Count)
+            {
+                return ParseTermExpression();
+            }
+
+            ExpressionNode higher = ParseBinaryExpression(level + 1);
+
+            var group = operatorGroups[level];
+            while (Match(tok => group.operators.Contains(tok.Kind)))
+            {
+                Token next = Advance();
+
+                higher = group.ctor(
+                    higher,
+                    next.Kind,
+                    ParseBinaryExpression(group.rightAssociative ? level : level + 1));
+
+                if (IsAtEnd())
+                {
+                    return higher;
+                }
+            }
+
+            return higher;
+        }
+
         private ExpressionNode ParseExpression()
         {
             // TODO:
@@ -103,17 +232,7 @@ namespace UnityShaderParser.HLSL
             // - Postfix unary? e_
             // - Assignment e=
 
-            switch ()
-            {
-
-            }
-
-            return ParseLiteralExpression();
-        }
-
-        private LiteralExpressionNode ParseLiteralExpression()
-        {
-            throw new NotImplementedException();
+            return ParseBinaryExpression();
         }
 
         private AttributeNode ParseAttribute()
@@ -267,7 +386,7 @@ namespace UnityShaderParser.HLSL
         private BlockNode ParseBlock()
         {
             Eat(TokenKind.OpenBraceToken);
-            List<StatementNode> statements = ParseMany0(() => !Match(TokenKind.CloseParenToken), ParseStatement);
+            List<StatementNode> statements = ParseMany0(() => !Match(TokenKind.CloseBraceToken), ParseStatement);
             Eat(TokenKind.CloseBraceToken);
 
             return new BlockNode

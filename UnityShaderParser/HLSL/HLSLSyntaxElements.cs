@@ -554,11 +554,25 @@ namespace UnityShaderParser.HLSL
         public string Lexeme { get; set; }
         // TODO: Type
 
-        public override IEnumerable<HLSLSyntaxNode> Children => Enumerable.Empty();
+        public override IEnumerable<HLSLSyntaxNode> Children => Enumerable.Empty<HLSLSyntaxNode>();
     }
 
-    public class AssignmentExpressionSyntax : ExpressionNode
+    public class AssignmentExpressionNode : ExpressionNode
     {
+        public ExpressionNode Left { get; set; }
+        public TokenKind Operator { get; set; } // TODO: Not TokenKind
+        public ExpressionNode Right { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children => new[] { Left, Right };
+    }
+
+    public class BinaryExpressionNode : ExpressionNode
+    {
+        public ExpressionNode Left { get; set; }
+        public TokenKind Operator { get; set; } // TODO: Not TokenKind
+        public ExpressionNode Right { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children => new[] { Left, Right };
     }
 
     public abstract class TypeNode : HLSLSyntaxNode {}
