@@ -536,6 +536,11 @@ namespace UnityShaderParser.HLSL
         public List<VariableDeclaratorNode> Declarators { get; set; }
     }
 
+    public class ExpressionStatementNode : StatementNode
+    {
+        public ExpressionNode Expression { get; set; }
+    }
+
     public class AttributeNode : HLSLSyntaxNode
     {
         public string Name { get; set; }
@@ -544,7 +549,15 @@ namespace UnityShaderParser.HLSL
         public override IEnumerable<HLSLSyntaxNode> Children => Arguments;
     }
 
-    public abstract class LiteralExpressionNode : ExpressionNode
+    public class LiteralExpressionNode : ExpressionNode
+    {
+        public string Lexeme { get; set; }
+        // TODO: Type
+
+        public override IEnumerable<HLSLSyntaxNode> Children => Enumerable.Empty();
+    }
+
+    public class AssignmentExpressionSyntax : ExpressionNode
     {
     }
 

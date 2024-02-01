@@ -62,6 +62,52 @@ namespace UnityShaderParser.HLSL
         private ExpressionNode ParseExpression()
         {
             // TODO:
+            // - Function invocation            \
+            // - Method invocation              | - Group these 3
+            // - Numeric constructor invocation /
+            // - Array initializer
+            // - Assignment
+            // - Binary op
+            // - Cast
+            // - Compound
+            // - Ternary
+            // - Element access
+            // - Field access
+            // - Literal (incl strings)
+            // - Paranthesized expression
+            // - Prefix unary
+            // - Postfix unary?
+            // - Compile (wtf is this?)
+
+            // Ambiguity groupings:
+            // - Function invocation i(
+
+            // - Literal (incl strings) num|"|keyword
+
+            // - Array initializer {e
+
+            // - Prefix unary _e
+
+            // - Paranthesized expression (e
+            // - Cast (i
+
+            // - Numeric constructor invocation k(
+            // - Compile (wtf is this?)
+
+            // - Method invocation e.
+            // - Ternary e?
+            // - Binary op e_
+            // - Compound e,
+            // - Element access e[
+            // - Field access e.
+            // - Postfix unary? e_
+            // - Assignment e=
+
+            switch ()
+            {
+
+            }
+
             return ParseLiteralExpression();
         }
 
@@ -270,13 +316,9 @@ namespace UnityShaderParser.HLSL
                     return ParseVariableDeclarationStatement(attributes);
 
                 default:
-                    // Rest could be:
-                    // - Expression
-                    // - Variable decl
-                    Error($"Unimplemented statement starting with {next.Kind}");
-                    ParseMany0(() => !Match(TokenKind.SemiToken), () => Advance(1));
+                    ExpressionNode expr = ParseExpression();
                     Eat(TokenKind.SemiToken);
-                    return null;
+                    return new ExpressionStatementNode { Attributes = attributes, Expression = expr };
             }
         }
 
