@@ -43,8 +43,11 @@ namespace UnityShaderParser.HLSL
                     // TODO: constant buffer
                     case TokenKind.ClassKeyword:
                     case TokenKind.InterfaceKeyword:
-                    case TokenKind.ConstantBufferKeyword:
                         throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
+
+                    case TokenKind.CBufferKeyword:
+                        result.Add(ParseConstantBuffer());
+                        break;
 
                     case TokenKind.StructKeyword:
                         result.Add(ParseStructDefinition());
@@ -417,7 +420,35 @@ namespace UnityShaderParser.HLSL
             {
                 Name = name,
                 Inherits = baseList,
-                Variables = decls
+                Declarations = decls
+            };
+        }
+
+        private ConstantBufferNode ParseConstantBuffer()
+        {
+            Eat(TokenKind.CBufferKeyword);
+            var name = ParseUserDefinedTypeName();
+
+            RegisterLocationNode? reg = null;
+            if (Match(TokenKind.ColonToken))
+            {
+                reg = ParseRegisterLocation();
+            }
+
+            Eat(TokenKind.OpenBraceToken);
+
+            List<VariableDeclarationStatementNode> decls = ParseMany0(
+                () => !Match(TokenKind.CloseBraceToken),
+                () => ParseVariableDeclarationStatement(new()));
+
+            Eat(TokenKind.CloseBraceToken);
+            Eat(TokenKind.SemiToken);
+
+            return new ConstantBufferNode
+            {
+                Name = name,
+                RegisterLocation = reg,
+                Declarations = decls
             };
         }
 
@@ -512,7 +543,12 @@ namespace UnityShaderParser.HLSL
 
         private VariableDeclaratorQualifierNode ParseVariableDeclaratorQualifierNode()
         {
-            return ParseSemantic();
+            switch (LookAhead().Kind)
+            {
+                case TokenKind.IdentifierToken: return ParseSemantic();
+                case TokenKind.RegisterKeyword: return ParseRegisterLocation();
+                default: throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
+            }
         }
 
         private SemanticNode ParseSemantic()
@@ -520,6 +556,56 @@ namespace UnityShaderParser.HLSL
             Eat(TokenKind.ColonToken);
             string identifier = ParseIdentifier();
             return new SemanticNode { Name = identifier };
+        }
+
+        private RegisterLocationNode ParseRegisterLocation()
+        {
+            Eat(TokenKind.ColonToken);
+            Eat(TokenKind.RegisterKeyword);
+            Eat(TokenKind.OpenParenToken);
+
+            string location = ParseIdentifier();
+            RegisterKind kind = default;
+            int index = 0;
+            switch (location.ToLower().FirstOrDefault())
+            {
+                case 't': kind = RegisterKind.Texture; break;
+                case 'b': kind = RegisterKind.Buffer; break;
+                case 'u': kind = RegisterKind.UAV; break;
+                case 's': kind = RegisterKind.Sampler; break;
+                default: break;
+            }
+            string indexLexeme = string.Concat(location.SkipWhile(x => !char.IsNumber(x)));
+            if (!int.TryParse(indexLexeme, out index))
+            {
+                Error($"Expected a valid register location, but got '{location}'.");
+            }
+
+            int? spaceIndex = null;
+            if (Match(TokenKind.CommaToken))
+            {
+                Eat(TokenKind.CommaToken);
+
+                string space = ParseIdentifier();
+                string spaceLexeme = string.Concat(space.SkipWhile(x => !char.IsNumber(x)));
+                if (int.TryParse(spaceLexeme, out int parsedIndex))
+                {
+                    spaceIndex = parsedIndex;
+                }
+                else
+                {
+                    Error($"Expected a valid register location, but got '{location}'.");
+                }
+            }
+
+            Eat(TokenKind.CloseParenToken);
+
+            return new RegisterLocationNode
+            {
+                Kind = kind,
+                Location = index,
+                Space = spaceIndex,
+            };
         }
 
         private BlockNode ParseBlock()

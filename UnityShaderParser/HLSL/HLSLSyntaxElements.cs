@@ -456,6 +456,14 @@ namespace UnityShaderParser.HLSL
         Character,
     }
 
+    public enum RegisterKind
+    {
+        Texture,
+        Sampler,
+        UAV,
+        Buffer,
+    }
+
     public abstract class HLSLSyntaxNode
     {
         protected static IEnumerable<HLSLSyntaxNode> MergeChildren(params IEnumerable<HLSLSyntaxNode>[] children)
@@ -515,9 +523,22 @@ namespace UnityShaderParser.HLSL
     {
         public UserDefinedTypeNode Name { get; set; }
         public List<UserDefinedTypeNode> Inherits { get; set; }
-        public List<VariableDeclarationStatementNode> Variables { get; set; }
+        public List<VariableDeclarationStatementNode> Declarations { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => MergeChildren(new[] { Name }, Inherits, Variables);
+        public override IEnumerable<HLSLSyntaxNode> Children => MergeChildren(new[] { Name }, Inherits, Declarations);
+    }
+
+    public class ConstantBufferNode : HLSLSyntaxNode
+    {
+        public UserDefinedTypeNode Name { get; set; }
+        public RegisterLocationNode? RegisterLocation { get; set; }
+        public List<VariableDeclarationStatementNode> Declarations { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(RegisterLocation == null ?
+                new HLSLSyntaxNode[] { Name } :
+                new HLSLSyntaxNode[] { Name, RegisterLocation },
+                Declarations);
     }
 
     public abstract class VariableDeclaratorQualifierNode : HLSLSyntaxNode
@@ -529,6 +550,15 @@ namespace UnityShaderParser.HLSL
     public class SemanticNode : VariableDeclaratorQualifierNode
     {
         public string Name { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children => Enumerable.Empty<HLSLSyntaxNode>();
+    }
+
+    public class RegisterLocationNode : VariableDeclaratorQualifierNode
+    {
+        public RegisterKind Kind { get; set; }
+        public int Location { get; set; }
+        public int? Space { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children => Enumerable.Empty<HLSLSyntaxNode>();
     }
