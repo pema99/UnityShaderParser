@@ -671,6 +671,18 @@ namespace UnityShaderParser.HLSL
             MergeChildren(base.Children, OptionalChild(Expression));
     }
 
+    public class BreakStatementNode : StatementNode
+    {
+    }
+
+    public class ContinueStatementNode : StatementNode
+    {
+    }
+
+    public class DiscardStatementNode : StatementNode
+    {
+    }
+
     public class EmptyStatementNode : StatementNode
     {
     }
@@ -797,7 +809,7 @@ namespace UnityShaderParser.HLSL
         public List<ExpressionNode> Arguments { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children =>
-            Child(Target);
+            MergeChildren(Child(Target), Arguments);
     }
 
     public class FunctionCallExpressionNode : ExpressionNode
@@ -806,7 +818,7 @@ namespace UnityShaderParser.HLSL
         public List<ExpressionNode> Arguments { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children =>
-            Enumerable.Empty<HLSLSyntaxNode>();
+            MergeChildren(Child(Name), Arguments);
     }
 
     public class NumericConstructorCallExpressionNode : ExpressionNode
@@ -815,7 +827,16 @@ namespace UnityShaderParser.HLSL
         public List<ExpressionNode> Arguments { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children =>
-            Enumerable.Empty<HLSLSyntaxNode>();
+            MergeChildren(Child(Kind), Arguments);
+    }
+
+    public class ElementAccessExpressionNode : ExpressionNode
+    {
+        public ExpressionNode Target { get; set; }
+        public ExpressionNode Index { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(Child(Target), Child(Index));
     }
 
     public class CastExpressionNode : ExpressionNode

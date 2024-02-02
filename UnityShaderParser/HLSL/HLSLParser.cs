@@ -346,7 +346,9 @@ namespace UnityShaderParser.HLSL
                         {
                             case TokenKind.PlusPlusToken:
                             case TokenKind.MinusMinusToken:
-                                throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
+                                var incrOp = Advance().Kind;
+                                higher = new PostfixUnaryExpressionNode { Expression = higher, Operator = incrOp };
+                                break;
 
                             case TokenKind.OpenParenToken when higher is NamedExpressionNode target:
                                 var funcArgs = ParseParameterList();
@@ -354,7 +356,11 @@ namespace UnityShaderParser.HLSL
                                 break;
 
                             case TokenKind.OpenBracketToken:
-                                throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
+                                Eat(TokenKind.OpenBracketToken);
+                                var indexArg = ParseExpression();
+                                Eat(TokenKind.CloseBracketToken);
+                                higher = new ElementAccessExpressionNode { Target = higher, Index = indexArg };
+                                break;
 
                             case TokenKind.DotToken:
                                 Eat(TokenKind.DotToken);
@@ -774,27 +780,38 @@ namespace UnityShaderParser.HLSL
             Token next = Peek();
             switch (next.Kind)
             {
+                case TokenKind.SemiToken:
+                    Advance();
+                    return new EmptyStatementNode { };
+
+                case TokenKind.OpenBraceToken:
+                    return ParseBlock();
+
                 case TokenKind.ReturnKeyword:
                     Advance();
                     ExpressionNode returnExpr = ParseExpression();
                     Eat(TokenKind.SemiToken);
                     return new ReturnStatementNode { Attributes = attributes, Expression = returnExpr };
 
-                case TokenKind.SemiToken:
-                    Advance();
-                    return new EmptyStatementNode { };
-
                 case TokenKind.ForKeyword:
                     return ParseForStatement(attributes);
 
-                case TokenKind.OpenBraceToken:
-                    return ParseBlock();
+                case TokenKind.IfKeyword:
+                    return ParseIfStatement(attributes);
 
                 case TokenKind.BreakKeyword:
+                    Advance();
+                    return new BreakStatementNode { Attributes = attributes };
+
                 case TokenKind.ContinueKeyword:
+                    Advance();
+                    return new ContinueStatementNode { Attributes = attributes };
+
                 case TokenKind.DiscardKeyword:
+                    Advance();
+                    return new DiscardStatementNode { Attributes = attributes };
+
                 case TokenKind.DoKeyword:
-                case TokenKind.IfKeyword:
                 case TokenKind.SwitchKeyword:
                 case TokenKind.WhileKeyword:
                 case TokenKind.TypedefKeyword:
@@ -864,6 +881,33 @@ namespace UnityShaderParser.HLSL
                 Increment = incrementor,
                 Body = body,
                 Attributes = attributes,
+            };
+        }
+
+        private IfStatementNode ParseIfStatement(List<AttributeNode> attributes)
+        {
+            Eat(TokenKind.IfKeyword);
+            Eat(TokenKind.OpenParenToken);
+
+            var cond = ParseExpression();
+
+            Eat(TokenKind.CloseParenToken);
+
+            var body = ParseStatement();
+
+            StatementNode? elseClause = null;
+            if (Match(TokenKind.ElseKeyword))
+            {
+                Eat(TokenKind.ElseKeyword);
+                elseClause = ParseStatement();
+            }
+
+            return new IfStatementNode
+            {
+                Attributes = attributes,
+                Condition = cond,
+                Body = body,
+                ElseClause = elseClause,
             };
         }
     }
