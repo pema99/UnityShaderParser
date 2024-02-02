@@ -40,6 +40,10 @@ namespace UnityShaderParser.HLSL
                     // TODO: intereface definition
                     case TokenKind.ClassKeyword:
                     case TokenKind.InterfaceKeyword:
+                    case TokenKind.SamplerStateKeyword:
+                    case TokenKind.SamplerStateLegacyKeyword:
+                    case TokenKind.SamplerComparisonStateKeyword:
+                    case TokenKind.SamplerKeyword:
                         throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
 
                     case TokenKind.CBufferKeyword:
@@ -50,7 +54,7 @@ namespace UnityShaderParser.HLSL
                         result.Add(ParseStructDefinition());
                         break;
 
-                    case TokenKind kind when IsTopLevelVariableDeclaration(kind):
+                    case TokenKind kind when IsNextNotTopLevelFunction():
                         result.Add(ParseVariableDeclarationStatement(new()));
                         break;
 
@@ -718,11 +722,11 @@ namespace UnityShaderParser.HLSL
             return false;
         }
 
-        private bool IsTopLevelVariableDeclaration(TokenKind nextKind)
+        private bool IsNextNotTopLevelFunction()
         {
             // Skip modifiers (they don't disambguiate top level declarations)
             int offset = 0;
-            if (HLSLSyntaxFacts.IsModifier(nextKind))
+            if (HLSLSyntaxFacts.IsModifier(LookAhead(offset).Kind))
             {
                 offset = 1;
                 while (HLSLSyntaxFacts.IsModifier(LookAhead(offset).Kind))
@@ -730,7 +734,7 @@ namespace UnityShaderParser.HLSL
                     offset++;
                 }
             }
-            nextKind = LookAhead(offset).Kind;
+            var nextKind = LookAhead(offset).Kind;
 
             // TODO: This will break for qualified return types
             if ((HLSLSyntaxFacts.IsBuiltinType(nextKind) || nextKind == TokenKind.IdentifierToken) &&
