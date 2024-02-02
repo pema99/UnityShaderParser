@@ -42,10 +42,6 @@ namespace UnityShaderParser.HLSL
                     Add(EatStringLiteral('"', '"'), TokenKind.StringLiteralToken);
                     break;
 
-                case '[' when IsAlphaNumericOrUnderscore(LookAhead()):
-                    Add(EatStringLiteral('[', ']'), TokenKind.BracketedStringLiteralToken);
-                    break;
-
                 case ' ' or '\t' or '\r' or '\n':
                     Advance();
                     break;

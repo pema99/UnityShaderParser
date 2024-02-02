@@ -428,7 +428,6 @@ namespace UnityShaderParser.HLSL
         FloatLiteralToken,
         CharacterLiteralToken,
         StringLiteralToken,
-        BracketedStringLiteralToken,
     }
 
     public enum ScalarType
@@ -451,7 +450,6 @@ namespace UnityShaderParser.HLSL
     public enum LiteralKind
     {
         String,
-        BracketedString,
         Float,
         Integer,
         Character,

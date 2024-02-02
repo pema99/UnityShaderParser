@@ -15,7 +15,6 @@ namespace UnityShaderParser.HLSL
             : base(tokens) { }
 
         protected override TokenKind StringLiteralTokenKind => TokenKind.StringLiteralToken;
-        protected override TokenKind BracketedStringLiteralTokenKind => TokenKind.BracketedStringLiteralToken;
         protected override TokenKind IntegerLiteralTokenKind => TokenKind.IntegerLiteralToken;
         protected override TokenKind FloatLiteralTokenKind => TokenKind.FloatLiteralToken;
         protected override TokenKind IdentifierTokenKind => TokenKind.IdentifierToken;

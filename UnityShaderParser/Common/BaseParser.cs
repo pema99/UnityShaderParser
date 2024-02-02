@@ -5,7 +5,6 @@
     {
         // Require token kinds
         protected abstract T StringLiteralTokenKind { get; }
-        protected abstract T BracketedStringLiteralTokenKind { get; }
         protected abstract T IntegerLiteralTokenKind { get; }
         protected abstract T FloatLiteralTokenKind { get; }
         protected abstract T IdentifierTokenKind { get; }
@@ -94,15 +93,6 @@
         {
             Token<T> literalToken = Eat(StringLiteralTokenKind);
             return literalToken.Identifier ?? string.Empty;
-        }
-
-        protected string ParseBracketedStringLiteral()
-        {
-            Token<T> literalToken = Eat(BracketedStringLiteralTokenKind);
-            string literal = literalToken.Identifier ?? string.Empty;
-            if (string.IsNullOrEmpty(literal))
-                Error("a valid bracketed string literal / property reference", literalToken);
-            return literal;
         }
 
         protected float ParseNumericLiteral()

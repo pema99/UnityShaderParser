@@ -10,7 +10,6 @@ namespace UnityShaderParser.ShaderLab
             : base(tokens) { }
 
         protected override TokenKind StringLiteralTokenKind => TokenKind.StringLiteralToken;
-        protected override TokenKind BracketedStringLiteralTokenKind => TokenKind.BracketedStringLiteralToken;
         protected override TokenKind IntegerLiteralTokenKind => TokenKind.IntegerLiteralToken;
         protected override TokenKind FloatLiteralTokenKind => TokenKind.FloatLiteralToken;
         protected override TokenKind IdentifierTokenKind => TokenKind.IdentifierToken;
@@ -139,6 +138,16 @@ namespace UnityShaderParser.ShaderLab
                     break;
                 }
             }
+        }
+
+        // TODO: Actually parse contents. In rare cases it can matter.
+        private string ParseBracketedStringLiteral()
+        {
+            Token literalToken = Eat(TokenKind.BracketedStringLiteralToken);
+            string literal = literalToken.Identifier ?? string.Empty;
+            if (string.IsNullOrEmpty(literal))
+                Error("a valid bracketed string literal / property reference", literalToken);
+            return literal;
         }
 
         private void ParsePropertySection(List<ShaderPropertyNode> outProperties)

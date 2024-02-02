@@ -1074,7 +1074,6 @@ namespace UnityShaderParser.HLSL
             switch (kind)
             {
                 case TokenKind.StringLiteralToken: outKind = LiteralKind.String; return true;
-                case TokenKind.BracketedStringLiteralToken: outKind = LiteralKind.BracketedString; return true;
                 case TokenKind.FloatLiteralToken: outKind = LiteralKind.Float; return true;
                 case TokenKind.IntegerLiteralToken: outKind = LiteralKind.Integer; return true;
                 case TokenKind.CharacterLiteralToken: outKind = LiteralKind.Character; return true;
