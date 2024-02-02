@@ -525,6 +525,10 @@ namespace UnityShaderParser.HLSL
     {
         protected static IEnumerable<HLSLSyntaxNode> MergeChildren(params IEnumerable<HLSLSyntaxNode>[] children)
             => children.SelectMany(x => x);
+        protected static IEnumerable<HLSLSyntaxNode> OptionalChild(HLSLSyntaxNode? child)
+            => child == null ? Enumerable.Empty<HLSLSyntaxNode>() : new[] { child };
+        protected static IEnumerable<HLSLSyntaxNode> Child(HLSLSyntaxNode child)
+            => new[] { child };
         public abstract IEnumerable<HLSLSyntaxNode> Children { get; }
         //public abstract void Accept(ShaderLabSyntaxVisitor visitor);
 
@@ -541,7 +545,8 @@ namespace UnityShaderParser.HLSL
         public List<FormalParameterNode> Parameters { get; set; }
         public SemanticNode? Semantic { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => MergeChildren(Attributes); // TODO
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(Attributes, Child(ReturnType), Child(Name), Parameters, OptionalChild(Semantic));
     }
 
     public class FormalParameterNode : HLSLSyntaxNode
@@ -551,7 +556,8 @@ namespace UnityShaderParser.HLSL
         public TypeNode ParamType { get; set; }
         public VariableDeclaratorNode Declarator { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => MergeChildren(Attributes, new HLSLSyntaxNode[] { ParamType, Declarator });
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(Attributes, Child(ParamType), Child(Declarator));
     }
 
     public class VariableDeclaratorNode : HLSLSyntaxNode
@@ -562,14 +568,16 @@ namespace UnityShaderParser.HLSL
         // TODO List<annotation> s
         public ExpressionNode? Initializer { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => throw new NotImplementedException();
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(ArrayRanks, Qualifiers, OptionalChild(Initializer));
     }
 
     public class ArrayRankNode : HLSLSyntaxNode
     {
         public ExpressionNode Dimension { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => new[] { Dimension };
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Child(Dimension);
     }
 
     public class FunctionDeclarationNode : FunctionNode
@@ -580,7 +588,8 @@ namespace UnityShaderParser.HLSL
     {
         public BlockNode Body { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => MergeChildren(base.Children, new[] { Body });
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(base.Children, Child(Body));
     }
 
     public class StructDefinitionNode : HLSLSyntaxNode
@@ -589,7 +598,8 @@ namespace UnityShaderParser.HLSL
         public List<UserDefinedTypeNode> Inherits { get; set; }
         public List<VariableDeclarationStatementNode> Declarations { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => MergeChildren(new[] { Name }, Inherits, Declarations);
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(Child(Name), Inherits, Declarations);
     }
 
     public class ConstantBufferNode : HLSLSyntaxNode
@@ -600,10 +610,7 @@ namespace UnityShaderParser.HLSL
         public bool IsTextureBuffer { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children =>
-            MergeChildren(RegisterLocation == null ?
-                new HLSLSyntaxNode[] { Name } :
-                new HLSLSyntaxNode[] { Name, RegisterLocation },
-                Declarations);
+            MergeChildren(Child(Name), OptionalChild(RegisterLocation), Declarations);
     }
 
     public abstract class VariableDeclaratorQualifierNode : HLSLSyntaxNode
@@ -616,7 +623,8 @@ namespace UnityShaderParser.HLSL
     {
         public string Name { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => Enumerable.Empty<HLSLSyntaxNode>();
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Enumerable.Empty<HLSLSyntaxNode>();
     }
 
     public class RegisterLocationNode : VariableDeclaratorQualifierNode
@@ -625,21 +633,24 @@ namespace UnityShaderParser.HLSL
         public int Location { get; set; }
         public int? Space { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => Enumerable.Empty<HLSLSyntaxNode>();
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Enumerable.Empty<HLSLSyntaxNode>();
     }
 
     public abstract class StatementNode : HLSLSyntaxNode
     {
         public List<AttributeNode> Attributes { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => Attributes;
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Attributes;
     }
 
     public class BlockNode : StatementNode
     {
         public List<StatementNode> Statements { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => MergeChildren(base.Children, Statements);
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(base.Children, Statements);
     }
 
     public class VariableDeclarationStatementNode : StatementNode
@@ -648,14 +659,16 @@ namespace UnityShaderParser.HLSL
         public TypeNode Kind { get; set; }
         public List<VariableDeclaratorNode> Declarators { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => MergeChildren(base.Children, new[] { Kind }, Declarators);
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(base.Children, Child(Kind), Declarators);
     }
 
     public class ReturnStatementNode : StatementNode
     {
         public ExpressionNode? Expression { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => Expression != null ? MergeChildren(base.Children, new[] { Expression }) : base.Children;
+        public override IEnumerable<HLSLSyntaxNode> Children => 
+            MergeChildren(base.Children, OptionalChild(Expression));
     }
 
     public class EmptyStatementNode : StatementNode
@@ -669,25 +682,26 @@ namespace UnityShaderParser.HLSL
         public ExpressionNode? Increment { get; set; }
         public StatementNode Body { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children
-        {
-            get
-            {
-                List<HLSLSyntaxNode> ret = new(base.Children);
-                if (Declaration != null) ret.Add(Declaration);
-                if (Condition != null) ret.Add(Condition);
-                if (Increment != null) ret.Add(Increment);
-                ret.Add(Body);
-                return ret;
-            }
-        }
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(base.Children, OptionalChild(Declaration), OptionalChild(Condition), OptionalChild(Increment), Child(Body));
+    }
+
+    public class IfStatementNode : StatementNode
+    {
+        public ExpressionNode Condition { get; set; }
+        public StatementNode Body { get; set; }
+        public StatementNode? ElseClause { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(base.Children, Child(Condition), Child(Body), OptionalChild(ElseClause));
     }
 
     public class ExpressionStatementNode : StatementNode
     {
         public ExpressionNode Expression { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => MergeChildren(base.Children, new[] { Expression });
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(base.Children, Child(Expression));
     }
 
     public class AttributeNode : HLSLSyntaxNode
@@ -695,7 +709,8 @@ namespace UnityShaderParser.HLSL
         public string Name { get; set; }
         public List<LiteralExpressionNode> Arguments { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => Arguments;
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Arguments;
     }
 
     public abstract class ExpressionNode : HLSLSyntaxNode { }
@@ -709,14 +724,16 @@ namespace UnityShaderParser.HLSL
         public IdentifierExpressionNode Left { get; set; }
         public NamedExpressionNode Right { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => new[] { Left, Right };
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(Child(Left), Child(Right));
     }
 
     public class IdentifierExpressionNode : NamedExpressionNode
     {
         public string Name { get; set; } = string.Empty;
 
-        public override IEnumerable<HLSLSyntaxNode> Children => Enumerable.Empty<HLSLSyntaxNode>();
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Enumerable.Empty<HLSLSyntaxNode>();
     }
 
     public class LiteralExpressionNode : ExpressionNode
@@ -724,7 +741,8 @@ namespace UnityShaderParser.HLSL
         public string Lexeme { get; set; }
         public LiteralKind Kind { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => Enumerable.Empty<HLSLSyntaxNode>();
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Enumerable.Empty<HLSLSyntaxNode>();
     }
 
     public class AssignmentExpressionNode : ExpressionNode
@@ -733,7 +751,8 @@ namespace UnityShaderParser.HLSL
         public TokenKind Operator { get; set; } // TODO: Not TokenKind
         public ExpressionNode Right { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => new[] { Left, Right };
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(Child(Left), Child(Right));
     }
 
     public class BinaryExpressionNode : ExpressionNode
@@ -742,21 +761,24 @@ namespace UnityShaderParser.HLSL
         public TokenKind Operator { get; set; } // TODO: Not TokenKind
         public ExpressionNode Right { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => new[] { Left, Right };
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(Child(Left), Child(Right));
     }
 
     public class PrefixUnaryExpressionNode : ExpressionNode
     {
         public TokenKind Operator { get; set; } // TODO: Not TokenKind
         public ExpressionNode Expression { get; set; }
-        public override IEnumerable<HLSLSyntaxNode> Children => new[] { Expression };
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Child(Expression);
     }
 
     public class PostfixUnaryExpressionNode : ExpressionNode
     {
         public ExpressionNode Expression { get; set; }
         public TokenKind Operator { get; set; } // TODO: Not TokenKind
-        public override IEnumerable<HLSLSyntaxNode> Children => new[] { Expression };
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Child(Expression);
     }
 
     public class FieldAccessExpressionNode : ExpressionNode
@@ -764,7 +786,8 @@ namespace UnityShaderParser.HLSL
         public ExpressionNode Target { get; set; }
         public string Name { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => new[] { Target };
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Child(Target);
     }
 
     public class MethodCallExpressionNode : ExpressionNode
@@ -773,7 +796,8 @@ namespace UnityShaderParser.HLSL
         public string Name { get; set; }
         public List<ExpressionNode> Arguments { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => new[] { Target };
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Child(Target);
     }
 
     public class FunctionCallExpressionNode : ExpressionNode
@@ -781,7 +805,8 @@ namespace UnityShaderParser.HLSL
         public NamedExpressionNode Name { get; set; }
         public List<ExpressionNode> Arguments { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => Enumerable.Empty<HLSLSyntaxNode>();
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Enumerable.Empty<HLSLSyntaxNode>();
     }
 
     public class NumericConstructorCallExpressionNode : ExpressionNode
@@ -789,7 +814,8 @@ namespace UnityShaderParser.HLSL
         public NumericTypeNode Kind { get; set; } // TODO: Not TokenKind
         public List<ExpressionNode> Arguments { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => Enumerable.Empty<HLSLSyntaxNode>();
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Enumerable.Empty<HLSLSyntaxNode>();
     }
 
     public class CastExpressionNode : ExpressionNode
@@ -797,7 +823,8 @@ namespace UnityShaderParser.HLSL
         public TypeNode Kind { get; set; }
         public ExpressionNode Expression { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => new HLSLSyntaxNode[] { Kind, Expression };
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(Child(Kind), Child(Expression));
     }
 
     public abstract class TypeNode : HLSLSyntaxNode { }
@@ -810,7 +837,8 @@ namespace UnityShaderParser.HLSL
         //public List<Modifier> Modifiers { get; set; }
         public TypeNode Type { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => throw new NotImplementedException(); // TODO
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Child(Type);
     }
 
     public class QualifiedNamedTypeNode : UserDefinedTypeNode
@@ -818,14 +846,16 @@ namespace UnityShaderParser.HLSL
         public NamedTypeNode Left { get; set; }
         public UserDefinedTypeNode Right { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => new[] { Left, Right };
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(Child(Left), Child(Right));
     }
 
     public class NamedTypeNode : UserDefinedTypeNode
     {
         public string Name { get; set; } = string.Empty;
 
-        public override IEnumerable<HLSLSyntaxNode> Children => Enumerable.Empty<HLSLSyntaxNode>();
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Enumerable.Empty<HLSLSyntaxNode>();
     }
 
     public class PredefinedObjectTypeNode : PredefinedTypeNode
@@ -833,7 +863,8 @@ namespace UnityShaderParser.HLSL
         public PredefinedObjectType Kind { get; set; }
         public List<TypeNode> TemplateArguments { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => TemplateArguments;
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            TemplateArguments;
     }
 
     public abstract class NumericTypeNode : PredefinedTypeNode { }
@@ -841,7 +872,9 @@ namespace UnityShaderParser.HLSL
     public class ScalarTypeNode : NumericTypeNode
     {
         public ScalarType Kind { get; set; }
-        public override IEnumerable<HLSLSyntaxNode> Children => throw new NotImplementedException();
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Enumerable.Empty<HLSLSyntaxNode>();
     }
 
     public class MatrixTypeNode : NumericTypeNode
@@ -849,14 +882,18 @@ namespace UnityShaderParser.HLSL
         public int FirstDimension { get; set; }
         public int SecondDimension { get; set; }
         public ScalarType Kind { get; set; }
-        public override IEnumerable<HLSLSyntaxNode> Children => throw new NotImplementedException();
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Enumerable.Empty<HLSLSyntaxNode>();
     }
 
     public class VectorTypeNode : NumericTypeNode
     {
         public int Dimension { get; set; }
         public ScalarType Kind { get; set; }
-        public override IEnumerable<HLSLSyntaxNode> Children => throw new NotImplementedException();
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Enumerable.Empty<HLSLSyntaxNode>();
     }
 
     // This type mostly exists such that template can receive literal arguments.
@@ -865,6 +902,7 @@ namespace UnityShaderParser.HLSL
     {
         public LiteralExpressionNode Literal { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => new[] { Literal };
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Child(Literal);
     }
 }
