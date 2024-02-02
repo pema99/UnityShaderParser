@@ -63,6 +63,72 @@ namespace UnityShaderParser.HLSL
             return result;
         }
 
+        private bool IsNextCast()
+        {
+            int offset = 0;
+
+            // Must have initial paren
+            if (LookAhead(offset).Kind != TokenKind.OpenParenToken)
+                return false;
+            offset++;
+
+            // If we mention a builtin type it must be a cast
+            if (HLSLSyntaxFacts.IsBuiltinType(LookAhead(offset).Kind))
+            {
+                return true;
+            }
+            // If we have a user defined type keyword, must be a cast
+            else if (LookAhead(offset).Kind is TokenKind.ClassKeyword or TokenKind.StructKeyword or TokenKind.InterfaceKeyword)
+            {
+                return true;
+            }
+            // If there is an identifier
+            else if (LookAhead(offset).Kind == TokenKind.IdentifierToken)
+            {
+                // Take as many qualifier sections as possible
+                offset++;
+                while (LookAhead(offset).Kind == TokenKind.ColonColonToken)
+                {
+                    offset++;
+                    if (LookAhead(offset).Kind != TokenKind.IdentifierToken)
+                    {
+                        return false;
+                    }
+                    offset++;
+                }
+            }
+            // If none of the above are true, can't be a cast
+            else
+            {
+                return false;
+            }
+     
+            // If we had an identifier, check if it is followed by an array type
+            while (LookAhead(offset).Kind == TokenKind.OpenBracketToken)
+            {
+                // All arguments must be constants or identifiers
+                offset++;
+                if (LookAhead(offset).Kind is not TokenKind.IntegerLiteralToken or TokenKind.IdentifierToken)
+                {
+                    return false;
+                }
+                offset++;
+                if (LookAhead(offset).Kind != TokenKind.CloseBracketToken)
+                {
+                    return false;
+                }
+                offset++;
+            }
+
+            // If we've reached this point, make sure the cast is closed
+            if (LookAhead(offset).Kind != TokenKind.CloseParenToken)
+                return false;
+
+            // It might still be ambiguous, so check if the next token is allowed to follow a cast
+            offset++;
+            return HLSLSyntaxFacts.CanTokenComeAfterCast(LookAhead(offset).Kind);
+        }
+
         enum PrecedenceLevel
         {                 // Associativity:
             Compound,     // left
@@ -235,11 +301,17 @@ namespace UnityShaderParser.HLSL
                     TokenKind op = Eat(HLSLSyntaxFacts.IsPrefixUnaryToken).Kind;
                     return new PrefixUnaryExpressionNode { Operator = op, Expression = ParsePrefixOrPostFixExpression() };
 
-                case TokenKind.OpenParenToken: // TODO: Conflicts with paranthesized expressions
+                case TokenKind.OpenParenToken when IsNextCast():
                     Eat(TokenKind.OpenParenToken);
                     var type = ParseType();
                     Eat(TokenKind.CloseParenToken);
                     return new CastExpressionNode { Kind = type, Expression = ParsePrefixOrPostFixExpression() };
+
+                case TokenKind.OpenParenToken:
+                    Eat(TokenKind.OpenParenToken);
+                    var expr = ParseExpression();
+                    Eat(TokenKind.CloseParenToken);
+                    return expr;
 
                 default:
                     // Special case for constructors of built-in types. Their target is not an expression, but a keyword.

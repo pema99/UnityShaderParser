@@ -697,6 +697,7 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.Uint4x2Keyword: type = ScalarType.Uint; dimensionX = 4; dimensionY = 2; return true;
                 case TokenKind.Uint4x3Keyword: type = ScalarType.Uint; dimensionX = 4; dimensionY = 3; return true;
                 case TokenKind.Uint4x4Keyword: type = ScalarType.Uint; dimensionX = 4; dimensionY = 4; return true;
+                case TokenKind.MatrixKeyword: type = ScalarType.Float; dimensionX = 4; dimensionY = 4; return true;
                 default: type = default; dimensionX = 0; dimensionY = 0; return false;
             }
         }
@@ -1078,6 +1079,58 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.IntegerLiteralToken: outKind = LiteralKind.Integer; return true;
                 case TokenKind.CharacterLiteralToken: outKind = LiteralKind.Character; return true;
                 default: outKind = default; return false;
+            }
+        }
+
+        public static bool CanTokenComeAfterCast(TokenKind kind)
+        {
+            switch (kind)
+            {
+                case TokenKind.SemiToken:
+                case TokenKind.CloseParenToken:
+                case TokenKind.CloseBracketToken:
+                case TokenKind.OpenBraceToken:
+                case TokenKind.CloseBraceToken:
+                case TokenKind.CommaToken:
+                case TokenKind.EqualsToken:
+                case TokenKind.PlusEqualsToken:
+                case TokenKind.MinusEqualsToken:
+                case TokenKind.AsteriskEqualsToken:
+                case TokenKind.SlashEqualsToken:
+                case TokenKind.PercentEqualsToken:
+                case TokenKind.AmpersandEqualsToken:
+                case TokenKind.CaretEqualsToken:
+                case TokenKind.BarEqualsToken:
+                case TokenKind.LessThanLessThanEqualsToken:
+                case TokenKind.GreaterThanGreaterThanEqualsToken:
+                case TokenKind.QuestionToken:
+                case TokenKind.ColonToken:
+                case TokenKind.BarBarToken:
+                case TokenKind.AmpersandAmpersandToken:
+                case TokenKind.BarToken:
+                case TokenKind.CaretToken:
+                case TokenKind.AmpersandToken:
+                case TokenKind.EqualsEqualsToken:
+                case TokenKind.ExclamationEqualsToken:
+                case TokenKind.LessThanToken:
+                case TokenKind.LessThanEqualsToken:
+                case TokenKind.GreaterThanToken:
+                case TokenKind.GreaterThanEqualsToken:
+                case TokenKind.LessThanLessThanToken:
+                case TokenKind.GreaterThanGreaterThanToken:
+                case TokenKind.PlusToken:
+                case TokenKind.MinusToken:
+                case TokenKind.AsteriskToken:
+                case TokenKind.SlashToken:
+                case TokenKind.PercentToken:
+                case TokenKind.PlusPlusToken:
+                case TokenKind.MinusMinusToken:
+                case TokenKind.OpenBracketToken:
+                case TokenKind.DotToken:
+                    return false;
+
+                default:
+                    return true;
             }
         }
     }
