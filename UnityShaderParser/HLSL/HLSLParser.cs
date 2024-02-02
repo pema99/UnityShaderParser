@@ -45,6 +45,7 @@ namespace UnityShaderParser.HLSL
                         throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
 
                     case TokenKind.CBufferKeyword:
+                    case TokenKind.TBufferKeyword:
                         result.Add(ParseConstantBuffer());
                         break;
 
@@ -497,7 +498,7 @@ namespace UnityShaderParser.HLSL
 
         private ConstantBufferNode ParseConstantBuffer()
         {
-            Eat(TokenKind.CBufferKeyword);
+            var buffer = Eat(TokenKind.CBufferKeyword, TokenKind.TBufferKeyword);
             var name = ParseUserDefinedTypeName();
 
             RegisterLocationNode? reg = null;
@@ -522,7 +523,8 @@ namespace UnityShaderParser.HLSL
             {
                 Name = name,
                 RegisterLocation = reg,
-                Declarations = decls
+                Declarations = decls,
+                IsTextureBuffer = buffer.Kind == TokenKind.TBufferKeyword
             };
         }
 

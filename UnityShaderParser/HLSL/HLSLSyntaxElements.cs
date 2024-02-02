@@ -597,6 +597,7 @@ namespace UnityShaderParser.HLSL
         public UserDefinedTypeNode Name { get; set; }
         public RegisterLocationNode? RegisterLocation { get; set; }
         public List<VariableDeclarationStatementNode> Declarations { get; set; }
+        public bool IsTextureBuffer { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children =>
             MergeChildren(RegisterLocation == null ?
