@@ -677,8 +677,6 @@ namespace UnityShaderParser.HLSL
     public abstract class VariableDeclaratorQualifierNode : HLSLSyntaxNode
     {
     }
-    // TODO: PackOffset
-    // TODO: RegisterLocation
 
     public class SemanticNode : VariableDeclaratorQualifierNode
     {
@@ -693,6 +691,15 @@ namespace UnityShaderParser.HLSL
         public RegisterKind Kind { get; set; }
         public int Location { get; set; }
         public int? Space { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Enumerable.Empty<HLSLSyntaxNode>();
+    }
+
+    public class PackoffsetNode : VariableDeclaratorQualifierNode
+    {
+        public int Location { get; set; }
+        public string? Swizzle { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children =>
             Enumerable.Empty<HLSLSyntaxNode>();

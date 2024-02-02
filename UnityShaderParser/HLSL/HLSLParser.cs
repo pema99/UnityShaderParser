@@ -39,9 +39,6 @@ namespace UnityShaderParser.HLSL
                     // TODO: intereface definition
                     case TokenKind.ClassKeyword:
                     case TokenKind.InterfaceKeyword:
-                    case TokenKind.SamplerStateKeyword:
-                    case TokenKind.SamplerStateLegacyKeyword:
-                    case TokenKind.SamplerComparisonStateKeyword:
                         throw new NotImplementedException(Peek().Span + ": " + Peek().ToString());
 
                     case TokenKind.CBufferKeyword:
@@ -822,7 +819,8 @@ namespace UnityShaderParser.HLSL
             {
                 case TokenKind.IdentifierToken: return ParseSemantic();
                 case TokenKind.RegisterKeyword: return ParseRegisterLocation();
-                default: throw new NotImplementedException(LookAhead().Span + ": " + LookAhead().ToString());
+                case TokenKind.PackoffsetKeyword: return ParsePackoffsetNode();
+                default: return ParseSemantic();
             }
         }
 
@@ -880,6 +878,36 @@ namespace UnityShaderParser.HLSL
                 Kind = kind,
                 Location = index,
                 Space = spaceIndex,
+            };
+        }
+
+        private PackoffsetNode ParsePackoffsetNode()
+        {
+            Eat(TokenKind.ColonToken);
+            Eat(TokenKind.PackoffsetKeyword);
+            Eat(TokenKind.OpenParenToken);
+
+            string location = ParseIdentifier();
+            int index = 0;
+            string indexLexeme = string.Concat(location.SkipWhile(x => !char.IsNumber(x)));
+            if (!int.TryParse(indexLexeme, out index))
+            {
+                Error($"Expected a valid packoffset location, but got '{location}'.");
+            }
+
+            string? swizzle = null;
+            if (Match(TokenKind.DotToken))
+            {
+                Eat(TokenKind.DotToken);
+                swizzle = ParseIdentifier();
+            }
+
+            Eat(TokenKind.CloseParenToken);
+
+            return new PackoffsetNode
+            {
+                Location = index,
+                Swizzle = swizzle,
             };
         }
 
