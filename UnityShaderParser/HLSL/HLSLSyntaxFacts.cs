@@ -310,7 +310,7 @@ namespace UnityShaderParser.HLSL
                 case "samplercube": token = TokenKind.SamplerCubeKeyword; return true;
                 case "SamplerComparisonState": token = TokenKind.SamplerComparisonStateKeyword; return true;
                 case "SamplerState": token = TokenKind.SamplerStateKeyword; return true;
-                case "SamplerStateLegacy": token = TokenKind.SamplerStateLegacyKeyword; return true;
+                case "sampler_state": token = TokenKind.SamplerStateLegacyKeyword; return true;
                 case "shared": token = TokenKind.SharedKeyword; return true;
                 case "snorm": token = TokenKind.SNormKeyword; return true;
                 case "static": token = TokenKind.StaticKeyword; return true;
@@ -1130,6 +1130,53 @@ namespace UnityShaderParser.HLSL
 
                 default:
                     return true;
+            }
+        }
+
+        public static bool TryConvertToDeclarationModifier(TokenKind kind, out BindingModifier modifier)
+        {
+            switch (kind)
+            {
+                case TokenKind.ConstKeyword: modifier = BindingModifier.Const; return true;
+                case TokenKind.RowMajorKeyword: modifier = BindingModifier.RowMajor; return true;
+                case TokenKind.ColumnMajorKeyword: modifier = BindingModifier.ColumnMajor; return true;
+                case TokenKind.ExportKeyword: modifier = BindingModifier.Export; return true;
+                case TokenKind.ExternKeyword: modifier = BindingModifier.Extern; return true;
+                case TokenKind.InlineKeyword: modifier = BindingModifier.Inline; return true;
+                case TokenKind.PreciseKeyword: modifier = BindingModifier.Precise; return true;
+                case TokenKind.SharedKeyword: modifier = BindingModifier.Shared; return true;
+                case TokenKind.GloballycoherentKeyword: modifier = BindingModifier.Globallycoherent; return true;
+                case TokenKind.GroupsharedKeyword: modifier = BindingModifier.Groupshared; return true;
+                case TokenKind.StaticKeyword: modifier = BindingModifier.Static; return true;
+                case TokenKind.UniformKeyword: modifier = BindingModifier.Uniform; return true;
+                case TokenKind.VolatileKeyword: modifier = BindingModifier.Volatile; return true;
+                case TokenKind.SNormKeyword: modifier = BindingModifier.SNorm; return true;
+                case TokenKind.UNormKeyword: modifier = BindingModifier.UNorm; return true;
+                case TokenKind.LinearKeyword: modifier = BindingModifier.Linear; return true;
+                case TokenKind.CentroidKeyword: modifier = BindingModifier.Centroid; return true;
+                case TokenKind.NointerpolationKeyword: modifier = BindingModifier.Nointerpolation; return true;
+                case TokenKind.NoperspectiveKeyword: modifier = BindingModifier.Noperspective; return true;
+                case TokenKind.SampleKeyword: modifier = BindingModifier.Sample; return true;
+                default: modifier = default; return false;
+            }
+        }
+
+        public static bool TryConvertToParameterModifier(TokenKind kind, out BindingModifier modifier)
+        {
+            if (TryConvertToDeclarationModifier(kind, out modifier))
+                return true;
+
+            switch (kind)
+            {
+                case TokenKind.InKeyword: modifier = BindingModifier.In; return true;
+                case TokenKind.OutKeyword: modifier = BindingModifier.Out; return true;
+                case TokenKind.InoutKeyword: modifier = BindingModifier.Inout; return true;
+                case TokenKind.PointKeyword: modifier = BindingModifier.Point; return true;
+                case TokenKind.TriangleKeyword: modifier = BindingModifier.Triangle; return true;
+                case TokenKind.TriangleAdjKeyword: modifier = BindingModifier.TriangleAdj; return true;
+                case TokenKind.LineKeyword: modifier = BindingModifier.Line; return true;
+                case TokenKind.LineAdjKeyword: modifier = BindingModifier.LineAdj; return true;
+                default: modifier = default; return false;
             }
         }
     }

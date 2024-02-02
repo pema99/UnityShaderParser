@@ -18,7 +18,7 @@
         public override string ToString()
         {
             if (Identifier == null)
-                return Kind.ToString();
+                return Kind.ToString() ?? string.Empty;
             else
                 return $"{Kind}: {Identifier}";
         }

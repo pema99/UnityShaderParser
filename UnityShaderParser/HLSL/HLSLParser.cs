@@ -42,7 +42,7 @@ namespace UnityShaderParser.HLSL
                     case TokenKind.SamplerStateKeyword:
                     case TokenKind.SamplerStateLegacyKeyword:
                     case TokenKind.SamplerComparisonStateKeyword:
-                        throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
+                        throw new NotImplementedException(Peek().Span + ": " + Peek().ToString());
 
                     case TokenKind.CBufferKeyword:
                     case TokenKind.TBufferKeyword:
@@ -140,6 +140,7 @@ namespace UnityShaderParser.HLSL
             return Try(() =>
             {
                 ParseMany0(TokenKind.OpenBracketToken, ParseAttribute);
+                ParseDeclarationModifiers();
                 ParseType(true);
                 ParseUserDefinedTypeName();
                 return Match(TokenKind.OpenParenToken);
@@ -448,6 +449,7 @@ namespace UnityShaderParser.HLSL
         {
             List<AttributeNode> attributes = ParseMany0(TokenKind.OpenBracketToken, ParseAttribute);
 
+            var modifiers = ParseDeclarationModifiers();
             TypeNode returnType = ParseType(true);
 
             UserDefinedTypeNode name = ParseUserDefinedTypeName();
@@ -465,6 +467,7 @@ namespace UnityShaderParser.HLSL
                 return new FunctionDeclarationNode
                 {
                     Attributes = attributes,
+                    Modifiers = modifiers,
                     ReturnType = returnType,
                     Name = name,
                     Parameters = parameters,
@@ -477,6 +480,7 @@ namespace UnityShaderParser.HLSL
             return new FunctionDefinitionNode
             {
                 Attributes = attributes,
+                Modifiers = modifiers,
                 ReturnType = returnType,
                 Name = name,
                 Parameters = parameters,
@@ -487,8 +491,10 @@ namespace UnityShaderParser.HLSL
 
         private StructDefinitionNode ParseStructDefinition()
         {
+            var modifiers = ParseDeclarationModifiers();
+
             Eat(TokenKind.StructKeyword);
-            var name = ParseUserDefinedTypeName();
+            var name = ParseOptional(TokenKind.IdentifierToken, ParseUserDefinedTypeName);
 
             // base list
             List<UserDefinedTypeNode> baseList = new();
@@ -510,6 +516,7 @@ namespace UnityShaderParser.HLSL
 
             return new StructDefinitionNode
             {
+                Modifiers = modifiers,
                 Name = name,
                 Inherits = baseList,
                 Declarations = decls
@@ -604,7 +611,7 @@ namespace UnityShaderParser.HLSL
             }
             // TODO: Generic vector and matrix types
 
-            throw new NotImplementedException(anchorSpan + ": " + typeToken.ToString());
+            throw new NotImplementedException(typeToken.Span.ToString() + ": " + typeToken.ToString());
         }
 
         private UserDefinedTypeNode ParseUserDefinedTypeName()
@@ -637,13 +644,16 @@ namespace UnityShaderParser.HLSL
 
         private FormalParameterNode ParseFormalParameter()
         {
+
             List<AttributeNode> attributes = ParseMany0(TokenKind.OpenBracketToken, ParseAttribute);
+            var modifiers = ParseParameterModifiers();
             TypeNode type = ParseType();
             VariableDeclaratorNode declarator = ParseVariableDeclarator();
 
             return new FormalParameterNode
             {
                 Attributes = attributes,
+                Modifiers = modifiers,
                 ParamType = type,
                 Declarator = declarator
             };
@@ -691,7 +701,7 @@ namespace UnityShaderParser.HLSL
             {
                 case TokenKind.IdentifierToken: return ParseSemantic();
                 case TokenKind.RegisterKeyword: return ParseRegisterLocation();
-                default: throw new NotImplementedException(anchorSpan + ": " + LookAhead().ToString());
+                default: throw new NotImplementedException(LookAhead().Span + ": " + LookAhead().ToString());
             }
         }
 
@@ -815,13 +825,11 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.SwitchKeyword:
                 case TokenKind.WhileKeyword:
                 case TokenKind.TypedefKeyword:
-                    throw new NotImplementedException(anchorSpan + ": " + next.Kind.ToString());
-                    break;
+                    throw new NotImplementedException(next.Span + ": " + next.Kind.ToString());
 
                 case TokenKind.InterfaceKeyword:
                 case TokenKind.StructKeyword:
-                    throw new NotImplementedException(anchorSpan + ": " + next.Kind.ToString());
-                    break;
+                    throw new NotImplementedException(next.Span + ": " + next.Kind.ToString());
 
                 case TokenKind kind when IsVariableDeclarationStatement(kind):
                     return ParseVariableDeclarationStatement(attributes);
@@ -833,14 +841,38 @@ namespace UnityShaderParser.HLSL
             }
         }
 
+        private List<BindingModifier> ParseParameterModifiers()
+        {
+            List<BindingModifier> modifiers = new();
+            while (HLSLSyntaxFacts.TryConvertToParameterModifier(Peek().Kind, out var modifier))
+            {
+                Advance();
+                modifiers.Add(modifier);
+            }
+            return modifiers;
+        }
+
+        private List<BindingModifier> ParseDeclarationModifiers()
+        {
+            List<BindingModifier> modifiers = new();
+            while (HLSLSyntaxFacts.TryConvertToDeclarationModifier(Peek().Kind, out var modifier))
+            {
+                Advance();
+                modifiers.Add(modifier);
+            }
+            return modifiers;
+        }
+
         private VariableDeclarationStatementNode ParseVariableDeclarationStatement(List<AttributeNode> attributes)
         {
+            var modifiers = ParseDeclarationModifiers();
             TypeNode kind = ParseType();
             List<VariableDeclaratorNode> variables = ParseSeparatedList1(TokenKind.CommaToken, ParseVariableDeclarator);
             Eat(TokenKind.SemiToken);
 
             return new VariableDeclarationStatementNode
             {
+                Modifiers = modifiers,
                 Kind = kind,
                 Declarators = variables,
                 Attributes = attributes,

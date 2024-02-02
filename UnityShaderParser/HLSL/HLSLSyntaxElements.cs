@@ -519,6 +519,39 @@ namespace UnityShaderParser.HLSL
         RayDesc,
         RaytracingAccelerationStructure
     }
+
+    public enum BindingModifier
+    {
+        Const,
+        RowMajor,
+        ColumnMajor,
+        Export,
+        Extern,
+        Inline,
+        Precise,
+        Shared,
+        Globallycoherent,
+        Groupshared,
+        Static,
+        Uniform,
+        Volatile,
+        SNorm,
+        UNorm,
+        Linear,
+        Centroid,
+        Nointerpolation,
+        Noperspective,
+        Sample,
+
+        In,
+        Out,
+        Inout,
+        Point,
+        Triangle,
+        TriangleAdj,
+        Line,
+        LineAdj,
+    }
     #endregion
 
     public abstract class HLSLSyntaxNode
@@ -539,7 +572,7 @@ namespace UnityShaderParser.HLSL
     public abstract class FunctionNode : HLSLSyntaxNode
     {
         public List<AttributeNode> Attributes { get; set; }
-        // TODO public List<Modifier> Modifiers { get; set; }
+        public List<BindingModifier> Modifiers { get; set; }
         public TypeNode ReturnType { get; set; }
         public UserDefinedTypeNode Name { get; set; }
         public List<FormalParameterNode> Parameters { get; set; }
@@ -552,7 +585,7 @@ namespace UnityShaderParser.HLSL
     public class FormalParameterNode : HLSLSyntaxNode
     {
         public List<AttributeNode> Attributes { get; set; }
-        // TODO public List<Modifier> Modifiers { get; set; }
+        public List<BindingModifier> Modifiers { get; set; }
         public TypeNode ParamType { get; set; }
         public VariableDeclaratorNode Declarator { get; set; }
 
@@ -594,12 +627,13 @@ namespace UnityShaderParser.HLSL
 
     public class StructDefinitionNode : HLSLSyntaxNode
     {
-        public UserDefinedTypeNode Name { get; set; }
+        public List<BindingModifier> Modifiers { get; set; }
+        public UserDefinedTypeNode? Name { get; set; }
         public List<UserDefinedTypeNode> Inherits { get; set; }
         public List<VariableDeclarationStatementNode> Declarations { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children =>
-            MergeChildren(Child(Name), Inherits, Declarations);
+            MergeChildren(OptionalChild(Name), Inherits, Declarations);
     }
 
     public class ConstantBufferNode : HLSLSyntaxNode
@@ -655,7 +689,7 @@ namespace UnityShaderParser.HLSL
 
     public class VariableDeclarationStatementNode : StatementNode
     {
-        // TODO: modifiers
+        public List<BindingModifier> Modifiers { get; set; }
         public TypeNode Kind { get; set; }
         public List<VariableDeclaratorNode> Declarators { get; set; }
 
@@ -851,16 +885,6 @@ namespace UnityShaderParser.HLSL
     public abstract class TypeNode : HLSLSyntaxNode { }
     public abstract class UserDefinedTypeNode : TypeNode { } // TODO: Different Name node for declarations vs other places?
     public abstract class PredefinedTypeNode : TypeNode { }
-    public abstract class TypeDefinitionNode : TypeNode { } // NOTE: Anon structs
-
-    public class ModifiedTypeSyntax : TypeNode
-    {
-        //public List<Modifier> Modifiers { get; set; }
-        public TypeNode Type { get; set; }
-
-        public override IEnumerable<HLSLSyntaxNode> Children =>
-            Child(Type);
-    }
 
     public class QualifiedNamedTypeNode : UserDefinedTypeNode
     {
