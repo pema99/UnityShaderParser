@@ -47,7 +47,7 @@ namespace UnityShaderParser.HLSL
                 case "column_major": token = TokenKind.ColumnMajorKeyword; return true;
                 case "compile": token = TokenKind.CompileKeyword; return true;
                 case "CompileShader": token = TokenKind.CompileShaderKeyword; return true;
-                case "constantbuffer": token = TokenKind.ConstantBufferKeyword; return true;
+                case "ConstantBuffer": token = TokenKind.ConstantBufferKeyword; return true;
                 case "const": token = TokenKind.ConstKeyword; return true;
                 case "ConsumeStructuredBuffer": token = TokenKind.ConsumeStructuredBufferKeyword; return true;
                 case "continue": token = TokenKind.ContinueKeyword; return true;
@@ -513,6 +513,7 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.GeometryShaderKeyword: type = PredefinedObjectType.GeometryShader; return true;
                 case TokenKind.PixelShaderKeyword: type = PredefinedObjectType.PixelShader; return true;
                 case TokenKind.VertexShaderKeyword: type = PredefinedObjectType.VertexShader; return true;
+                case TokenKind.ConstantBufferKeyword: type = PredefinedObjectType.ConstantBuffer; return true;
                 default: type = default; return false;
             }
         }

@@ -749,7 +749,11 @@ namespace UnityShaderParser.HLSL
         private ArrayRankNode ParseArrayRank()
         {
             Eat(TokenKind.OpenBracketToken);
-            var expr = ParseExpression();
+            ExpressionNode? expr = null;
+            if (!Match(TokenKind.CloseBracketToken))
+            {
+                expr = ParseExpression();
+            }
             Eat(TokenKind.CloseBracketToken);
             return new ArrayRankNode { Dimension = expr };
         }

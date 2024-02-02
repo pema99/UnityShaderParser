@@ -615,10 +615,10 @@ namespace UnityShaderParser.HLSL
 
     public class ArrayRankNode : HLSLSyntaxNode
     {
-        public ExpressionNode Dimension { get; set; }
+        public ExpressionNode? Dimension { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children =>
-            Child(Dimension);
+            OptionalChild(Dimension);
     }
 
     public abstract class InitializerNode : HLSLSyntaxNode { }
