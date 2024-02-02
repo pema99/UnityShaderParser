@@ -606,7 +606,7 @@ namespace UnityShaderParser.HLSL
         public string Name { get; set; }
         public List<ArrayRankNode> ArrayRanks { get; set; }
         public List<VariableDeclaratorQualifierNode> Qualifiers { get; set; }
-        // TODO List<annotation> s
+        public List<VariableDeclarationStatementNode> Annotations { get; set; }
         public InitializerNode? Initializer { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children =>

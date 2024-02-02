@@ -151,19 +151,25 @@
         }
 
         #region Parser combinators
-        protected List<P> ParseSeparatedList1<P>(Func<bool> seperator, Func<P> parser)
+        protected List<P> ParseSeparatedList0<P>(T end, T separator, Func<P> parser, bool allowTrailingSeparator = false)
         {
+            if (Match(end))
+                return new();
+
             List<P> result = new();
 
             result.Add(parser());
-            while (seperator())
+            while (Match(separator))
             {
 #if DEBUG
                 int lastPosition = position;
 #endif
 
                 Advance();
-                result.Add(parser());
+                if (!allowTrailingSeparator || !Match(end))
+                {
+                    result.Add(parser());
+                }
 
 #if DEBUG
                 if (lastPosition == position)
@@ -172,14 +178,6 @@
             }
 
             return result;
-        }
-
-        protected List<P> ParseSeparatedList0<P>(Func<bool> first, T separator, Func<P> parser)
-        {
-            if (!first())
-                return new();
-
-            return ParseSeparatedList1(separator, parser);
         }
 
         protected List<P> ParseSeparatedList1<P>(T seperator, Func<P> parser)
@@ -203,14 +201,6 @@
             }
 
             return result;
-        }
-
-        protected List<P> ParseSeparatedList0<P>(T first, T separator, Func<P> parser)
-        {
-            if (!Match(first))
-                return new();
-
-            return ParseSeparatedList1(separator, parser);
         }
 
         protected List<P> ParseMany1<P>(T first, Func<P> parser)

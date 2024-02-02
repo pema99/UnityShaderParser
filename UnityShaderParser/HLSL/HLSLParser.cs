@@ -464,9 +464,10 @@ namespace UnityShaderParser.HLSL
         {
             Eat(TokenKind.OpenBraceToken);
             var exprs = ParseSeparatedList0(
-                () => !Match(TokenKind.CloseBraceToken),
+                TokenKind.CloseBraceToken,
                 TokenKind.CommaToken,
-                () => ParseExpression());
+                () => ParseExpression(),
+                true);
             Eat(TokenKind.CloseBraceToken);
             return new ArrayInitializerExpressionNode { Elements = exprs };
         }
@@ -503,7 +504,7 @@ namespace UnityShaderParser.HLSL
         {
             Eat(TokenKind.OpenParenToken);
             List<ExpressionNode> exprs = ParseSeparatedList0(
-                () => !Match(TokenKind.CloseParenToken),
+                TokenKind.CloseParenToken,
                 TokenKind.CommaToken,
                 () => ParseExpression((int)PrecedenceLevel.Compound + 1));
             Eat(TokenKind.CloseParenToken);
@@ -545,7 +546,7 @@ namespace UnityShaderParser.HLSL
             UserDefinedTypeNode name = ParseUserDefinedTypeName();
 
             Eat(TokenKind.OpenParenToken);
-            List<FormalParameterNode> parameters = ParseSeparatedList0(() => !Match(TokenKind.CloseParenToken), TokenKind.CommaToken, ParseFormalParameter);
+            List<FormalParameterNode> parameters = ParseSeparatedList0(TokenKind.CloseParenToken, TokenKind.CommaToken, ParseFormalParameter);
             Eat(TokenKind.CloseParenToken);
 
             SemanticNode? semantic = ParseOptional(TokenKind.ColonToken, ParseSemantic);
@@ -661,7 +662,7 @@ namespace UnityShaderParser.HLSL
                 {
                     Eat(TokenKind.LessThanToken);
                     args = ParseSeparatedList0(
-                        () => !Match(TokenKind.GreaterThanToken),
+                        TokenKind.GreaterThanToken,
                         TokenKind.CommaToken,
                         ParseTemplateArgumentType);
                     Eat(TokenKind.GreaterThanToken);
@@ -767,8 +768,14 @@ namespace UnityShaderParser.HLSL
             }
 
             List<VariableDeclaratorQualifierNode> qualifiers = ParseMany0(TokenKind.ColonToken, ParseVariableDeclaratorQualifierNode);
-            
-            // TODO: Annotations
+
+            List<VariableDeclarationStatementNode> annotations = new();
+            if (Match(TokenKind.LessThanToken))
+            {
+                Eat(TokenKind.LessThanToken);
+                annotations = ParseMany0(() => !Match(TokenKind.GreaterThanToken), () => ParseVariableDeclarationStatement(new()));
+                Eat(TokenKind.GreaterThanToken);
+            }
 
             InitializerNode? initializer = null;
             if (Match(TokenKind.EqualsToken))
@@ -785,6 +792,7 @@ namespace UnityShaderParser.HLSL
                 Name = identifier,
                 ArrayRanks = arrayRanks,
                 Qualifiers = qualifiers,
+                Annotations = annotations,
                 Initializer = initializer,
             };
         }
