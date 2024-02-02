@@ -53,12 +53,15 @@ namespace UnityShaderParser.HLSL
                         result.Add(ParseStructDefinition());
                         break;
 
-                    case TokenKind kind when IsNextNotTopLevelFunction():
-                        result.Add(ParseVariableDeclarationStatement(new()));
-                        break;
-
                     default:
-                        result.Add(ParseFunction());
+                        if (IsNextPossiblyFunctionDeclaration())
+                        {
+                            result.Add(ParseFunction());
+                        }
+                        else
+                        {
+                            result.Add(ParseVariableDeclarationStatement(new()));
+                        }
                         break;
                 }
             }
@@ -66,21 +69,14 @@ namespace UnityShaderParser.HLSL
             return result;
         }
 
-        private bool IsNextCast()
+        private bool IsNextPossiblyType(ref int offset)
         {
-            int offset = 0;
-
-            // Must have initial paren
-            if (LookAhead(offset).Kind != TokenKind.OpenParenToken)
-                return false;
-            offset++;
-
-            // If we mention a builtin type it must be a cast
+            // If we mention a builtin type - could be a type
             if (HLSLSyntaxFacts.IsBuiltinType(LookAhead(offset).Kind))
             {
                 return true;
             }
-            // If we have a user defined type keyword, must be a cast
+            // If we have a user defined type keyword, must be a type
             else if (LookAhead(offset).Kind is TokenKind.ClassKeyword or TokenKind.StructKeyword or TokenKind.InterfaceKeyword)
             {
                 return true;
@@ -100,12 +96,12 @@ namespace UnityShaderParser.HLSL
                     offset++;
                 }
             }
-            // If none of the above are true, can't be a cast
+            // If none of the above are true, can't be a type
             else
             {
                 return false;
             }
-     
+
             // If we had an identifier, check if it is followed by an array type
             while (LookAhead(offset).Kind == TokenKind.OpenBracketToken)
             {
@@ -123,6 +119,22 @@ namespace UnityShaderParser.HLSL
                 offset++;
             }
 
+            return true;
+        }
+
+        private bool IsNextCast()
+        {
+            int offset = 0;
+
+            // Must have initial paren
+            if (LookAhead(offset).Kind != TokenKind.OpenParenToken)
+                return false;
+            offset++;
+
+            // If it isn't a possible type, can't be a cast
+            if (!IsNextPossiblyType(ref offset))
+                return false;
+
             // If we've reached this point, make sure the cast is closed
             if (LookAhead(offset).Kind != TokenKind.CloseParenToken)
                 return false;
@@ -130,6 +142,17 @@ namespace UnityShaderParser.HLSL
             // It might still be ambiguous, so check if the next token is allowed to follow a cast
             offset++;
             return HLSLSyntaxFacts.CanTokenComeAfterCast(LookAhead(offset).Kind);
+        }
+
+        private bool IsNextPossiblyFunctionDeclaration()
+        {
+            return Try(() =>
+            {
+                ParseMany0(TokenKind.OpenBracketToken, ParseAttribute);
+                ParseType(true);
+                ParseUserDefinedTypeName();
+                return Match(TokenKind.OpenParenToken);
+            });
         }
 
         enum PrecedenceLevel
@@ -388,14 +411,14 @@ namespace UnityShaderParser.HLSL
             return ParseLiteralExpression();
         }
 
-        private List<ExpressionNode> ParseParameterList(TokenKind start = TokenKind.OpenParenToken, TokenKind end = TokenKind.CloseParenToken)
+        private List<ExpressionNode> ParseParameterList()
         {
-            Eat(start);
+            Eat(TokenKind.OpenParenToken);
             List<ExpressionNode> exprs = ParseSeparatedList0(
                 () => !Match(TokenKind.CloseParenToken),
                 TokenKind.CommaToken,
                 () => ParseExpression((int)PrecedenceLevel.Compound + 1));
-            Eat(end);
+            Eat(TokenKind.CloseParenToken);
             return exprs;
         }
 
@@ -540,10 +563,15 @@ namespace UnityShaderParser.HLSL
             {
                 Advance();
 
-                List<ExpressionNode> args = new();
+                List<TypeNode> args = new();
                 if (Match(TokenKind.LessThanToken))
                 {
-                    args = ParseParameterList(TokenKind.LessThanToken, TokenKind.GreaterThanToken);
+                    Eat(TokenKind.LessThanToken);
+                    args = ParseSeparatedList0(
+                        () => !Match(TokenKind.GreaterThanToken),
+                        TokenKind.CommaToken,
+                        ParseTemplateArgumentType);
+                    Eat(TokenKind.GreaterThanToken);
                 }
 
                 return new PredefinedObjectTypeNode
@@ -597,6 +625,17 @@ namespace UnityShaderParser.HLSL
             {
                 return name;
             }
+        }
+
+        private TypeNode ParseTemplateArgumentType()
+        {
+            if (Match(TokenKind.CharacterLiteralToken, TokenKind.FloatLiteralToken, TokenKind.IntegerLiteralToken, TokenKind.StringLiteralToken))
+            {
+                var expression = ParseLiteralExpression();
+                return new LiteralTemplateArgumentType { Literal = expression };
+            }
+
+            return ParseType();
         }
 
         private FormalParameterNode ParseFormalParameter()
@@ -734,29 +773,6 @@ namespace UnityShaderParser.HLSL
                 return true;
             if ((HLSLSyntaxFacts.IsBuiltinType(nextKind) || nextKind == TokenKind.IdentifierToken) && LookAhead().Kind == TokenKind.IdentifierToken)
                 return true;
-            return false;
-        }
-
-        private bool IsNextNotTopLevelFunction()
-        {
-            // Skip modifiers (they don't disambguiate top level declarations)
-            int offset = 0;
-            if (HLSLSyntaxFacts.IsModifier(LookAhead(offset).Kind))
-            {
-                offset = 1;
-                while (HLSLSyntaxFacts.IsModifier(LookAhead(offset).Kind))
-                {
-                    offset++;
-                }
-            }
-            var nextKind = LookAhead(offset).Kind;
-
-            // TODO: This will break for qualified return types
-            if ((HLSLSyntaxFacts.IsBuiltinType(nextKind) || nextKind == TokenKind.IdentifierToken) &&
-                LookAhead(offset + 1).Kind == TokenKind.IdentifierToken &&
-                LookAhead(offset + 2).Kind != TokenKind.OpenParenToken)
-                return true;
-
             return false;
         }
 

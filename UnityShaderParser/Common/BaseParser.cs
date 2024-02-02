@@ -20,6 +20,24 @@
             this.tokens = tokens;
         }
 
+        protected E Try<E>(Func<E> parser)
+        {
+            int orignalPosition = position;
+            SourceSpan originalSpan = anchorSpan;
+            int originalDiagnosticCount = diagnostics.Count;
+
+            try
+            {
+                return parser();
+            }
+            finally
+            {
+                position = orignalPosition;
+                anchorSpan = originalSpan;
+                diagnostics.RemoveRange(originalDiagnosticCount, diagnostics.Count - originalDiagnosticCount);
+            }
+        }
+
         protected Token<T> Peek() => IsAtEnd() ? default : tokens[position];
         protected Token<T> LookAhead(int offset = 1) => IsAtEnd(offset) ? default : tokens[position + offset];
         protected bool Match(Func<Token<T>, bool> predicate) => predicate(Peek());

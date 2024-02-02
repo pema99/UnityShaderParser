@@ -810,7 +810,7 @@ namespace UnityShaderParser.HLSL
     public class PredefinedObjectTypeNode : PredefinedTypeNode
     {
         public PredefinedObjectType Kind { get; set; }
-        public List<ExpressionNode> TemplateArguments { get; set; }
+        public List<TypeNode> TemplateArguments { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children => TemplateArguments;
     }
@@ -836,5 +836,14 @@ namespace UnityShaderParser.HLSL
         public int Dimension { get; set; }
         public ScalarType Kind { get; set; }
         public override IEnumerable<HLSLSyntaxNode> Children => throw new NotImplementedException();
+    }
+
+    // This type mostly exists such that template can receive literal arguments.
+    // It's basically constexpr.
+    public class LiteralTemplateArgumentType : TypeNode
+    {
+        public LiteralExpressionNode Literal { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children => new[] { Literal };
     }
 }
