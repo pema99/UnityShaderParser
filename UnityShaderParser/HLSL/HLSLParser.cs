@@ -186,7 +186,7 @@ namespace UnityShaderParser.HLSL
             Eat(TokenKind.EqualsToken);
             bool hasBrackets = Match(TokenKind.LessThanToken);
             if (hasBrackets) Eat(TokenKind.LessThanToken);
-            NamedExpressionNode textureName = ParseNamedExpressionNode();
+            NamedExpressionNode textureName = ParseNamedExpression();
             if (hasBrackets) Eat(TokenKind.GreaterThanToken);
             Eat(TokenKind.SemiToken);
 
@@ -454,10 +454,21 @@ namespace UnityShaderParser.HLSL
         }
 
         // TODO: Qualified names
-        private NamedExpressionNode ParseNamedExpressionNode()
+        private NamedExpressionNode ParseNamedExpression()
         {
             string identifier = ParseIdentifier();
             return new IdentifierExpressionNode { Name = identifier };
+        }
+
+        private ArrayInitializerExpressionNode ParseArrayInitializer()
+        {
+            Eat(TokenKind.OpenBraceToken);
+            var exprs = ParseSeparatedList0(
+                () => !Match(TokenKind.CloseBraceToken),
+                TokenKind.CommaToken,
+                () => ParseExpression());
+            Eat(TokenKind.CloseBraceToken);
+            return new ArrayInitializerExpressionNode { Elements = exprs };
         }
 
         private LiteralExpressionNode ParseLiteralExpression()
@@ -477,7 +488,12 @@ namespace UnityShaderParser.HLSL
         {
             if (Match(TokenKind.IdentifierToken))
             {
-                return ParseNamedExpressionNode();
+                return ParseNamedExpression();
+            }
+
+            if (Match(TokenKind.OpenBraceToken))
+            {
+                return ParseArrayInitializer();
             }
 
             return ParseLiteralExpression();

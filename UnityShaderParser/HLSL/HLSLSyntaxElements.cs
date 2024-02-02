@@ -909,6 +909,14 @@ namespace UnityShaderParser.HLSL
             MergeChildren(Child(Kind), Child(Expression));
     }
 
+    public class ArrayInitializerExpressionNode : ExpressionNode
+    {
+        public List<ExpressionNode> Elements { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Elements;
+    }
+
     // Part of legacy sampler syntax (d3d9)
     public class SamplerStateLiteralExpressionNode : ExpressionNode
     {
