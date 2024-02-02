@@ -662,6 +662,27 @@ namespace UnityShaderParser.HLSL
     {
     }
 
+    public class ForStatementNode : StatementNode
+    {
+        public VariableDeclarationStatementNode? Declaration { get; set; }
+        public ExpressionNode? Condition { get; set; }
+        public ExpressionNode? Increment { get; set; }
+        public StatementNode Body { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children
+        {
+            get
+            {
+                List<HLSLSyntaxNode> ret = new(base.Children);
+                if (Declaration != null) ret.Add(Declaration);
+                if (Condition != null) ret.Add(Condition);
+                if (Increment != null) ret.Add(Increment);
+                ret.Add(Body);
+                return ret;
+            }
+        }
+    }
+
     public class ExpressionStatementNode : StatementNode
     {
         public ExpressionNode Expression { get; set; }

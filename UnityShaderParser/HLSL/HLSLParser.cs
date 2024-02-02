@@ -69,14 +69,21 @@ namespace UnityShaderParser.HLSL
             return result;
         }
 
-        private bool IsNextPossiblyType(ref int offset)
+        private bool IsNextCast()
         {
-            // If we mention a builtin type - could be a type
+            int offset = 0;
+
+            // Must have initial paren
+            if (LookAhead(offset).Kind != TokenKind.OpenParenToken)
+                return false;
+            offset++;
+
+            // If we mention a builtin type - it's a cast
             if (HLSLSyntaxFacts.IsBuiltinType(LookAhead(offset).Kind))
             {
                 return true;
             }
-            // If we have a user defined type keyword, must be a type
+            // If we have a user defined type keyword, it's a cast
             else if (LookAhead(offset).Kind is TokenKind.ClassKeyword or TokenKind.StructKeyword or TokenKind.InterfaceKeyword)
             {
                 return true;
@@ -118,22 +125,6 @@ namespace UnityShaderParser.HLSL
                 }
                 offset++;
             }
-
-            return true;
-        }
-
-        private bool IsNextCast()
-        {
-            int offset = 0;
-
-            // Must have initial paren
-            if (LookAhead(offset).Kind != TokenKind.OpenParenToken)
-                return false;
-            offset++;
-
-            // If it isn't a possible type, can't be a cast
-            if (!IsNextPossiblyType(ref offset))
-                return false;
 
             // If we've reached this point, make sure the cast is closed
             if (LookAhead(offset).Kind != TokenKind.CloseParenToken)
@@ -694,7 +685,7 @@ namespace UnityShaderParser.HLSL
             {
                 case TokenKind.IdentifierToken: return ParseSemantic();
                 case TokenKind.RegisterKeyword: return ParseRegisterLocation();
-                default: throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
+                default: throw new NotImplementedException(anchorSpan + ": " + LookAhead().ToString());
             }
         }
 
@@ -793,12 +784,16 @@ namespace UnityShaderParser.HLSL
                     Advance();
                     return new EmptyStatementNode { };
 
+                case TokenKind.ForKeyword:
+                    return ParseForStatement(attributes);
+
                 case TokenKind.OpenBraceToken:
+                    return ParseBlock();
+
                 case TokenKind.BreakKeyword:
                 case TokenKind.ContinueKeyword:
                 case TokenKind.DiscardKeyword:
                 case TokenKind.DoKeyword:
-                case TokenKind.ForKeyword:
                 case TokenKind.IfKeyword:
                 case TokenKind.SwitchKeyword:
                 case TokenKind.WhileKeyword:
@@ -831,6 +826,43 @@ namespace UnityShaderParser.HLSL
             {
                 Kind = kind,
                 Declarators = variables,
+                Attributes = attributes,
+            };
+        }
+
+        private ForStatementNode ParseForStatement(List<AttributeNode> attributes)
+        {
+            Eat(TokenKind.ForKeyword);
+            Eat(TokenKind.OpenParenToken);
+
+            VariableDeclarationStatementNode? decl = null;
+            if (!Match(TokenKind.SemiToken))
+            {
+                decl = ParseVariableDeclarationStatement(new());
+            }
+
+            ExpressionNode? cond = null;
+            if (!Match(TokenKind.SemiToken))
+            {
+                cond = ParseExpression();
+            }
+            Eat(TokenKind.SemiToken);
+
+            ExpressionNode? incrementor = null;
+            if (!Match(TokenKind.SemiToken))
+            {
+                incrementor = ParseExpression();
+            }
+            Eat(TokenKind.CloseParenToken);
+
+            var body = ParseStatement();
+
+            return new ForStatementNode
+            {
+                Declaration = decl,
+                Condition = cond,
+                Increment = incrementor,
+                Body = body,
                 Attributes = attributes,
             };
         }
