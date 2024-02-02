@@ -28,6 +28,14 @@ namespace UnityShaderParser.HLSL
                     LexIdentifier();
                     break;
 
+                case '0' when LookAhead('x'):
+                    Advance(1);
+                    string hexNum = EatIdentifier().Substring(1);
+                    if (!int.TryParse(hexNum, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out int hexVal))
+                        diagnostics.Add($"Invalid hex literal 0x{hexNum}");
+                    Add(hexVal.ToString(), TokenKind.IntegerLiteralToken);
+                    break;
+
                 case char c when char.IsDigit(c) || ((c == '.' || c == '-') && char.IsDigit(LookAhead())):
                     string num = EatNumber(out bool isFloat);
                     TokenKind kind = isFloat ? TokenKind.FloatLiteralToken : TokenKind.IntegerLiteralToken;
