@@ -557,12 +557,19 @@ namespace UnityShaderParser.HLSL
     public class VariableDeclaratorNode : HLSLSyntaxNode
     {
         public string Name { get; set; }
-        // TODO public List<ArraySpecifierNode> 
+        public List<ArrayRankNode> ArrayRanks { get; set; }
         public List<VariableDeclaratorQualifierNode> Qualifiers { get; set; }
         // TODO List<annotation> s
         public ExpressionNode? Initializer { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children => throw new NotImplementedException();
+    }
+
+    public class ArrayRankNode : HLSLSyntaxNode
+    {
+        public ExpressionNode Dimension { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children => new[] { Dimension };
     }
 
     public class FunctionDeclarationNode : FunctionNode

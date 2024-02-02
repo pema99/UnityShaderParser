@@ -42,7 +42,6 @@ namespace UnityShaderParser.HLSL
                     case TokenKind.SamplerStateKeyword:
                     case TokenKind.SamplerStateLegacyKeyword:
                     case TokenKind.SamplerComparisonStateKeyword:
-                    case TokenKind.SamplerKeyword:
                         throw new NotImplementedException(anchorSpan + ": " + Peek().ToString());
 
                     case TokenKind.CBufferKeyword:
@@ -612,9 +611,23 @@ namespace UnityShaderParser.HLSL
             };
         }
 
+        private ArrayRankNode ParseArrayRank()
+        {
+            Eat(TokenKind.OpenBracketToken);
+            var expr = ParseExpression();
+            Eat(TokenKind.CloseBracketToken);
+            return new ArrayRankNode { Dimension = expr };
+        }
+
         private VariableDeclaratorNode ParseVariableDeclarator()
         {
             string identifier = ParseIdentifier();
+
+            List<ArrayRankNode> arrayRanks = new();
+            while (Match(TokenKind.OpenBracketToken))
+            {
+                arrayRanks.Add(ParseArrayRank());
+            }
 
             List<VariableDeclaratorQualifierNode> qualifiers = ParseMany0(TokenKind.ColonToken, ParseVariableDeclaratorQualifierNode);
             
@@ -628,6 +641,7 @@ namespace UnityShaderParser.HLSL
             return new VariableDeclaratorNode
             {
                 Name = identifier,
+                ArrayRanks = arrayRanks,
                 Qualifiers = qualifiers,
                 Initializer = initializer,
             };
