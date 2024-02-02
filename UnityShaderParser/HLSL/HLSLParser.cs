@@ -587,15 +587,15 @@ namespace UnityShaderParser.HLSL
 
             // TODO: Modifiers
 
-            return ParseNumericType();
+            return ParseNumericType(allowVoid);
         }
 
-        private NumericTypeNode ParseNumericType(/* List<Modifier> Modifiers */)
+        private NumericTypeNode ParseNumericType(bool allowVoid = false/* List<Modifier> Modifiers */)
         {
             Token typeToken = Advance();
             if (HLSLSyntaxFacts.TryConvertToScalarType(typeToken.Kind, out ScalarType scalarType))
             {
-                if (scalarType == ScalarType.Void)
+                if (scalarType == ScalarType.Void && !allowVoid)
                     Error("a type that isn't 'void'", typeToken);
                 return new ScalarTypeNode { Kind = scalarType };
             }
@@ -828,8 +828,11 @@ namespace UnityShaderParser.HLSL
                     throw new NotImplementedException(next.Span + ": " + next.Kind.ToString());
 
                 case TokenKind.InterfaceKeyword:
-                case TokenKind.StructKeyword:
+                case TokenKind.ClassKeyword:
                     throw new NotImplementedException(next.Span + ": " + next.Kind.ToString());
+
+                case TokenKind.StructKeyword:
+                    return ParseStructDefinition();
 
                 case TokenKind kind when IsVariableDeclarationStatement(kind):
                     return ParseVariableDeclarationStatement(attributes);

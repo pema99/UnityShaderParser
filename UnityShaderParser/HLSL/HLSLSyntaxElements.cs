@@ -625,7 +625,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(base.Children, Child(Body));
     }
 
-    public class StructDefinitionNode : HLSLSyntaxNode
+    public class StructDefinitionNode : StatementNode
     {
         public List<BindingModifier> Modifiers { get; set; }
         public UserDefinedTypeNode? Name { get; set; }
