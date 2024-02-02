@@ -147,6 +147,74 @@ namespace UnityShaderParser.HLSL
             });
         }
 
+        private StatePropertyNode ParseStatePropertyNode()
+        {
+            string key = ParseIdentifier();
+            ArrayRankNode? rank = null;
+            if (Match(TokenKind.OpenBracketToken))
+            {
+                rank = ParseArrayRank();
+            }
+            Eat(TokenKind.EqualsToken);
+            var expr = ParseExpression();
+            Eat(TokenKind.SemiToken);
+
+            return new StatePropertyNode
+            {
+                Name = key,
+                ArrayRank = rank,
+                Value = expr
+            };
+        }
+
+        private SamplerStateLiteralExpressionNode ParseSamplerStateLiteral()
+        {
+            Eat(TokenKind.SamplerStateLegacyKeyword);
+            Eat(TokenKind.OpenBraceToken);
+
+            if (Match(TokenKind.TextureKeyword))
+            {
+                Advance();
+            }
+            else
+            {
+                string textureKeyword = ParseIdentifier();
+                if (textureKeyword.ToLower() != "Texture")
+                    Error($"Expected to find the keyword 'Texture' in sampler state object, got '{textureKeyword}'.");
+            }
+
+            Eat(TokenKind.EqualsToken);
+            bool hasBrackets = Match(TokenKind.LessThanToken);
+            if (hasBrackets) Eat(TokenKind.LessThanToken);
+            NamedExpressionNode textureName = ParseNamedExpressionNode();
+            if (hasBrackets) Eat(TokenKind.GreaterThanToken);
+            Eat(TokenKind.SemiToken);
+
+            List<StatePropertyNode> states = new();
+            while (Match(TokenKind.IdentifierToken))
+            {
+                states.Add(ParseStatePropertyNode());
+            }
+
+            Eat(TokenKind.CloseBraceToken);
+
+            return new SamplerStateLiteralExpressionNode
+            {
+                TextureName = textureName,
+                States = states
+            };
+        }
+
+        private ExpressionNode ParseExpression(int level = 0)
+        {
+            if (Match(TokenKind.SamplerStateLegacyKeyword))
+            {
+                return ParseSamplerStateLiteral();
+            }
+
+            return ParseBinaryExpression(level);
+        }
+
         enum PrecedenceLevel
         {                 // Associativity:
             Compound,     // left
@@ -278,14 +346,14 @@ namespace UnityShaderParser.HLSL
         // - Postfix unary? e_
         // - Assignment e=
 
-        private ExpressionNode ParseExpression(int level = 0)
+        private ExpressionNode ParseBinaryExpression(int level = 0)
         {
             if (level >= operatorGroups.Count)
             {
                 return ParsePrefixOrPostFixExpression();
             }
 
-            ExpressionNode higher = ParseExpression(level + 1);
+            ExpressionNode higher = ParseBinaryExpression(level + 1);
 
             var group = operatorGroups[level];
             while (Match(tok => group.operators.Contains(tok.Kind)))
@@ -295,7 +363,7 @@ namespace UnityShaderParser.HLSL
                 higher = group.ctor(
                     higher,
                     next.Kind,
-                    ParseExpression(group.rightAssociative ? level : level + 1));
+                    ParseBinaryExpression(group.rightAssociative ? level : level + 1));
 
                 if (IsAtEnd())
                 {
@@ -385,6 +453,13 @@ namespace UnityShaderParser.HLSL
             }
         }
 
+        // TODO: Qualified names
+        private NamedExpressionNode ParseNamedExpressionNode()
+        {
+            string identifier = ParseIdentifier();
+            return new IdentifierExpressionNode { Name = identifier };
+        }
+
         private LiteralExpressionNode ParseLiteralExpression()
         {
             Token next = Advance();
@@ -402,8 +477,7 @@ namespace UnityShaderParser.HLSL
         {
             if (Match(TokenKind.IdentifierToken))
             {
-                string identifier = ParseIdentifier();
-                return new IdentifierExpressionNode { Name = identifier };
+                return ParseNamedExpressionNode();
             }
 
             return ParseLiteralExpression();
@@ -559,7 +633,6 @@ namespace UnityShaderParser.HLSL
         {
             if (Match(TokenKind.IdentifierToken))
             {
-                // TODO: Predefined names !
                 return ParseUserDefinedTypeName();
             }
 
@@ -679,11 +752,16 @@ namespace UnityShaderParser.HLSL
 
             List<VariableDeclaratorQualifierNode> qualifiers = ParseMany0(TokenKind.ColonToken, ParseVariableDeclaratorQualifierNode);
             
-            ExpressionNode? initializer = null;
+            // TODO: Annotations
+
+            InitializerNode? initializer = null;
             if (Match(TokenKind.EqualsToken))
             {
-                Eat(TokenKind.EqualsToken);
-                initializer = ParseExpression();
+                initializer = ParseValueInitializer();
+            }
+            else if (Match(TokenKind.OpenBraceToken))
+            {
+                initializer = ParseStateInitializer();
             }
 
             return new VariableDeclaratorNode
@@ -693,6 +771,25 @@ namespace UnityShaderParser.HLSL
                 Qualifiers = qualifiers,
                 Initializer = initializer,
             };
+        }
+
+        private ValueInitializerNode ParseValueInitializer()
+        {
+            Eat(TokenKind.EqualsToken);
+            var expr = ParseExpression();
+            return new ValueInitializerNode { Expression = expr };
+        }
+
+        private StateInitializerNode ParseStateInitializer()
+        {
+            Eat(TokenKind.OpenBraceToken);
+            List<StatePropertyNode> states = new();
+            while (Match(TokenKind.IdentifierToken))
+            {
+                states.Add(ParseStatePropertyNode());
+            }
+            Eat(TokenKind.CloseBraceToken);
+            return new StateInitializerNode { States = states };
         }
 
         private VariableDeclaratorQualifierNode ParseVariableDeclaratorQualifierNode()

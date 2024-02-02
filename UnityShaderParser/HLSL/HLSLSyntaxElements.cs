@@ -552,6 +552,13 @@ namespace UnityShaderParser.HLSL
         Line,
         LineAdj,
     }
+
+    enum StateKind
+    {
+        SamplerState,
+        SamplerComparisonState,
+        BlendState,
+    }
     #endregion
 
     public abstract class HLSLSyntaxNode
@@ -565,6 +572,7 @@ namespace UnityShaderParser.HLSL
         public abstract IEnumerable<HLSLSyntaxNode> Children { get; }
         //public abstract void Accept(ShaderLabSyntaxVisitor visitor);
 
+        // TODO: Store parent by making ctor's which the relevant parent on their child
         // TODO: Feed in span data
         public SourceSpan Span { get; set; }
     }
@@ -599,7 +607,7 @@ namespace UnityShaderParser.HLSL
         public List<ArrayRankNode> ArrayRanks { get; set; }
         public List<VariableDeclaratorQualifierNode> Qualifiers { get; set; }
         // TODO List<annotation> s
-        public ExpressionNode? Initializer { get; set; }
+        public InitializerNode? Initializer { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children =>
             MergeChildren(ArrayRanks, Qualifiers, OptionalChild(Initializer));
@@ -611,6 +619,25 @@ namespace UnityShaderParser.HLSL
 
         public override IEnumerable<HLSLSyntaxNode> Children =>
             Child(Dimension);
+    }
+
+    public abstract class InitializerNode : HLSLSyntaxNode { }
+
+    public class ValueInitializerNode : InitializerNode
+    {
+        public ExpressionNode Expression { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Child(Expression);
+    }
+
+    // BlendState, SamplerState, etc.
+    public class StateInitializerNode : InitializerNode
+    {
+        public List<StatePropertyNode> States { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            States;
     }
 
     public class FunctionDeclarationNode : FunctionNode
@@ -882,6 +909,15 @@ namespace UnityShaderParser.HLSL
             MergeChildren(Child(Kind), Child(Expression));
     }
 
+    // Part of legacy sampler syntax (d3d9)
+    public class SamplerStateLiteralExpressionNode : ExpressionNode
+    {
+        public NamedExpressionNode TextureName { get; set; }
+        public List<StatePropertyNode> States { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children => Child(TextureName);
+    }
+
     public abstract class TypeNode : HLSLSyntaxNode { }
     public abstract class UserDefinedTypeNode : TypeNode { } // TODO: Different Name node for declarations vs other places?
     public abstract class PredefinedTypeNode : TypeNode { }
@@ -949,5 +985,16 @@ namespace UnityShaderParser.HLSL
 
         public override IEnumerable<HLSLSyntaxNode> Children =>
             Child(Literal);
+    }
+
+    // Part of an object literal (SamplerState, BlendState, etc)
+    public class StatePropertyNode : HLSLSyntaxNode
+    {
+        public string Name { get; set; }
+        public ArrayRankNode? ArrayRank { get; set; }
+        public ExpressionNode Value { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(OptionalChild(ArrayRank), Child(Value));
     }
 }
