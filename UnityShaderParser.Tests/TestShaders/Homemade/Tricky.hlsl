@@ -1,4 +1,15 @@
-﻿void foo()
+﻿typedef float BOBB;
+
+typedef const float FLAAT, BLAAT::DD, BLOM;
+
+const static BlendState WhatArStateObjectsEven[1] : I: LOVE: SEMANTICS: register(anyIdentifierAllowedHere1337)
+< int blabla = 27; string blacksheep = "Hello There"; >
+{
+	Can::Have::NameSpaces = Any + Expression + Allowed;
+	AndArrayRanksButOnlyASingleOne[0] = aaa(1);
+};
+
+void foo()
 {
 	int boo = (some, more, 333 + 33);
 	int a = b ? c : d ? e : f;
@@ -10,4 +21,12 @@
 	unsigned int foobar = 3;
 
 	vector<unsigned int, 3> dd = 3;
+
+
+	[foobar] [baz] typedef const float FLAAT, BLAAT, BLOM;
+
+	do
+	{
+		typedef const float FLAAT, BLAAT, BLOM;
+	} while (i < 2);
 }

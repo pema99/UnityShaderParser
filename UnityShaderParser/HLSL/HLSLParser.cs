@@ -46,6 +46,10 @@ namespace UnityShaderParser.HLSL
                         result.Add(ParseInterfaceDefinition(new()));
                         break;
 
+                    case TokenKind.TypedefKeyword:
+                        result.Add(ParseTypedef(new()));
+                        break;
+
                     case TokenKind.Technique10Keyword:
                     case TokenKind.Technique11Keyword:
                     case TokenKind.TechniqueKeyword:
@@ -148,15 +152,15 @@ namespace UnityShaderParser.HLSL
 
         private StatePropertyNode ParseStatePropertyNode()
         {
-            string key = "";
+            UserDefinedTypeNode name;
             if (Match(TokenKind.TextureKeyword))
             {
                 Advance();
-                key = "texture";
+                name = new NamedTypeNode { Name = "texture" };
             }
             else
             {
-                key = ParseIdentifier();
+                name = ParseUserDefinedTypeName();
             }
             ArrayRankNode? rank = null;
             if (Match(TokenKind.OpenBracketToken))
@@ -181,7 +185,7 @@ namespace UnityShaderParser.HLSL
 
             return new StatePropertyNode
             {
-                Name = key,
+                Name = name,
                 ArrayRank = rank,
                 Value = expr,
                 IsReference = isReference,
@@ -710,6 +714,32 @@ namespace UnityShaderParser.HLSL
             };
         }
 
+        private TypedefNode ParseTypedef(List<AttributeNode> attributes)
+        {
+            Eat(TokenKind.TypedefKeyword);
+
+            bool isConst = false;
+            if (Match(TokenKind.ConstKeyword))
+            {
+                Eat(TokenKind.ConstKeyword);
+                isConst = true;
+            }
+
+            var type = ParseType();
+
+            var names = ParseSeparatedList1(TokenKind.CommaToken, ParseUserDefinedTypeName);
+
+            Eat(TokenKind.SemiToken);
+
+            return new TypedefNode
+            {
+                Attributes = attributes,
+                FromType = type,
+                ToNames = names,
+                IsConst = isConst,
+            };
+        }
+
         private TypeNode ParseType(bool allowVoid = false)
         {
             if (Match(TokenKind.IdentifierToken))
@@ -791,7 +821,7 @@ namespace UnityShaderParser.HLSL
                 return type;
             }
 
-            throw new NotImplementedException(typeToken.Span.ToString() + ": " + typeToken.ToString());
+            throw new NotImplementedException(typeToken.Span.ToString() + ": " + typeToken.ToString()); // TODO
         }
 
         private UserDefinedTypeNode ParseUserDefinedTypeName()
@@ -1061,11 +1091,17 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.WhileKeyword:
                     return ParseWhileStatement(attributes);
 
+                case TokenKind.DoKeyword:
+                    return ParseDoWhileStatement(attributes);
+
                 case TokenKind.IfKeyword:
                     return ParseIfStatement(attributes);
 
                 case TokenKind.SwitchKeyword:
                     return ParseSwitchStatement(attributes);
+
+                case TokenKind.TypedefKeyword:
+                    return ParseTypedef(attributes);
 
                 case TokenKind.BreakKeyword:
                     Advance();
@@ -1078,10 +1114,6 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.DiscardKeyword:
                     Advance();
                     return new DiscardStatementNode { Attributes = attributes };
-
-                case TokenKind.DoKeyword:
-                case TokenKind.TypedefKeyword:
-                    throw new NotImplementedException(next.Span + ": " + next.Kind.ToString());
 
                 case TokenKind.InterfaceKeyword:
                     return ParseInterfaceDefinition(attributes);
@@ -1191,6 +1223,26 @@ namespace UnityShaderParser.HLSL
                 Attributes = attributes,
                 Condition = cond,
                 Body = body,
+            };
+        }
+
+        public DoWhileStatementNode ParseDoWhileStatement(List<AttributeNode> attributes)
+        {
+            Eat(TokenKind.DoKeyword);
+            var body = ParseStatement();
+
+            Eat(TokenKind.WhileKeyword);
+            Eat(TokenKind.OpenParenToken);
+
+            var cond = ParseExpression();
+
+            Eat(TokenKind.CloseParenToken);
+
+            return new DoWhileStatementNode
+            {
+                Attributes = attributes,
+                Body = body,
+                Condition = cond,
             };
         }
 

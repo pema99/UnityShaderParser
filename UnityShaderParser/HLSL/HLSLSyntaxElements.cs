@@ -752,6 +752,18 @@ namespace UnityShaderParser.HLSL
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitConstantBufferNode(this);
     }
 
+    public class TypedefNode : StatementNode
+    {
+        public TypeNode FromType { get; set; }
+        public List<UserDefinedTypeNode> ToNames { get; set; }
+        public bool IsConst { get; set; }
+
+        protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
+            MergeChildren(base.Children, Child(FromType), ToNames);
+
+        public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitTypedefNode(this);
+    }
+
     public abstract class VariableDeclaratorQualifierNode : HLSLSyntaxNode
     {
     }
@@ -871,6 +883,17 @@ namespace UnityShaderParser.HLSL
             MergeChildren(base.GetChildren, Child(Condition), Child(Body));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitWhileStatementNode(this);
+    }
+
+    public class DoWhileStatementNode : StatementNode
+    {
+        public StatementNode Body { get; set; }
+        public ExpressionNode Condition { get; set; }
+
+        protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
+            MergeChildren(base.GetChildren, Child(Body), Child(Condition));
+
+        public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitDoWhileStatementNode(this);
     }
 
     public class IfStatementNode : StatementNode
@@ -1238,7 +1261,7 @@ namespace UnityShaderParser.HLSL
     // Part of an object literal (SamplerState, BlendState, etc)
     public class StatePropertyNode : HLSLSyntaxNode
     {
-        public string Name { get; set; }
+        public UserDefinedTypeNode Name { get; set; }
         public ArrayRankNode? ArrayRank { get; set; }
         public ExpressionNode Value { get; set; }
         public bool IsReference { get; set; }

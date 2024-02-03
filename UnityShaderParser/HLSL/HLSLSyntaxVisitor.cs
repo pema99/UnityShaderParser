@@ -21,6 +21,7 @@
         public virtual void VisitStructDefinitionNode(StructDefinitionNode node) => DefaultVisit(node);
         public virtual void VisitInterfaceDefinitionNode(InterfaceDefinitionNode node) => DefaultVisit(node);
         public virtual void VisitConstantBufferNode(ConstantBufferNode node) => DefaultVisit(node);
+        public virtual void VisitTypedefNode(TypedefNode node) => DefaultVisit(node);
         public virtual void VisitSemanticNode(SemanticNode node) => DefaultVisit(node);
         public virtual void VisitRegisterLocationNode(RegisterLocationNode node) => DefaultVisit(node);
         public virtual void VisitPackoffsetNode(PackoffsetNode node) => DefaultVisit(node);
@@ -33,6 +34,7 @@
         public virtual void VisitEmptyStatementNode(EmptyStatementNode node) => DefaultVisit(node);
         public virtual void VisitForStatementNode(ForStatementNode node) => DefaultVisit(node);
         public virtual void VisitWhileStatementNode(WhileStatementNode node) => DefaultVisit(node);
+        public virtual void VisitDoWhileStatementNode(DoWhileStatementNode node) => DefaultVisit(node);
         public virtual void VisitIfStatementNode(IfStatementNode node) => DefaultVisit(node);
         public virtual void VisitSwitchStatementNode(SwitchStatementNode node) => DefaultVisit(node);
         public virtual void VisitSwitchClauseNode(SwitchClauseNode node) => DefaultVisit(node);
