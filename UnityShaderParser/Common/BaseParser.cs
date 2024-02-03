@@ -161,9 +161,7 @@
             result.Add(parser());
             while (Match(separator))
             {
-#if DEBUG
                 int lastPosition = position;
-#endif
 
                 Advance();
                 if (!allowTrailingSeparator || !Match(end))
@@ -171,10 +169,14 @@
                     result.Add(parser());
                 }
 
-#if DEBUG
                 if (lastPosition == position)
+                {
+#if DEBUG
                     throw new Exception($"Parser got stuck parsing {Peek()}. Please file a bug report.");
+#else
+                    return result;
 #endif
+                }
             }
 
             return result;
@@ -187,17 +189,19 @@
             result.Add(parser());
             while (Match(seperator))
             {
-#if DEBUG
                 int lastPosition = position;
-#endif
 
                 Eat(seperator);
                 result.Add(parser());
 
-#if DEBUG
                 if (lastPosition == position)
+                {
+#if DEBUG
                     throw new Exception($"Parser got stuck parsing {Peek()}. Please file a bug report.");
+#else
+                    return result;
 #endif
+                }
             }
 
             return result;
@@ -211,16 +215,18 @@
 
             while (Match(first))
             {
-#if DEBUG
                 int lastPosition = position;
-#endif
 
                 result.Add(parser());
 
-#if DEBUG
                 if (lastPosition == position)
+                {
+#if DEBUG
                     throw new Exception($"Parser got stuck parsing {Peek()}. Please file a bug report.");
+#else
+                    return result;
 #endif
+                }
             }
 
             return result;
@@ -242,16 +248,18 @@
 
             while (first())
             {
-#if DEBUG
                 int lastPosition = position;
-#endif
 
                 result.Add(parser());
 
-#if DEBUG
                 if (lastPosition == position)
+                {
+#if DEBUG
                     throw new Exception($"Parser got stuck parsing {Peek()}. Please file a bug report.");
+#else
+                    return result;
 #endif
+                }
             }
 
             return result;
@@ -278,6 +286,6 @@
                 return parser();
             return default;
         }
-        #endregion
+#endregion
     }
 }

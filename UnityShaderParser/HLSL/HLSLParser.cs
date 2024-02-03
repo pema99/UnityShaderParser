@@ -1249,7 +1249,6 @@ namespace UnityShaderParser.HLSL
                     Eat(TokenKind.ColonToken);
                 }
 
-                // TODO: Get rid of all while(!Match()) patterns - deadlocks
                 List<StatementNode> statements = ParseMany0(
                     () => !Match(TokenKind.CloseBraceToken, TokenKind.CaseKeyword),
                     ParseStatement);
