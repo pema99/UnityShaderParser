@@ -900,6 +900,15 @@ namespace UnityShaderParser.HLSL
             MergeChildren(Child(Left), Child(Right));
     }
 
+    public class CompoundExpressionNode : ExpressionNode
+    {
+        public ExpressionNode Left { get; set; }
+        public ExpressionNode Right { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(Child(Left), Child(Right));
+    }
+
     public class PrefixUnaryExpressionNode : ExpressionNode
     {
         public TokenKind Operator { get; set; } // TODO: Not TokenKind

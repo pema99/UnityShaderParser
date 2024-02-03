@@ -230,7 +230,6 @@ namespace UnityShaderParser.HLSL
             {
                 return ParseCompileExpression();
             }
-
             return ParseBinaryExpression(level);
         }
 
@@ -256,8 +255,10 @@ namespace UnityShaderParser.HLSL
         // https://en.cppreference.com/w/c/language/operator_precedence
         List<(HashSet<TokenKind> operators, bool rightAssociative, Func<ExpressionNode, TokenKind, ExpressionNode, ExpressionNode> ctor)> operatorGroups = new ()
         {
-            // TODO: Compound expression (comma)
-            (new() { }, false, (l, op, r) => throw new NotImplementedException()),
+            // Compound expression
+            (new() { TokenKind.CommaToken },
+            false,
+            (l, op, r) => new CompoundExpressionNode { Left = l, Right = r }),
 
             // Assignment
             (new() {
@@ -322,48 +323,6 @@ namespace UnityShaderParser.HLSL
 
             // Binds most tightly
         };
-
-        // TODO:
-        // - Function invocation            \
-        // - Method invocation              | - Group these 3
-        // - Numeric constructor invocation /
-        // - Array initializer
-        // - Assignment
-        // - Binary op
-        // - Cast
-        // - Compound
-        // - Ternary
-        // - Element access
-        // - Field access
-        // - Literal (incl strings)
-        // - Paranthesized expression
-        // - Prefix unary
-        // - Postfix unary?
-        // - Compile (wtf is this?)
-
-        // Ambiguity groupings:
-        // - Function invocation i(
-
-        // - Literal (incl strings) num|"|keyword
-
-        // - Array initializer {e
-
-        // - Prefix unary _e
-
-        // - Paranthesized expression (e
-        // - Cast (i
-
-        // - Numeric constructor invocation k(
-        // - Compile (wtf is this?)
-
-        // - Method invocation e.
-        // - Ternary e?
-        // - Binary op e_
-        // - Compound e,
-        // - Element access e[
-        // - Field access e.
-        // - Postfix unary? e_
-        // - Assignment e=
 
         private ExpressionNode ParseBinaryExpression(int level = 0)
         {
@@ -485,7 +444,7 @@ namespace UnityShaderParser.HLSL
             var exprs = ParseSeparatedList0(
                 TokenKind.CloseBraceToken,
                 TokenKind.CommaToken,
-                () => ParseExpression(),
+                () => ParseExpression((int)PrecedenceLevel.Compound + 1),
                 true);
             Eat(TokenKind.CloseBraceToken);
             return new ArrayInitializerExpressionNode { Elements = exprs };
@@ -738,8 +697,6 @@ namespace UnityShaderParser.HLSL
                     TemplateArguments = args,
                 };
             }
-
-            // TODO: Modifiers
 
             return ParseNumericType(allowVoid);
         }
