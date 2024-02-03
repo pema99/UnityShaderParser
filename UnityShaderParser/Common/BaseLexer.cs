@@ -99,6 +99,13 @@ namespace UnityShaderParser.Common
                 {
                     builder.Append(Advance());
                 }
+                // Scientific notation
+                else if (c == 'e' || c == 'E')
+                {
+                    builder.Append(Advance());
+                    if (Peek() == '-')
+                        builder.Append(Advance());
+                }
                 else
                 {
                     break;

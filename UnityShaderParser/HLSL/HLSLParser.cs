@@ -146,21 +146,43 @@ namespace UnityShaderParser.HLSL
 
         private StatePropertyNode ParseStatePropertyNode()
         {
-            string key = ParseIdentifier();
+            string key = "";
+            if (Match(TokenKind.TextureKeyword))
+            {
+                Advance();
+                key = "texture";
+            }
+            else
+            {
+                key = ParseIdentifier();
+            }
             ArrayRankNode? rank = null;
             if (Match(TokenKind.OpenBracketToken))
             {
                 rank = ParseArrayRank();
             }
+
+            ExpressionNode expr;
             Eat(TokenKind.EqualsToken);
-            var expr = ParseExpression();
+            bool isReference = Match(TokenKind.LessThanToken);
+            if (isReference)
+            {
+                Eat(TokenKind.LessThanToken);
+                expr = ParseNamedExpression();
+                Eat(TokenKind.GreaterThanToken);
+            }
+            else
+            {
+                expr = ParseExpression();
+            }
             Eat(TokenKind.SemiToken);
 
             return new StatePropertyNode
             {
                 Name = key,
                 ArrayRank = rank,
-                Value = expr
+                Value = expr,
+                IsReference = isReference,
             };
         }
 
@@ -169,26 +191,8 @@ namespace UnityShaderParser.HLSL
             Eat(TokenKind.SamplerStateLegacyKeyword);
             Eat(TokenKind.OpenBraceToken);
 
-            if (Match(TokenKind.TextureKeyword))
-            {
-                Advance();
-            }
-            else
-            {
-                string textureKeyword = ParseIdentifier();
-                if (textureKeyword.ToLower() != "Texture")
-                    Error($"Expected to find the keyword 'Texture' in sampler state object, got '{textureKeyword}'.");
-            }
-
-            Eat(TokenKind.EqualsToken);
-            bool hasBrackets = Match(TokenKind.LessThanToken);
-            if (hasBrackets) Eat(TokenKind.LessThanToken);
-            NamedExpressionNode textureName = ParseNamedExpression();
-            if (hasBrackets) Eat(TokenKind.GreaterThanToken);
-            Eat(TokenKind.SemiToken);
-
             List<StatePropertyNode> states = new();
-            while (Match(TokenKind.IdentifierToken))
+            while (Match(TokenKind.IdentifierToken, TokenKind.TextureKeyword))
             {
                 states.Add(ParseStatePropertyNode());
             }
@@ -197,8 +201,23 @@ namespace UnityShaderParser.HLSL
 
             return new SamplerStateLiteralExpressionNode
             {
-                TextureName = textureName,
                 States = states
+            };
+        }
+
+        private CompileExpressionNode ParseCompileExpression()
+        {
+            Eat(TokenKind.CompileKeyword);
+            string target = ParseIdentifier();
+
+            var name = ParseNamedExpression();
+            var param = ParseParameterList();
+            var expr = new FunctionCallExpressionNode { Name = name, Arguments = param };
+
+            return new CompileExpressionNode
+            {
+                Target = target,
+                Invocation = expr
             };
         }
 
@@ -207,6 +226,10 @@ namespace UnityShaderParser.HLSL
             if (Match(TokenKind.SamplerStateLegacyKeyword))
             {
                 return ParseSamplerStateLiteral();
+            }
+            else if (Match(TokenKind.CompileKeyword))
+            {
+                return ParseCompileExpression();
             }
 
             return ParseBinaryExpression(level);
@@ -959,6 +982,9 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.ForKeyword:
                     return ParseForStatement(attributes);
 
+                case TokenKind.WhileKeyword:
+                    return ParseWhileStatement(attributes);
+
                 case TokenKind.IfKeyword:
                     return ParseIfStatement(attributes);
 
@@ -976,7 +1002,6 @@ namespace UnityShaderParser.HLSL
 
                 case TokenKind.DoKeyword:
                 case TokenKind.SwitchKeyword:
-                case TokenKind.WhileKeyword:
                 case TokenKind.TypedefKeyword:
                     throw new NotImplementedException(next.Span + ": " + next.Kind.ToString());
 
@@ -1069,6 +1094,25 @@ namespace UnityShaderParser.HLSL
                 Increment = incrementor,
                 Body = body,
                 Attributes = attributes,
+            };
+        }
+
+        public WhileStatementNode ParseWhileStatement(List<AttributeNode> attributes)
+        {
+            Eat(TokenKind.WhileKeyword);
+            Eat(TokenKind.OpenParenToken);
+
+            var cond = ParseExpression();
+
+            Eat(TokenKind.CloseParenToken);
+
+            var body = ParseStatement();
+
+            return new WhileStatementNode
+            {
+                Attributes = attributes,
+                Condition = cond,
+                Body = body,
             };
         }
 

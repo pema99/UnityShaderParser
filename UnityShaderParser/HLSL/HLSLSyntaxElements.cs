@@ -766,6 +766,15 @@ namespace UnityShaderParser.HLSL
             MergeChildren(base.Children, OptionalChild(Declaration), OptionalChild(Condition), OptionalChild(Increment), Child(Body));
     }
 
+    public class WhileStatementNode : StatementNode
+    {
+        public ExpressionNode Condition { get; set; }
+        public StatementNode Body { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(base.Children, Child(Condition), Child(Body));
+    }
+
     public class IfStatementNode : StatementNode
     {
         public ExpressionNode Condition { get; set; }
@@ -927,10 +936,20 @@ namespace UnityShaderParser.HLSL
     // Part of legacy sampler syntax (d3d9)
     public class SamplerStateLiteralExpressionNode : ExpressionNode
     {
-        public NamedExpressionNode TextureName { get; set; }
         public List<StatePropertyNode> States { get; set; }
 
-        public override IEnumerable<HLSLSyntaxNode> Children => Child(TextureName);
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            States;
+    }
+
+    // From FX framework
+    public class CompileExpressionNode : ExpressionNode
+    {
+        public string Target { get; set; }
+        public FunctionCallExpressionNode Invocation { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Child(Invocation);
     }
 
     public abstract class TypeNode : HLSLSyntaxNode { }
@@ -1008,6 +1027,7 @@ namespace UnityShaderParser.HLSL
         public string Name { get; set; }
         public ArrayRankNode? ArrayRank { get; set; }
         public ExpressionNode Value { get; set; }
+        public bool IsReference { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children =>
             MergeChildren(OptionalChild(ArrayRank), Child(Value));
