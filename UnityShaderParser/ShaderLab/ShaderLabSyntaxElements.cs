@@ -369,15 +369,9 @@ namespace UnityShaderParser.ShaderLab
     #endregion
 
     #region Syntax Tree
-    public abstract class ShaderLabSyntaxNode
+    public abstract class ShaderLabSyntaxNode : SyntaxNode<ShaderLabSyntaxNode>
     {
-        protected static IEnumerable<ShaderLabSyntaxNode> MergeChildren(params IEnumerable<ShaderLabSyntaxNode>[] children)
-            => children.SelectMany(x => x);
-        public abstract IEnumerable<ShaderLabSyntaxNode> Children { get; }
         public abstract void Accept(ShaderLabSyntaxVisitor visitor);
-
-        // TODO: Feed in span data
-        public SourceSpan Span { get; set; } = new();
     }
 
     public class ShaderNode : ShaderLabSyntaxNode
@@ -391,7 +385,7 @@ namespace UnityShaderParser.ShaderLab
         public Dictionary<string, string> Dependencies { get; set; } = new();
         public List<string> IncludeBlocks { get; set; } = new();
 
-        public override IEnumerable<ShaderLabSyntaxNode> Children => MergeChildren(Properties, SubShaders);
+        protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => MergeChildren(Properties, SubShaders);
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderNode(this);
     }
 
@@ -404,13 +398,13 @@ namespace UnityShaderParser.ShaderLab
         public (float Min, float Max)? RangeMinMax { get; set; }
         public ShaderPropertyValueNode Value { get; set; } = new();
 
-        public override IEnumerable<ShaderLabSyntaxNode> Children => new[] { Value };
+        protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => new[] { Value };
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPropertyNode(this);
     }
 
     public class ShaderPropertyValueNode : ShaderLabSyntaxNode
     {
-        public override IEnumerable<ShaderLabSyntaxNode> Children => Enumerable.Empty<ShaderLabSyntaxNode>();
+        protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => Enumerable.Empty<ShaderLabSyntaxNode>();
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPropertyValueNode(this);
     }
 
@@ -460,13 +454,13 @@ namespace UnityShaderParser.ShaderLab
         public List<string> IncludeBlocks { get; set; } = new();
         public string? ProgramBlock => ProgramBlocks.Count > 0 ? ProgramBlocks[0] : null;
 
-        public override IEnumerable<ShaderLabSyntaxNode> Children => MergeChildren(Passes, Commands);
+        protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => MergeChildren(Passes, Commands);
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitSubShaderNode(this);
     }
 
     public class ShaderPassNode : ShaderLabSyntaxNode
     {
-        public override IEnumerable<ShaderLabSyntaxNode> Children => Enumerable.Empty<ShaderLabSyntaxNode>();
+        protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => Enumerable.Empty<ShaderLabSyntaxNode>();
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPassNode(this);
     }
 
@@ -477,7 +471,7 @@ namespace UnityShaderParser.ShaderLab
         public List<string> IncludeBlocks { get; set; } = new();
         public string? ProgramBlock => ProgramBlocks.Count > 0 ? ProgramBlocks[0] : null;
 
-        public override IEnumerable<ShaderLabSyntaxNode> Children => Commands;
+        protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => Commands;
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderCodePassNode(this);
     }
 
@@ -489,7 +483,7 @@ namespace UnityShaderParser.ShaderLab
         public List<string> IncludeBlocks { get; set; } = new();
 
         public bool IsUnnamed => string.IsNullOrEmpty(TextureName);
-        public override IEnumerable<ShaderLabSyntaxNode> Children => Commands;
+        protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => Commands;
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderGrabPassNode(this);
     }
 
@@ -502,7 +496,7 @@ namespace UnityShaderParser.ShaderLab
 
     public class ShaderLabCommandNode : ShaderLabSyntaxNode
     {
-        public override IEnumerable<ShaderLabSyntaxNode> Children => Enumerable.Empty<ShaderLabSyntaxNode>();
+        protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => Enumerable.Empty<ShaderLabSyntaxNode>();
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandNode(this);
     }
 

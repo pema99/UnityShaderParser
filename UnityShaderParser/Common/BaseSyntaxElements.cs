@@ -23,4 +23,24 @@
                 return $"{Kind}: {Identifier}";
         }
     }
+
+    public abstract class SyntaxNode<TSelf>
+        where TSelf : SyntaxNode<TSelf>
+    {
+        // Helpers
+        protected static IEnumerable<TSelf> MergeChildren(params IEnumerable<TSelf>[] children)
+            => children.SelectMany(x => x);
+        protected static IEnumerable<TSelf> OptionalChild(TSelf? child)
+            => child == null ? Enumerable.Empty<TSelf>() : new[] { child };
+        protected static IEnumerable<TSelf> Child(TSelf child)
+            => new[] { child };
+        protected abstract IEnumerable<TSelf> GetChildren { get; }
+
+        // Public API
+        public List<TSelf> Children => GetChildren.ToList();
+
+        // TODO: Store parent by making ctor's which the relevant parent on their child
+        // TODO: Feed in span data
+        public SourceSpan Span { get; set; }
+    }
 }
