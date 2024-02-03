@@ -785,6 +785,42 @@ namespace UnityShaderParser.HLSL
             MergeChildren(base.Children, Child(Condition), Child(Body), OptionalChild(ElseClause));
     }
 
+    public class SwitchStatementNode : StatementNode
+    {
+        public ExpressionNode Expression { get; set; }
+        public List<SwitchClauseNode> Clauses { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(base.Children, Child(Expression), Clauses);
+    }
+
+    public class SwitchClauseNode : HLSLSyntaxNode
+    {
+        public List<SwitchLabelNode> Labels { get; set; }
+        public List<StatementNode> Statements { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(Labels, Statements);
+    }
+
+    public abstract class SwitchLabelNode : HLSLSyntaxNode
+    {
+    }
+
+    public class SwitchCaseLabelNode : SwitchLabelNode
+    {
+        public ExpressionNode Value { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Child(Value);
+    }
+
+    public class SwitchDefaultLabelNode : SwitchLabelNode
+    {
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            Enumerable.Empty<HLSLSyntaxNode>();
+    }
+
     public class ExpressionStatementNode : StatementNode
     {
         public ExpressionNode Expression { get; set; }

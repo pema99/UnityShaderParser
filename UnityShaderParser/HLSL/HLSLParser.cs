@@ -988,6 +988,9 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.IfKeyword:
                     return ParseIfStatement(attributes);
 
+                case TokenKind.SwitchKeyword:
+                    return ParseSwitchStatement(attributes);
+
                 case TokenKind.BreakKeyword:
                     Advance();
                     return new BreakStatementNode { Attributes = attributes };
@@ -1001,7 +1004,6 @@ namespace UnityShaderParser.HLSL
                     return new DiscardStatementNode { Attributes = attributes };
 
                 case TokenKind.DoKeyword:
-                case TokenKind.SwitchKeyword:
                 case TokenKind.TypedefKeyword:
                     throw new NotImplementedException(next.Span + ": " + next.Kind.ToString());
 
@@ -1140,6 +1142,51 @@ namespace UnityShaderParser.HLSL
                 Condition = cond,
                 Body = body,
                 ElseClause = elseClause,
+            };
+        }
+
+        private SwitchStatementNode ParseSwitchStatement(List<AttributeNode> attributes)
+        {
+            Eat(TokenKind.SwitchKeyword);
+            Eat(TokenKind.OpenParenToken);
+            var expr = ParseExpression();
+            Eat(TokenKind.CloseParenToken);
+            Eat(TokenKind.OpenBraceToken);
+
+            List<SwitchClauseNode> switchClauses = new();
+            while (Match(TokenKind.CaseKeyword, TokenKind.DefaultKeyword))
+            {
+                List<SwitchLabelNode> switchLabels = new();
+                while (Match(TokenKind.CaseKeyword, TokenKind.DefaultKeyword))
+                {
+                    if (Match(TokenKind.CaseKeyword))
+                    {
+                        Eat(TokenKind.CaseKeyword);
+                        var caseExpr = ParseExpression();
+                        switchLabels.Add(new SwitchCaseLabelNode { Value = caseExpr });
+                    }
+                    else
+                    {
+                        Eat(TokenKind.DefaultKeyword);
+                        switchLabels.Add(new SwitchDefaultLabelNode { });
+                    }
+                    Eat(TokenKind.ColonToken);
+                }
+
+                // TODO: Get rid of all while(!Match()) patterns - deadlocks
+                List<StatementNode> statements = ParseMany0(
+                    () => !Match(TokenKind.CloseBraceToken, TokenKind.CaseKeyword),
+                    ParseStatement);
+                switchClauses.Add(new SwitchClauseNode { Labels = switchLabels, Statements = statements });
+            }
+
+            Eat(TokenKind.CloseBraceToken);
+
+            return new SwitchStatementNode
+            {
+                Attributes = attributes,
+                Expression = expr,
+                Clauses = switchClauses,
             };
         }
     }
