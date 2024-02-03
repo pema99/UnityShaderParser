@@ -228,11 +228,11 @@ namespace UnityShaderParser.HLSL
             return ParseBinaryExpression(level);
         }
 
-        enum PrecedenceLevel
+        private enum PrecedenceLevel
         {                 // Associativity:
             Compound,     // left
             Assignment,   // right
-            //Ternary,      // left
+            Ternary,      // right
             LogicalOr,    // left
             LogicalAnd,   // left
             BitwiseOr,    // left
@@ -248,7 +248,11 @@ namespace UnityShaderParser.HLSL
         }
 
         // https://en.cppreference.com/w/c/language/operator_precedence
-        List<(HashSet<TokenKind> operators, bool rightAssociative, Func<ExpressionNode, TokenKind, ExpressionNode, ExpressionNode> ctor)> operatorGroups = new ()
+        private List<(
+            HashSet<TokenKind> operators,
+            bool rightAssociative,
+            Func<ExpressionNode, TokenKind, ExpressionNode, ExpressionNode> ctor
+        )> operatorGroups = new ()
         {
             // Compound expression
             (new() { TokenKind.CommaToken },
@@ -264,7 +268,10 @@ namespace UnityShaderParser.HLSL
             true,
             (l, op, r) => new AssignmentExpressionNode { Left = l, Operator = op, Right = r }),
 
-            // TODO: Ternary
+            // Ternary
+            (new() { TokenKind.QuestionToken },
+            true,
+            (l, op, r) => throw new Exception("This should never happen. Please file a bug report.")),
 
             // LogicalOr
             (new() { TokenKind.BarBarToken },
@@ -327,6 +334,19 @@ namespace UnityShaderParser.HLSL
             }
 
             ExpressionNode higher = ParseBinaryExpression(level + 1);
+
+            // Ternary is a special case
+            if (level == (int)PrecedenceLevel.Ternary)
+            {
+                if (Match(TokenKind.QuestionToken))
+                {
+                    Eat(TokenKind.QuestionToken);
+                    var left = ParseExpression();
+                    Eat(TokenKind.ColonToken);
+                    var right = ParseExpression();
+                    return new TernaryExpressionNode { Condition = higher, TrueCase = left, FalseCase = right };
+                }
+            }
 
             var group = operatorGroups[level];
             while (Match(tok => group.operators.Contains(tok.Kind)))

@@ -1010,6 +1010,16 @@ namespace UnityShaderParser.HLSL
             Elements;
     }
 
+    public class TernaryExpressionNode : ExpressionNode
+    {
+        public ExpressionNode Condition { get; set; }
+        public ExpressionNode TrueCase { get; set; }
+        public ExpressionNode FalseCase { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(Child(Condition), Child(TrueCase), Child(FalseCase));
+    }
+
     // Part of legacy sampler syntax (d3d9)
     public class SamplerStateLiteralExpressionNode : ExpressionNode
     {
