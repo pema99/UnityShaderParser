@@ -14,6 +14,8 @@ namespace UnityShaderParser.HLSL
         protected override TokenKind FloatLiteralTokenKind => TokenKind.FloatLiteralToken;
         protected override TokenKind IdentifierTokenKind => TokenKind.IdentifierToken;
 
+        private bool isParsingTechique = false;
+
         public static void Parse(List<HLSLToken> tokens, out List<HLSLSyntaxNode> rootNodes, out List<string> diagnostics)
         {
             HLSLParser parser = new(tokens);
@@ -227,10 +229,7 @@ namespace UnityShaderParser.HLSL
             {
                 return ParseSamplerStateLiteral();
             }
-            else if (Match(TokenKind.CompileKeyword))
-            {
-                return ParseCompileExpression();
-            }
+
             return ParseBinaryExpression(level);
         }
 
@@ -455,6 +454,7 @@ namespace UnityShaderParser.HLSL
         private NamedExpressionNode ParseNamedExpression()
         {
             string identifier = ParseIdentifier();
+            
             var name = new IdentifierExpressionNode { Name = identifier };
 
             if (Match(TokenKind.ColonColonToken))
@@ -501,7 +501,12 @@ namespace UnityShaderParser.HLSL
                 return ParseNamedExpression();
             }
 
-            if (Match(TokenKind.OpenBraceToken))
+            else if (Match(TokenKind.CompileKeyword))
+            {
+                return ParseCompileExpression();
+            }
+
+            else if (Match(TokenKind.OpenBraceToken))
             {
                 return ParseArrayInitializer();
             }

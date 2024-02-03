@@ -46,7 +46,6 @@ namespace UnityShaderParser.HLSL
                 case "class": token = TokenKind.ClassKeyword; return true;
                 case "column_major": token = TokenKind.ColumnMajorKeyword; return true;
                 case "compile": token = TokenKind.CompileKeyword; return true;
-                case "CompileShader": token = TokenKind.CompileShaderKeyword; return true;
                 case "ConstantBuffer": token = TokenKind.ConstantBufferKeyword; return true;
                 case "const": token = TokenKind.ConstKeyword; return true;
                 case "ConsumeStructuredBuffer": token = TokenKind.ConsumeStructuredBufferKeyword; return true;
@@ -103,7 +102,6 @@ namespace UnityShaderParser.HLSL
                 case "float4x3": token = TokenKind.Float4x3Keyword; return true;
                 case "float4x4": token = TokenKind.Float4x4Keyword; return true;
                 case "for": token = TokenKind.ForKeyword; return true;
-                case "GeometryShader": token = TokenKind.GeometryShaderKeyword; return true;
                 case "globallycoherent": token = TokenKind.GloballycoherentKeyword; return true;
                 case "groupshared": token = TokenKind.GroupsharedKeyword; return true;
                 case "half": token = TokenKind.HalfKeyword; return true;
@@ -297,7 +295,6 @@ namespace UnityShaderParser.HLSL
                 case "packoffset": token = TokenKind.PackoffsetKeyword; return true;
                 case "pass": token = TokenKind.PassKeyword; return true;
                 case "payload": token = TokenKind.PayloadKeyword; return true;
-                case "PixelShader": token = TokenKind.PixelShaderKeyword; return true;
                 case "point": token = TokenKind.PointKeyword; return true;
                 case "PointStream": token = TokenKind.PointStreamKeyword; return true;
                 case "pragma": token = TokenKind.PragmaKeyword; return true;
@@ -383,7 +380,6 @@ namespace UnityShaderParser.HLSL
                 case "uint4x3": token = TokenKind.Uint4x3Keyword; return true;
                 case "uint4x4": token = TokenKind.Uint4x4Keyword; return true;
                 case "vector": token = TokenKind.VectorKeyword; return true;
-                case "VertexShader": token = TokenKind.VertexShaderKeyword; return true;
                 case "vertices": token = TokenKind.VerticesKeyword; return true;
                 case "volatile": token = TokenKind.VolatileKeyword; return true;
                 case "void": token = TokenKind.VoidKeyword; return true;
@@ -395,9 +391,6 @@ namespace UnityShaderParser.HLSL
                 case "dword": token = TokenKind.DwordKeyword; return true;
                 case "compile_fragment": token = TokenKind.CompileFragmentKeyword; return true;
                 case "DepthStencilView": token = TokenKind.DepthStencilViewKeyword; return true;
-                case "ComputeShader": token = TokenKind.ComputeShaderKeyword; return true;
-                case "DomainShader": token = TokenKind.DomainShaderKeyword; return true;
-                case "HullShader": token = TokenKind.HullShaderKeyword; return true;
                 case "pixelfragment": token = TokenKind.PixelfragmentKeyword; return true;
                 case "RenderTargetView": token = TokenKind.RenderTargetViewKeyword; return true;
                 case "stateblock_state": token = TokenKind.StateblockStateKeyword; return true;
@@ -537,9 +530,6 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.RasterizerOrderedTexture2DArrayKeyword: type = PredefinedObjectType.RasterizerOrderedTexture2DArray; return true;
                 case TokenKind.RasterizerOrderedTexture2DKeyword: type = PredefinedObjectType.RasterizerOrderedTexture2D; return true;
                 case TokenKind.RasterizerOrderedTexture3DKeyword: type = PredefinedObjectType.RasterizerOrderedTexture3D; return true;
-                case TokenKind.GeometryShaderKeyword: type = PredefinedObjectType.GeometryShader; return true;
-                case TokenKind.PixelShaderKeyword: type = PredefinedObjectType.PixelShader; return true;
-                case TokenKind.VertexShaderKeyword: type = PredefinedObjectType.VertexShader; return true;
                 case TokenKind.ConstantBufferKeyword: type = PredefinedObjectType.ConstantBuffer; return true;
                 default: type = default; return false;
             }
@@ -1142,6 +1132,7 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.FloatLiteralToken: outKind = LiteralKind.Float; return true;
                 case TokenKind.IntegerLiteralToken: outKind = LiteralKind.Integer; return true;
                 case TokenKind.CharacterLiteralToken: outKind = LiteralKind.Character; return true;
+                case TokenKind.NullKeyword: outKind = LiteralKind.Null; return true;
                 default: outKind = default; return false;
             }
         }
