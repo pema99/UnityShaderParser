@@ -454,6 +454,7 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.Min16Uint2Keyword: type = ScalarType.Min16Uint; dimension = 2; return true;
                 case TokenKind.Min16Uint3Keyword: type = ScalarType.Min16Uint; dimension = 3; return true;
                 case TokenKind.Min16Uint4Keyword: type = ScalarType.Min16Uint; dimension = 4; return true;
+                case TokenKind.VectorKeyword: type = ScalarType.Float; dimension = 4; return true;
                 default: type = default; dimension = 0; return false;
             }
         }

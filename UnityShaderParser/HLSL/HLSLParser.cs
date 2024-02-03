@@ -713,14 +713,45 @@ namespace UnityShaderParser.HLSL
 
             if (HLSLSyntaxFacts.TryConvertToMonomorphicVectorType(typeToken.Kind, out ScalarType vectorType, out int dimension))
             {
+                if (typeToken.Kind == TokenKind.VectorKeyword && Match(TokenKind.LessThanToken))
+                {
+                    Eat(TokenKind.LessThanToken);
+                    var next = Advance();
+                    if (HLSLSyntaxFacts.TryConvertToScalarType(next.Kind, out ScalarType genVectorType))
+                    {
+                        if (genVectorType == ScalarType.Void)
+                            Error("a type that isn't 'void'", typeToken);
+                    }
+                    Eat(TokenKind.CommaToken);
+                    int genDim = ParseIntegerLiteral();
+                    Eat(TokenKind.GreaterThanToken);
+                    return new VectorTypeNode { Kind = genVectorType, Dimension = genDim };
+                }
+
                 return new VectorTypeNode { Kind = vectorType, Dimension = dimension };
             }
 
             if (HLSLSyntaxFacts.TryConvertToMonomorphicMatrixType(typeToken.Kind, out ScalarType matrixType, out int dimX, out int dimY))
             {
+                if (typeToken.Kind == TokenKind.MatrixKeyword && Match(TokenKind.LessThanToken))
+                {
+                    Eat(TokenKind.LessThanToken);
+                    var next = Advance();
+                    if (HLSLSyntaxFacts.TryConvertToScalarType(next.Kind, out ScalarType genMatrixType))
+                    {
+                        if (genMatrixType == ScalarType.Void)
+                            Error("a type that isn't 'void'", next);
+                    }
+                    Eat(TokenKind.CommaToken);
+                    int genDimX = ParseIntegerLiteral();
+                    Eat(TokenKind.CommaToken);
+                    int genDimY = ParseIntegerLiteral();
+                    Eat(TokenKind.GreaterThanToken);
+                    return new MatrixTypeNode { Kind = genMatrixType, FirstDimension = genDimX, SecondDimension = genDimY };
+                }
+
                 return new MatrixTypeNode { Kind = matrixType, FirstDimension = dimX, SecondDimension = dimY };
             }
-            // TODO: Generic vector and matrix types
 
             throw new NotImplementedException(typeToken.Span.ToString() + ": " + typeToken.ToString());
         }
@@ -955,8 +986,14 @@ namespace UnityShaderParser.HLSL
         {
             if (HLSLSyntaxFacts.IsModifier(nextKind))
                 return true;
-            if ((HLSLSyntaxFacts.IsBuiltinType(nextKind) || nextKind == TokenKind.IdentifierToken) && LookAhead().Kind == TokenKind.IdentifierToken)
-                return true;
+            if ((HLSLSyntaxFacts.IsBuiltinType(nextKind) || nextKind == TokenKind.IdentifierToken))
+            {
+                return Try(() =>
+                {
+                    ParseType();
+                    return Match(TokenKind.IdentifierToken);
+                });
+            }
             return false;
         }
 
