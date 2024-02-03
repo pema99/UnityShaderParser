@@ -431,11 +431,21 @@ namespace UnityShaderParser.HLSL
             }
         }
 
-        // TODO: Qualified names
         private NamedExpressionNode ParseNamedExpression()
         {
             string identifier = ParseIdentifier();
-            return new IdentifierExpressionNode { Name = identifier };
+            var name = new IdentifierExpressionNode { Name = identifier };
+
+            if (Match(TokenKind.ColonColonToken))
+            {
+                Eat(TokenKind.ColonColonToken);
+
+                return new QualifiedIdentifierExpressionNode { Left = name, Right = ParseNamedExpression() };
+            }
+            else
+            {
+                return name;
+            }
         }
 
         private ArrayInitializerExpressionNode ParseArrayInitializer()
