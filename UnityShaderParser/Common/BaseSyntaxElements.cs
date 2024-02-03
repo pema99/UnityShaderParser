@@ -41,6 +41,5 @@
 
         // TODO: Store parent by making ctor's which the relevant parent on their child
         // TODO: Feed in span data
-        public SourceSpan Span { get; set; }
     }
 }
