@@ -44,6 +44,12 @@ namespace UnityShaderParser.HLSL
                         result.Add(ParseInterfaceDefinition(new()));
                         break;
 
+                    case TokenKind.Technique10Keyword:
+                    case TokenKind.Technique11Keyword:
+                    case TokenKind.TechniqueKeyword:
+                        result.Add(ParseTechnique());
+                        break;
+
                     default:
                         if (IsNextPossiblyFunctionDeclaration())
                         {
@@ -1247,6 +1253,65 @@ namespace UnityShaderParser.HLSL
                 Attributes = attributes,
                 Expression = expr,
                 Clauses = switchClauses,
+            };
+        }
+
+        private TechniqueNode ParseTechnique()
+        {
+            int version =
+                Eat(TokenKind.TechniqueKeyword, TokenKind.Technique10Keyword, TokenKind.Technique11Keyword).Kind
+                    == TokenKind.Technique10Keyword ? 10 : 11;
+
+            var name = ParseUserDefinedTypeName();
+
+            List<VariableDeclarationStatementNode> annotations = new();
+            if (Match(TokenKind.LessThanToken))
+            {
+                Eat(TokenKind.LessThanToken);
+                annotations = ParseMany0(() => !Match(TokenKind.GreaterThanToken), () => ParseVariableDeclarationStatement(new()));
+                Eat(TokenKind.GreaterThanToken);
+            }
+
+            Eat(TokenKind.OpenBraceToken);
+            var passes = ParseMany0(TokenKind.PassKeyword, ParsePass);
+            Eat(TokenKind.CloseBraceToken);
+
+            if (Match(TokenKind.SemiToken))
+            {
+                Eat(TokenKind.SemiToken);
+            }
+
+            return new TechniqueNode
+            {
+                Name = name,
+                Annotations = annotations,
+                Version = version,
+                Passes = passes
+            };
+        }
+
+        private PassNode ParsePass()
+        {
+            Eat(TokenKind.PassKeyword);
+            var name = ParseUserDefinedTypeName();
+
+            List<VariableDeclarationStatementNode> annotations = new();
+            if (Match(TokenKind.LessThanToken))
+            {
+                Eat(TokenKind.LessThanToken);
+                annotations = ParseMany0(() => !Match(TokenKind.GreaterThanToken), () => ParseVariableDeclarationStatement(new()));
+                Eat(TokenKind.GreaterThanToken);
+            }
+
+            Eat(TokenKind.OpenBraceToken);
+            List<StatementNode> statements = ParseMany0(() => !Match(TokenKind.CloseBraceToken), ParseStatement);
+            Eat(TokenKind.CloseBraceToken);
+
+            return new PassNode
+            {
+                Name = name,
+                Annotations = annotations,
+                Statements = statements
             };
         }
     }

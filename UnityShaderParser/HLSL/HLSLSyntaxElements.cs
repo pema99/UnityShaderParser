@@ -1118,4 +1118,27 @@ namespace UnityShaderParser.HLSL
         public override IEnumerable<HLSLSyntaxNode> Children =>
             MergeChildren(OptionalChild(ArrayRank), Child(Value));
     }
+
+    // Old FX pipeline syntax
+    public class TechniqueNode : HLSLSyntaxNode
+    {
+        public int Version { get; set; }
+        public UserDefinedTypeNode Name { get; set; }
+        public List<VariableDeclarationStatementNode> Annotations { get; set; }
+        public List<PassNode> Passes { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(Child(Name), Annotations, Passes);
+    }
+
+    // Old FX pipeline syntax
+    public class PassNode : HLSLSyntaxNode
+    {
+        public UserDefinedTypeNode Name { get; set; }
+        public List<VariableDeclarationStatementNode> Annotations { get; set; }
+        public List<StatementNode> Statements { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(Child(Name), Annotations, Statements);
+    }
 }
