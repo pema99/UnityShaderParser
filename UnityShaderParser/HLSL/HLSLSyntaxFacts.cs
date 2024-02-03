@@ -1246,5 +1246,49 @@ namespace UnityShaderParser.HLSL
                 default: return type;
             }
         }
+
+        public static bool TryConvertToOperator(TokenKind kind, out OperatorKind op)
+        {
+            switch (kind)
+            {
+                case TokenKind.EqualsToken: op =  OperatorKind.Assignment; return true;
+                case TokenKind.PlusEqualsToken: op =  OperatorKind.PlusAssignment; return true;
+                case TokenKind.MinusEqualsToken: op =  OperatorKind.MinusAssignment; return true;
+                case TokenKind.AsteriskEqualsToken: op =  OperatorKind.MulAssignment; return true;
+                case TokenKind.SlashEqualsToken: op =  OperatorKind.DivAssignment; return true;
+                case TokenKind.PercentEqualsToken: op =  OperatorKind.ModAssignment; return true;
+                case TokenKind.LessThanLessThanEqualsToken: op =  OperatorKind.ShiftLeftAssignment; return true;
+                case TokenKind.GreaterThanGreaterThanEqualsToken: op =  OperatorKind.ShiftRightAssignment; return true;
+                case TokenKind.AmpersandEqualsToken: op =  OperatorKind.BitwiseAndAssignment; return true;
+                case TokenKind.CaretEqualsToken: op =  OperatorKind.BitwiseXorAssignment; return true;
+                case TokenKind.BarEqualsToken: op =  OperatorKind.BitwiseOrAssignment; return true;
+                case TokenKind.BarBarToken: op =  OperatorKind.LogicalOr; return true;
+                case TokenKind.AmpersandAmpersandToken: op =  OperatorKind.LogicalAnd; return true;
+                case TokenKind.BarToken: op =  OperatorKind.BitwiseOr; return true;
+                case TokenKind.AmpersandToken: op =  OperatorKind.BitwiseAnd; return true;
+                case TokenKind.CaretToken: op =  OperatorKind.BitwiseXor; return true;
+                case TokenKind.CommaToken: op =  OperatorKind.Compound; return true;
+                case TokenKind.QuestionToken: op =  OperatorKind.Ternary; return true;
+                case TokenKind.EqualsEqualsToken: op =  OperatorKind.Equals; return true;
+                case TokenKind.ExclamationEqualsToken: op =  OperatorKind.NotEquals; return true;
+                case TokenKind.LessThanToken: op =  OperatorKind.LessThan; return true;
+                case TokenKind.LessThanEqualsToken: op =  OperatorKind.LessThanOrEquals; return true;
+                case TokenKind.GreaterThanToken: op =  OperatorKind.GreaterThan; return true;
+                case TokenKind.GreaterThanEqualsToken: op =  OperatorKind.GreaterThanOrEquals; return true;
+                case TokenKind.LessThanLessThanToken: op =  OperatorKind.ShiftLeft; return true;
+                case TokenKind.GreaterThanGreaterThanToken: op =  OperatorKind.ShiftRight; return true;
+                case TokenKind.PlusToken: op =  OperatorKind.Plus; return true;
+                case TokenKind.MinusToken: op =  OperatorKind.Minus; return true;
+                case TokenKind.AsteriskToken: op =  OperatorKind.Mul; return true;
+                case TokenKind.SlashToken: op =  OperatorKind.Div; return true;
+                case TokenKind.PercentToken: op =  OperatorKind.Mod; return true;
+                case TokenKind.PlusPlusToken: op = OperatorKind.Increment; return true;
+                case TokenKind.MinusMinusToken: op = OperatorKind.Decrement; return true;
+                case TokenKind.NotToken: op = OperatorKind.Not; return true;
+                case TokenKind.TildeToken: op = OperatorKind.BitFlip; return true;
+                default: op = default; 
+                    return false;
+            }
+        }
     }
 }

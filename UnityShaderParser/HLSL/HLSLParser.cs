@@ -256,7 +256,7 @@ namespace UnityShaderParser.HLSL
         private List<(
             HashSet<TokenKind> operators,
             bool rightAssociative,
-            Func<ExpressionNode, TokenKind, ExpressionNode, ExpressionNode> ctor
+            Func<ExpressionNode, OperatorKind, ExpressionNode, ExpressionNode> ctor
         )> operatorGroups = new ()
         {
             // Compound expression
@@ -357,10 +357,14 @@ namespace UnityShaderParser.HLSL
             while (Match(tok => group.operators.Contains(tok.Kind)))
             {
                 HLSLToken next = Advance();
+                if (!HLSLSyntaxFacts.TryConvertToOperator(next.Kind, out OperatorKind op))
+                {
+                    Error("a valid operator", next);
+                }
 
                 higher = group.ctor(
                     higher,
-                    next.Kind,
+                    op,
                     ParseBinaryExpression(group.rightAssociative ? level : level + 1));
 
                 if (IsAtEnd())
@@ -382,7 +386,8 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.MinusToken:
                 case TokenKind.NotToken:
                 case TokenKind.TildeToken:
-                    TokenKind op = Eat(HLSLSyntaxFacts.IsPrefixUnaryToken).Kind;
+                    TokenKind opKind = Eat(HLSLSyntaxFacts.IsPrefixUnaryToken).Kind;
+                    HLSLSyntaxFacts.TryConvertToOperator(opKind, out var op);
                     return new PrefixUnaryExpressionNode { Operator = op, Expression = ParsePrefixOrPostFixExpression() };
 
                 case TokenKind.OpenParenToken when IsNextCast():
@@ -413,7 +418,7 @@ namespace UnityShaderParser.HLSL
                         {
                             case TokenKind.PlusPlusToken:
                             case TokenKind.MinusMinusToken:
-                                var incrOp = Advance().Kind;
+                                HLSLSyntaxFacts.TryConvertToOperator(Advance().Kind, out var incrOp);
                                 higher = new PostfixUnaryExpressionNode { Expression = higher, Operator = incrOp };
                                 break;
 

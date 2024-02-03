@@ -566,11 +566,57 @@ namespace UnityShaderParser.HLSL
         LineAdj,
     }
 
-    enum StateKind
+    public enum StateKind
     {
         SamplerState,
         SamplerComparisonState,
         BlendState,
+    }
+
+    public enum OperatorKind
+    {
+        Assignment,
+        PlusAssignment,
+        MinusAssignment,
+        MulAssignment,
+        DivAssignment,
+        ModAssignment,
+        ShiftLeftAssignment,
+        ShiftRightAssignment,
+        BitwiseAndAssignment,
+        BitwiseXorAssignment,
+        BitwiseOrAssignment,
+
+        LogicalOr,
+        LogicalAnd,
+        BitwiseOr,
+        BitwiseAnd,
+        BitwiseXor,
+
+        Compound,
+        Ternary,
+
+        Equals,
+        NotEquals,
+        LessThan,
+        LessThanOrEquals,
+        GreaterThan,
+        GreaterThanOrEquals,
+
+        ShiftLeft,
+        ShiftRight,
+
+        Plus,
+        Minus,
+        Mul,
+        Div,
+        Mod,
+
+        Increment,
+        Decrement,
+
+        Not,
+        BitFlip,
     }
     #endregion
 
@@ -897,7 +943,7 @@ namespace UnityShaderParser.HLSL
     public class AssignmentExpressionNode : ExpressionNode
     {
         public ExpressionNode Left { get; set; }
-        public TokenKind Operator { get; set; } // TODO: Not TokenKind
+        public OperatorKind Operator { get; set; }
         public ExpressionNode Right { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children =>
@@ -907,7 +953,7 @@ namespace UnityShaderParser.HLSL
     public class BinaryExpressionNode : ExpressionNode
     {
         public ExpressionNode Left { get; set; }
-        public TokenKind Operator { get; set; } // TODO: Not TokenKind
+        public OperatorKind Operator { get; set; }
         public ExpressionNode Right { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children =>
@@ -925,7 +971,7 @@ namespace UnityShaderParser.HLSL
 
     public class PrefixUnaryExpressionNode : ExpressionNode
     {
-        public TokenKind Operator { get; set; } // TODO: Not TokenKind
+        public OperatorKind Operator { get; set; }
         public ExpressionNode Expression { get; set; }
         public override IEnumerable<HLSLSyntaxNode> Children =>
             Child(Expression);
@@ -934,7 +980,7 @@ namespace UnityShaderParser.HLSL
     public class PostfixUnaryExpressionNode : ExpressionNode
     {
         public ExpressionNode Expression { get; set; }
-        public TokenKind Operator { get; set; } // TODO: Not TokenKind
+        public OperatorKind Operator { get; set; }
         public override IEnumerable<HLSLSyntaxNode> Children =>
             Child(Expression);
     }
@@ -969,7 +1015,7 @@ namespace UnityShaderParser.HLSL
 
     public class NumericConstructorCallExpressionNode : ExpressionNode
     {
-        public NumericTypeNode Kind { get; set; } // TODO: Not TokenKind
+        public NumericTypeNode Kind { get; set; }
         public List<ExpressionNode> Arguments { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children =>
