@@ -97,7 +97,7 @@ namespace UnityShaderParser.ShaderLab
                 case '+' when LookAhead('='): Advance(2); Add(TokenKind.PlusEqualsToken); break;
                 case '+': Advance(); Add(TokenKind.PlusToken); break;
 
-                case '-' when LookAhead('+'): Advance(2); Add(TokenKind.MinusMinusToken); break;
+                case '-' when LookAhead('-'): Advance(2); Add(TokenKind.MinusMinusToken); break;
                 case '-' when LookAhead('='): Advance(2); Add(TokenKind.MinusEqualsToken); break;
                 case '-': Advance(); Add(TokenKind.MinusToken); break;
 
