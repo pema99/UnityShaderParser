@@ -1030,7 +1030,7 @@ namespace UnityShaderParser.HLSL
     }
 
     public abstract class TypeNode : HLSLSyntaxNode { }
-    public abstract class UserDefinedTypeNode : TypeNode { } // TODO: Different Name node for declarations vs other places?
+    public abstract class UserDefinedTypeNode : TypeNode { }
     public abstract class PredefinedTypeNode : TypeNode { }
 
     public class QualifiedNamedTypeNode : UserDefinedTypeNode
