@@ -636,7 +636,6 @@ namespace UnityShaderParser.HLSL
         public List<HLSLSyntaxNode> Children => GetChildren.ToList();
         //public abstract void Accept(ShaderLabSyntaxVisitor visitor);
 
-        // TODO: Visitor and make sure all Children implementations are correct
         // TODO: Store parent by making ctor's which the relevant parent on their child
         // TODO: Feed in span data
         public SourceSpan Span { get; set; }
