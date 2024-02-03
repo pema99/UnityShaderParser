@@ -35,19 +35,18 @@ namespace UnityShaderParser.HLSL
             {
                 switch (Peek().Kind)
                 {
-                    // TODO: class definition
-                    // TODO: intereface definition
-                    case TokenKind.ClassKeyword:
-                    case TokenKind.InterfaceKeyword:
-                        throw new NotImplementedException(Peek().Span + ": " + Peek().ToString());
-
                     case TokenKind.CBufferKeyword:
                     case TokenKind.TBufferKeyword:
                         result.Add(ParseConstantBuffer());
                         break;
 
                     case TokenKind.StructKeyword:
-                        result.Add(ParseStructDefinition());
+                    case TokenKind.ClassKeyword:
+                        result.Add(ParseStructDefinition(new()));
+                        break;
+
+                    case TokenKind.InterfaceKeyword:
+                        result.Add(ParseInterfaceDefinition(new()));
                         break;
 
                     default:
@@ -600,11 +599,9 @@ namespace UnityShaderParser.HLSL
             };
         }
 
-        private StructDefinitionNode ParseStructDefinition()
+        private StructDefinitionNode ParseStructDefinition(List<AttributeNode> attributes)
         {
-            var modifiers = ParseDeclarationModifiers();
-
-            Eat(TokenKind.StructKeyword);
+            bool isClass = Eat(TokenKind.StructKeyword, TokenKind.ClassKeyword).Kind == TokenKind.ClassKeyword;
             var name = ParseOptional(TokenKind.IdentifierToken, ParseUserDefinedTypeName);
 
             // base list
@@ -618,19 +615,66 @@ namespace UnityShaderParser.HLSL
 
             Eat(TokenKind.OpenBraceToken);
 
-            List<VariableDeclarationStatementNode> decls = ParseMany0(
-                () => !Match(TokenKind.CloseBraceToken),
-                () => ParseVariableDeclarationStatement(new()));
+            List<VariableDeclarationStatementNode> decls = new();
+            List<FunctionNode> methods = new();
+            while (!IsAtEnd() && !Match(TokenKind.CloseBraceToken))
+            {
+                if (IsNextPossiblyFunctionDeclaration())
+                {
+                    methods.Add(ParseFunction());
+                }
+                else
+                {
+                    decls.Add(ParseVariableDeclarationStatement(new()));
+                }
+            }
 
             Eat(TokenKind.CloseBraceToken);
             Eat(TokenKind.SemiToken);
 
             return new StructDefinitionNode
             {
-                Modifiers = modifiers,
+                Attributes = attributes,
                 Name = name,
                 Inherits = baseList,
-                Declarations = decls
+                Fields = decls,
+                Methods = methods,
+                IsClass = isClass,
+            };
+        }
+
+        private InterfaceDefinitionNode ParseInterfaceDefinition(List<AttributeNode> attributes)
+        {
+            Eat(TokenKind.InterfaceKeyword);
+            var name = ParseUserDefinedTypeName();
+
+            Eat(TokenKind.OpenBraceToken);
+
+            List<FunctionNode> funs = ParseMany0(
+                () => !Match(TokenKind.CloseBraceToken),
+                ParseFunction);
+
+            List<FunctionDeclarationNode> decls = new();
+            foreach (var function in funs)
+            {
+                if (function is FunctionDeclarationNode decl)
+                {
+                    decls.Add(decl);
+                }
+                else
+                {
+                    Error("Expected only function declarations/prototypes in interface type, but found a function body.");
+                }
+            }
+
+            Eat(TokenKind.CloseBraceToken);
+            Eat(TokenKind.SemiToken);
+
+            return new InterfaceDefinitionNode
+            {
+                Attributes = attributes,
+                Name = name,
+                Functions = decls,
             };
         }
 
@@ -1008,11 +1052,11 @@ namespace UnityShaderParser.HLSL
                     throw new NotImplementedException(next.Span + ": " + next.Kind.ToString());
 
                 case TokenKind.InterfaceKeyword:
-                case TokenKind.ClassKeyword:
-                    throw new NotImplementedException(next.Span + ": " + next.Kind.ToString());
+                    return ParseInterfaceDefinition(attributes);
 
                 case TokenKind.StructKeyword:
-                    return ParseStructDefinition();
+                case TokenKind.ClassKeyword:
+                    return ParseStructDefinition(attributes);
 
                 case TokenKind kind when IsVariableDeclarationStatement(kind):
                     return ParseVariableDeclarationStatement(attributes);

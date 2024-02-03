@@ -654,13 +654,23 @@ namespace UnityShaderParser.HLSL
 
     public class StructDefinitionNode : StatementNode
     {
-        public List<BindingModifier> Modifiers { get; set; }
         public UserDefinedTypeNode? Name { get; set; }
         public List<UserDefinedTypeNode> Inherits { get; set; }
-        public List<VariableDeclarationStatementNode> Declarations { get; set; }
+        public List<VariableDeclarationStatementNode> Fields { get; set; }
+        public List<FunctionNode> Methods { get; set; }
+        public bool IsClass { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children =>
-            MergeChildren(OptionalChild(Name), Inherits, Declarations);
+            MergeChildren(base.Children, OptionalChild(Name), Inherits, Fields);
+    }
+
+    public class InterfaceDefinitionNode : StatementNode
+    {
+        public UserDefinedTypeNode Name { get; set; }
+        public List<FunctionDeclarationNode> Functions { get; set; }
+
+        public override IEnumerable<HLSLSyntaxNode> Children =>
+            MergeChildren(base.Children, Child(Name), Functions);
     }
 
     public class ConstantBufferNode : HLSLSyntaxNode
