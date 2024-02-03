@@ -203,6 +203,27 @@ namespace UnityShaderParser.HLSL
                 case "min12int4x2": token = TokenKind.Min12Int4x2Keyword; return true;
                 case "min12int4x3": token = TokenKind.Min12Int4x3Keyword; return true;
                 case "min12int4x4": token = TokenKind.Min12Int4x4Keyword; return true;
+                case "min12uint": token = TokenKind.Min12UintKeyword; return true;
+                case "min12uint1": token = TokenKind.Min12Uint1Keyword; return true;
+                case "min12uint2": token = TokenKind.Min12Uint2Keyword; return true;
+                case "min12uint3": token = TokenKind.Min12Uint3Keyword; return true;
+                case "min12uint4": token = TokenKind.Min12Uint4Keyword; return true;
+                case "min12uint1x1": token = TokenKind.Min12Uint1x1Keyword; return true;
+                case "min12uint1x2": token = TokenKind.Min12Uint1x2Keyword; return true;
+                case "min12uint1x3": token = TokenKind.Min12Uint1x3Keyword; return true;
+                case "min12uint1x4": token = TokenKind.Min12Uint1x4Keyword; return true;
+                case "min12uint2x1": token = TokenKind.Min12Uint2x1Keyword; return true;
+                case "min12uint2x2": token = TokenKind.Min12Uint2x2Keyword; return true;
+                case "min12uint2x3": token = TokenKind.Min12Uint2x3Keyword; return true;
+                case "min12uint2x4": token = TokenKind.Min12Uint2x4Keyword; return true;
+                case "min12uint3x1": token = TokenKind.Min12Uint3x1Keyword; return true;
+                case "min12uint3x2": token = TokenKind.Min12Uint3x2Keyword; return true;
+                case "min12uint3x3": token = TokenKind.Min12Uint3x3Keyword; return true;
+                case "min12uint3x4": token = TokenKind.Min12Uint3x4Keyword; return true;
+                case "min12uint4x1": token = TokenKind.Min12Uint4x1Keyword; return true;
+                case "min12uint4x2": token = TokenKind.Min12Uint4x2Keyword; return true;
+                case "min12uint4x3": token = TokenKind.Min12Uint4x3Keyword; return true;
+                case "min12uint4x4": token = TokenKind.Min12Uint4x4Keyword; return true;
                 case "min16float": token = TokenKind.Min16FloatKeyword; return true;
                 case "min16float1": token = TokenKind.Min16Float1Keyword; return true;
                 case "min16float2": token = TokenKind.Min16Float2Keyword; return true;
@@ -401,6 +422,7 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.Min16IntKeyword: type = ScalarType.Min16Int; return true;
                 case TokenKind.Min12IntKeyword: type = ScalarType.Min12Int; return true;
                 case TokenKind.Min16UintKeyword: type = ScalarType.Min16Uint; return true;
+                case TokenKind.Min12UintKeyword: type = ScalarType.Min12Uint; return true;
                 case TokenKind.StringKeyword: type = ScalarType.String; return true;
                 default: type = ScalarType.Void; return false;
             }
@@ -454,6 +476,10 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.Min16Uint2Keyword: type = ScalarType.Min16Uint; dimension = 2; return true;
                 case TokenKind.Min16Uint3Keyword: type = ScalarType.Min16Uint; dimension = 3; return true;
                 case TokenKind.Min16Uint4Keyword: type = ScalarType.Min16Uint; dimension = 4; return true;
+                case TokenKind.Min12Uint1Keyword: type = ScalarType.Min12Uint; dimension = 1; return true;
+                case TokenKind.Min12Uint2Keyword: type = ScalarType.Min12Uint; dimension = 2; return true;
+                case TokenKind.Min12Uint3Keyword: type = ScalarType.Min12Uint; dimension = 3; return true;
+                case TokenKind.Min12Uint4Keyword: type = ScalarType.Min12Uint; dimension = 4; return true;
                 case TokenKind.VectorKeyword: type = ScalarType.Float; dimension = 4; return true;
                 default: type = default; dimension = 0; return false;
             }
@@ -700,6 +726,22 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.Uint4x3Keyword: type = ScalarType.Uint; dimensionX = 4; dimensionY = 3; return true;
                 case TokenKind.Uint4x4Keyword: type = ScalarType.Uint; dimensionX = 4; dimensionY = 4; return true;
                 case TokenKind.MatrixKeyword: type = ScalarType.Float; dimensionX = 4; dimensionY = 4; return true;
+                case TokenKind.Min12Uint1x1Keyword: type = ScalarType.Min12Uint; dimensionX = 1; dimensionY = 1; return true;
+                case TokenKind.Min12Uint1x2Keyword: type = ScalarType.Min12Uint; dimensionX = 1; dimensionY = 2; return true;
+                case TokenKind.Min12Uint1x3Keyword: type = ScalarType.Min12Uint; dimensionX = 1; dimensionY = 3; return true;
+                case TokenKind.Min12Uint1x4Keyword: type = ScalarType.Min12Uint; dimensionX = 1; dimensionY = 4; return true;
+                case TokenKind.Min12Uint2x1Keyword: type = ScalarType.Min12Uint; dimensionX = 2; dimensionY = 1; return true;
+                case TokenKind.Min12Uint2x2Keyword: type = ScalarType.Min12Uint; dimensionX = 2; dimensionY = 2; return true;
+                case TokenKind.Min12Uint2x3Keyword: type = ScalarType.Min12Uint; dimensionX = 2; dimensionY = 3; return true;
+                case TokenKind.Min12Uint2x4Keyword: type = ScalarType.Min12Uint; dimensionX = 2; dimensionY = 4; return true;
+                case TokenKind.Min12Uint3x1Keyword: type = ScalarType.Min12Uint; dimensionX = 3; dimensionY = 1; return true;
+                case TokenKind.Min12Uint3x2Keyword: type = ScalarType.Min12Uint; dimensionX = 3; dimensionY = 2; return true;
+                case TokenKind.Min12Uint3x3Keyword: type = ScalarType.Min12Uint; dimensionX = 3; dimensionY = 3; return true;
+                case TokenKind.Min12Uint3x4Keyword: type = ScalarType.Min12Uint; dimensionX = 3; dimensionY = 4; return true;
+                case TokenKind.Min12Uint4x1Keyword: type = ScalarType.Min12Uint; dimensionX = 4; dimensionY = 1; return true;
+                case TokenKind.Min12Uint4x2Keyword: type = ScalarType.Min12Uint; dimensionX = 4; dimensionY = 2; return true;
+                case TokenKind.Min12Uint4x3Keyword: type = ScalarType.Min12Uint; dimensionX = 4; dimensionY = 3; return true;
+                case TokenKind.Min12Uint4x4Keyword: type = ScalarType.Min12Uint; dimensionX = 4; dimensionY = 4; return true;
                 default: type = default; dimensionX = 0; dimensionY = 0; return false;
             }
         }
@@ -753,6 +795,10 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.Min16Uint2Keyword:
                 case TokenKind.Min16Uint3Keyword:
                 case TokenKind.Min16Uint4Keyword:
+                case TokenKind.Min12Uint1Keyword:
+                case TokenKind.Min12Uint2Keyword:
+                case TokenKind.Min12Uint3Keyword:
+                case TokenKind.Min12Uint4Keyword:
                 case TokenKind.SNormKeyword:
                 case TokenKind.UNormKeyword:
 
@@ -885,6 +931,22 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.Min16Float4x2Keyword:
                 case TokenKind.Min16Float4x3Keyword:
                 case TokenKind.Min16Float4x4Keyword:
+                case TokenKind.Min12Uint1x1Keyword:
+                case TokenKind.Min12Uint1x2Keyword:
+                case TokenKind.Min12Uint1x3Keyword:
+                case TokenKind.Min12Uint1x4Keyword:
+                case TokenKind.Min12Uint2x1Keyword:
+                case TokenKind.Min12Uint2x2Keyword:
+                case TokenKind.Min12Uint2x3Keyword:
+                case TokenKind.Min12Uint2x4Keyword:
+                case TokenKind.Min12Uint3x1Keyword:
+                case TokenKind.Min12Uint3x2Keyword:
+                case TokenKind.Min12Uint3x3Keyword:
+                case TokenKind.Min12Uint3x4Keyword:
+                case TokenKind.Min12Uint4x1Keyword:
+                case TokenKind.Min12Uint4x2Keyword:
+                case TokenKind.Min12Uint4x3Keyword:
+                case TokenKind.Min12Uint4x4Keyword:
                 case TokenKind.Min16Int1x1Keyword:
                 case TokenKind.Min16Int1x2Keyword:
                 case TokenKind.Min16Int1x3Keyword:
@@ -959,6 +1021,7 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.Min16IntKeyword:
                 case TokenKind.Min12IntKeyword:
                 case TokenKind.Min16UintKeyword:
+                case TokenKind.Min12UintKeyword:
                 case TokenKind.VoidKeyword:
                 case TokenKind.StringKeyword:
                 case TokenKind.SNormKeyword:
@@ -1179,6 +1242,17 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.LineKeyword: modifier = BindingModifier.Line; return true;
                 case TokenKind.LineAdjKeyword: modifier = BindingModifier.LineAdj; return true;
                 default: modifier = default; return false;
+            }
+        }
+
+        public static ScalarType MakeUnsigned(ScalarType type)
+        {
+            switch (type)
+            {
+                case ScalarType.Int: return ScalarType.Uint;
+                case ScalarType.Min12Int: return ScalarType.Min12Uint;
+                case ScalarType.Min16Int: return ScalarType.Min16Uint;
+                default: return type;
             }
         }
     }

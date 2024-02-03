@@ -716,12 +716,7 @@ namespace UnityShaderParser.HLSL
                 if (typeToken.Kind == TokenKind.VectorKeyword && Match(TokenKind.LessThanToken))
                 {
                     Eat(TokenKind.LessThanToken);
-                    var next = Advance();
-                    if (HLSLSyntaxFacts.TryConvertToScalarType(next.Kind, out ScalarType genVectorType))
-                    {
-                        if (genVectorType == ScalarType.Void)
-                            Error("a type that isn't 'void'", typeToken);
-                    }
+                    var genVectorType = ParseNumericType().Kind;
                     Eat(TokenKind.CommaToken);
                     int genDim = ParseIntegerLiteral();
                     Eat(TokenKind.GreaterThanToken);
@@ -736,12 +731,7 @@ namespace UnityShaderParser.HLSL
                 if (typeToken.Kind == TokenKind.MatrixKeyword && Match(TokenKind.LessThanToken))
                 {
                     Eat(TokenKind.LessThanToken);
-                    var next = Advance();
-                    if (HLSLSyntaxFacts.TryConvertToScalarType(next.Kind, out ScalarType genMatrixType))
-                    {
-                        if (genMatrixType == ScalarType.Void)
-                            Error("a type that isn't 'void'", next);
-                    }
+                    var genMatrixType = ParseNumericType().Kind;
                     Eat(TokenKind.CommaToken);
                     int genDimX = ParseIntegerLiteral();
                     Eat(TokenKind.CommaToken);
@@ -751,6 +741,13 @@ namespace UnityShaderParser.HLSL
                 }
 
                 return new MatrixTypeNode { Kind = matrixType, FirstDimension = dimX, SecondDimension = dimY };
+            }
+
+            if (typeToken.Kind == TokenKind.UnsignedKeyword)
+            {
+                var type = ParseNumericType();
+                type.Kind = HLSLSyntaxFacts.MakeUnsigned(type.Kind);
+                return type;
             }
 
             throw new NotImplementedException(typeToken.Span.ToString() + ": " + typeToken.ToString());

@@ -196,6 +196,27 @@ namespace UnityShaderParser.HLSL
         Min12Int4x2Keyword,
         Min12Int4x3Keyword,
         Min12Int4x4Keyword,
+        Min12UintKeyword,
+        Min12Uint1Keyword,
+        Min12Uint2Keyword,
+        Min12Uint3Keyword,
+        Min12Uint4Keyword,
+        Min12Uint1x1Keyword,
+        Min12Uint1x2Keyword,
+        Min12Uint1x3Keyword,
+        Min12Uint1x4Keyword,
+        Min12Uint2x1Keyword,
+        Min12Uint2x2Keyword,
+        Min12Uint2x3Keyword,
+        Min12Uint2x4Keyword,
+        Min12Uint3x1Keyword,
+        Min12Uint3x2Keyword,
+        Min12Uint3x3Keyword,
+        Min12Uint3x4Keyword,
+        Min12Uint4x1Keyword,
+        Min12Uint4x2Keyword,
+        Min12Uint4x3Keyword,
+        Min12Uint4x4Keyword,
         Min16FloatKeyword,
         Min16Float1Keyword,
         Min16Float2Keyword,
@@ -444,6 +465,7 @@ namespace UnityShaderParser.HLSL
         Min16Int,
         Min12Int,
         Min16Uint,
+        Min12Uint,
         String
     }
 
@@ -1037,12 +1059,13 @@ namespace UnityShaderParser.HLSL
             TemplateArguments;
     }
 
-    public abstract class NumericTypeNode : PredefinedTypeNode { }
+    public abstract class NumericTypeNode : PredefinedTypeNode
+    {
+        public ScalarType Kind { get; set; }
+    }
 
     public class ScalarTypeNode : NumericTypeNode
     {
-        public ScalarType Kind { get; set; }
-
         public override IEnumerable<HLSLSyntaxNode> Children =>
             Enumerable.Empty<HLSLSyntaxNode>();
     }
@@ -1051,7 +1074,6 @@ namespace UnityShaderParser.HLSL
     {
         public int FirstDimension { get; set; }
         public int SecondDimension { get; set; }
-        public ScalarType Kind { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children =>
             Enumerable.Empty<HLSLSyntaxNode>();
@@ -1060,7 +1082,6 @@ namespace UnityShaderParser.HLSL
     public class VectorTypeNode : NumericTypeNode
     {
         public int Dimension { get; set; }
-        public ScalarType Kind { get; set; }
 
         public override IEnumerable<HLSLSyntaxNode> Children =>
             Enumerable.Empty<HLSLSyntaxNode>();
