@@ -1,17 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityShaderParser.Common;
+﻿using UnityShaderParser.Common;
 
 namespace UnityShaderParser.HLSL
 {
-    using Token = Token<TokenKind>;
+    using HLSLToken = Token<TokenKind>;
 
     public class HLSLParser : BaseParser<TokenKind>
     {
-        public HLSLParser(List<Token> tokens)
+        public HLSLParser(List<HLSLToken> tokens)
             : base(tokens) { }
 
         protected override TokenKind StringLiteralTokenKind => TokenKind.StringLiteralToken;
@@ -19,7 +14,7 @@ namespace UnityShaderParser.HLSL
         protected override TokenKind FloatLiteralTokenKind => TokenKind.FloatLiteralToken;
         protected override TokenKind IdentifierTokenKind => TokenKind.IdentifierToken;
 
-        public static void Parse(List<Token> tokens, out List<HLSLSyntaxNode> rootNodes, out List<string> diagnostics)
+        public static void Parse(List<HLSLToken> tokens, out List<HLSLSyntaxNode> rootNodes, out List<string> diagnostics)
         {
             HLSLParser parser = new(tokens);
 
@@ -336,7 +331,7 @@ namespace UnityShaderParser.HLSL
             var group = operatorGroups[level];
             while (Match(tok => group.operators.Contains(tok.Kind)))
             {
-                Token next = Advance();
+                HLSLToken next = Advance();
 
                 higher = group.ctor(
                     higher,
@@ -462,7 +457,7 @@ namespace UnityShaderParser.HLSL
 
         private LiteralExpressionNode ParseLiteralExpression()
         {
-            Token next = Advance();
+            HLSLToken next = Advance();
             string lexeme = next.Identifier ?? string.Empty;
 
             if (!HLSLSyntaxFacts.TryConvertLiteralKind(next.Kind, out var literalKind))
@@ -713,7 +708,7 @@ namespace UnityShaderParser.HLSL
 
         private NumericTypeNode ParseNumericType(bool allowVoid = false/* List<Modifier> Modifiers */)
         {
-            Token typeToken = Advance();
+            HLSLToken typeToken = Advance();
             if (HLSLSyntaxFacts.TryConvertToScalarType(typeToken.Kind, out ScalarType scalarType))
             {
                 if (scalarType == ScalarType.Void && !allowVoid)
@@ -1008,7 +1003,7 @@ namespace UnityShaderParser.HLSL
         {
             List<AttributeNode> attributes = ParseMany0(TokenKind.OpenBracketToken, ParseAttribute);
 
-            Token next = Peek();
+            HLSLToken next = Peek();
             switch (next.Kind)
             {
                 case TokenKind.SemiToken:

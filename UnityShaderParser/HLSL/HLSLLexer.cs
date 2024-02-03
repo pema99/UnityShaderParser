@@ -3,14 +3,14 @@ using UnityShaderParser.Common;
 
 namespace UnityShaderParser.HLSL
 {
-    using Token = Token<TokenKind>;
+    using HLSLToken = Token<TokenKind>;
 
     public class HLSLLexer : BaseLexer<TokenKind>
     {
         public HLSLLexer(string source)
             : base(source) { }
 
-        public static void Lex(string source, out List<Token> tokens, out List<string> diagnostics)
+        public static void Lex(string source, out List<HLSLToken> tokens, out List<string> diagnostics)
         {
             HLSLLexer lexer = new(source);
 

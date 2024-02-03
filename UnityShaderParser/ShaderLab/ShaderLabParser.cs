@@ -2,11 +2,11 @@
 
 namespace UnityShaderParser.ShaderLab
 {
-    using Token = Token<TokenKind>;
+    using SLToken = Token<TokenKind>;
 
     public class ShaderLabParser : BaseParser<TokenKind>
     {
-        public ShaderLabParser(List<Token> tokens)
+        public ShaderLabParser(List<SLToken> tokens)
             : base(tokens) { }
 
         protected override TokenKind StringLiteralTokenKind => TokenKind.StringLiteralToken;
@@ -14,7 +14,7 @@ namespace UnityShaderParser.ShaderLab
         protected override TokenKind FloatLiteralTokenKind => TokenKind.FloatLiteralToken;
         protected override TokenKind IdentifierTokenKind => TokenKind.IdentifierToken;
 
-        public static void Parse(List<Token> tokens, out ShaderNode rootNode, out List<string> diagnostics)
+        public static void Parse(List<SLToken> tokens, out ShaderNode rootNode, out List<string> diagnostics)
         {
             ShaderLabParser parser = new(tokens);
 
@@ -56,7 +56,7 @@ namespace UnityShaderParser.ShaderLab
                 if (categoryCommands.Count > 0)
                     ParseCommandsIfPresent(categoryCommands.Peek());
 
-                Token next = Peek();
+                SLToken next = Peek();
                 if (next.Kind == TokenKind.CloseBraceToken)
                     break;
 
@@ -127,7 +127,7 @@ namespace UnityShaderParser.ShaderLab
         {
             while (true)
             {
-                Token next = Peek();
+                SLToken next = Peek();
                 if (next.Kind == TokenKind.IncludeBlock && !string.IsNullOrEmpty(next.Identifier))
                 {
                     outIncludeBlocks.Add(next.Identifier);
@@ -143,7 +143,7 @@ namespace UnityShaderParser.ShaderLab
         // TODO: Actually parse contents. In rare cases it can matter.
         private string ParseBracketedStringLiteral()
         {
-            Token literalToken = Eat(TokenKind.BracketedStringLiteralToken);
+            SLToken literalToken = Eat(TokenKind.BracketedStringLiteralToken);
             string literal = literalToken.Identifier ?? string.Empty;
             if (string.IsNullOrEmpty(literal))
                 Error("a valid bracketed string literal / property reference", literalToken);
@@ -180,7 +180,7 @@ namespace UnityShaderParser.ShaderLab
 
             ShaderPropertyKind kind = ShaderPropertyKind.None;
             (float Min, float Max)? rangeMinMax = null;
-            Token typeToken = Advance();
+            SLToken typeToken = Advance();
             switch (typeToken.Kind)
             {
                 case TokenKind.FloatKeyword: kind = ShaderPropertyKind.Float; break;
@@ -286,7 +286,7 @@ namespace UnityShaderParser.ShaderLab
 
             while (!IsAtEnd())
             {
-                Token next = Peek();
+                SLToken next = Peek();
                 if (next.Kind == TokenKind.CloseBraceToken)
                     break;
 
@@ -397,7 +397,7 @@ namespace UnityShaderParser.ShaderLab
             bool run = true;
             while (run)
             {
-                Token next = Peek();
+                SLToken next = Peek();
                 switch (next.Kind)
                 {
                     case TokenKind.LightingKeyword: outCommands.Add(ParseBasicToggleCommand<ShaderLabCommandLightingNode>(next.Kind)); break;
@@ -582,7 +582,7 @@ namespace UnityShaderParser.ShaderLab
             Eat(TokenKind.ColorMaskKeyword);
             var mask = ParsePropertyReferenceOr(() =>
             {
-                Token next = Peek();
+                SLToken next = Peek();
                 if (next.Kind is TokenKind.FloatLiteralToken or TokenKind.IntegerLiteralToken)
                 {
                     string result = ParseNumericLiteral().ToString();
@@ -683,7 +683,7 @@ namespace UnityShaderParser.ShaderLab
                 Eat(TokenKind.BindKeyword);
                 string source = ParseStringLiteral();
                 Eat(TokenKind.CommaToken);
-                Token targetToken = Advance();
+                SLToken targetToken = Advance();
                 // Handle ShaderLab's ambiguous syntax: Could be a keyword or an identifier here, in the case of color.
                 string target = targetToken.Kind == TokenKind.ColorKeyword ? "color" : targetToken.Identifier ?? String.Empty;
                 if (ShaderLabSyntaxFacts.TryParseBindChannelName(source, out BindChannel sourceChannel) &&
@@ -798,7 +798,7 @@ namespace UnityShaderParser.ShaderLab
             string name = ParseBracketedStringLiteral();
             Eat(TokenKind.OpenBraceToken);
 
-            List<Token> tokens = new();
+            List<SLToken> tokens = new();
             while (!Match(TokenKind.CloseBraceToken))
             {
                 tokens.Add(Advance());
@@ -842,7 +842,7 @@ namespace UnityShaderParser.ShaderLab
 
             while (!Match(TokenKind.CloseBraceToken))
             {
-                Token next = Advance();
+                SLToken next = Advance();
                 switch (next.Kind)
                 {
                     case TokenKind.RefKeyword: result.Ref = ParsePropertyReferenceOr(ParseByteLiteral); break;

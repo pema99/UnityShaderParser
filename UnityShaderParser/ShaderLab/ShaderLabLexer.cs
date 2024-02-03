@@ -3,14 +3,14 @@ using UnityShaderParser.Common;
 
 namespace UnityShaderParser.ShaderLab
 {
-    using Token = Token<TokenKind>;
+    using SLToken = Token<TokenKind>;
 
     public class ShaderLabLexer : BaseLexer<TokenKind>
     {
         public ShaderLabLexer(string source)
             : base(source) { }
 
-        public static void Lex(string source, out List<Token> tokens, out List<string> diagnostics)
+        public static void Lex(string source, out List<SLToken> tokens, out List<string> diagnostics)
         {
             ShaderLabLexer lexer = new(source);
 
