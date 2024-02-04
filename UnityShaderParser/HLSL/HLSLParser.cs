@@ -14,13 +14,31 @@ namespace UnityShaderParser.HLSL
         protected override TokenKind FloatLiteralTokenKind => TokenKind.FloatLiteralToken;
         protected override TokenKind IdentifierTokenKind => TokenKind.IdentifierToken;
 
-        private bool isParsingTechique = false;
-
-        public static void Parse(List<HLSLToken> tokens, out List<HLSLSyntaxNode> rootNodes, out List<string> diagnostics)
+        public static void ParseTopLevelDeclarations(List<HLSLToken> tokens, out List<HLSLSyntaxNode> rootNodes, out List<string> diagnostics)
         {
             HLSLParser parser = new(tokens);
-
             rootNodes = parser.ParseTopLevelDeclarations();
+            diagnostics = parser.diagnostics;
+        }
+
+        public static void ParseTopLevelDeclaration(List<HLSLToken> tokens, out HLSLSyntaxNode rootNode, out List<string> diagnostics)
+        {
+            HLSLParser parser = new(tokens);
+            rootNode = parser.ParseTopLevelDeclaration();
+            diagnostics = parser.diagnostics;
+        }
+
+        public static void ParseStatement(List<HLSLToken> tokens, out StatementNode statement, out List<string> diagnostics)
+        {
+            HLSLParser parser = new(tokens);
+            statement = parser.ParseStatement();
+            diagnostics = parser.diagnostics;
+        }
+
+        public static void ParseExpression(List<HLSLToken> tokens, out ExpressionNode statement, out List<string> diagnostics)
+        {
+            HLSLParser parser = new(tokens);
+            statement = parser.ParseExpression();
             diagnostics = parser.diagnostics;
         }
 
@@ -30,46 +48,45 @@ namespace UnityShaderParser.HLSL
 
             while (!IsAtEnd())
             {
-                switch (Peek().Kind)
-                {
-                    case TokenKind.CBufferKeyword:
-                    case TokenKind.TBufferKeyword:
-                        result.Add(ParseConstantBuffer());
-                        break;
-
-                    case TokenKind.StructKeyword:
-                    case TokenKind.ClassKeyword:
-                        result.Add(ParseStructDefinition(new()));
-                        break;
-
-                    case TokenKind.InterfaceKeyword:
-                        result.Add(ParseInterfaceDefinition(new()));
-                        break;
-
-                    case TokenKind.TypedefKeyword:
-                        result.Add(ParseTypedef(new()));
-                        break;
-
-                    case TokenKind.Technique10Keyword:
-                    case TokenKind.Technique11Keyword:
-                    case TokenKind.TechniqueKeyword:
-                        result.Add(ParseTechnique());
-                        break;
-
-                    default:
-                        if (IsNextPossiblyFunctionDeclaration())
-                        {
-                            result.Add(ParseFunction());
-                        }
-                        else
-                        {
-                            result.Add(ParseVariableDeclarationStatement(new()));
-                        }
-                        break;
-                }
+                result.Add(ParseTopLevelDeclaration());
             }
 
             return result;
+        }
+
+        private HLSLSyntaxNode ParseTopLevelDeclaration()
+        {
+            switch (Peek().Kind)
+            {
+                case TokenKind.CBufferKeyword:
+                case TokenKind.TBufferKeyword:
+                    return ParseConstantBuffer();
+
+                case TokenKind.StructKeyword:
+                case TokenKind.ClassKeyword:
+                    return ParseStructDefinition(new());
+
+                case TokenKind.InterfaceKeyword:
+                  return ParseInterfaceDefinition(new());
+
+                case TokenKind.TypedefKeyword:
+                    return ParseTypedef(new());
+
+                case TokenKind.Technique10Keyword:
+                case TokenKind.Technique11Keyword:
+                case TokenKind.TechniqueKeyword:
+                    return ParseTechnique();
+
+                default:
+                    if (IsNextPossiblyFunctionDeclaration())
+                    {
+                        return ParseFunction();
+                    }
+                    else
+                    {
+                        return ParseVariableDeclarationStatement(new());
+                    }
+            }
         }
 
         private bool IsNextCast()

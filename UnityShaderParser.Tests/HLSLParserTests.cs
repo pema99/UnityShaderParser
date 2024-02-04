@@ -55,7 +55,7 @@ namespace UnityShaderParser.HLSL.Tests
             Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
 
             // Lex
-            HLSLParser.Parse(tokens, out var nodes, out var parserDiags);
+            HLSLParser.ParseTopLevelDeclarations(tokens, out var nodes, out var parserDiags);
             Assert.IsEmpty(lexerDiags, $"Expected no parser errors, got: {parserDiags.FirstOrDefault()}");
         }
     }
