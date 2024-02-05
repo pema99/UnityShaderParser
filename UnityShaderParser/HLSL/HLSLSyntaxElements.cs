@@ -442,6 +442,21 @@ namespace UnityShaderParser.HLSL
         FloatLiteralToken,
         CharacterLiteralToken,
         StringLiteralToken,
+
+        DefineDirectiveKeyword,
+        IncludeDirectiveKeyword,
+        LineDirectiveKeyword,
+        UndefDirectiveKeyword,
+        ErrorDirectiveKeyword,
+        PragmaDirectiveKeyword,
+        IfDirectiveKeyword,
+        IfdefDirectiveKeyword,
+        IfndefDirectiveKeyword,
+        ElifDirectiveKeyword,
+        ElseDirectiveKeyword,
+        EndifDirectiveKeyword,
+        SystemIncludeLiteralToken,
+        EndDirectiveToken,
     }
 
     public enum ScalarType

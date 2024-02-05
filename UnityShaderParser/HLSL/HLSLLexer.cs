@@ -51,7 +51,7 @@ namespace UnityShaderParser.HLSL
                     break;
 
                 case ' ' or '\t' or '\r' or '\n':
-                    Advance();
+                    Advance(); // Only consume 1 (preprocessor might care about the newlines)
                     break;
 
                 case '/' when LookAhead('/'):
@@ -134,7 +134,10 @@ namespace UnityShaderParser.HLSL
                 case '!': Advance(); Add(TokenKind.NotToken); break;
 
                 case '#' when LookAhead('#'): Advance(2); Add(TokenKind.HashHashToken); break;
-                case '#': Advance(); Add(TokenKind.HashToken); break;
+
+                case '#':
+                    LexPreProcessorDirective();
+                    break;
 
                 case char c:
                     Advance();
@@ -154,6 +157,56 @@ namespace UnityShaderParser.HLSL
             {
                 Add(identifier, TokenKind.IdentifierToken);
             }
+        }
+
+        private void LexPreProcessorDirective()
+        {
+            Eat('#');
+            SkipWhitespace();
+            string keyword = EatIdentifier();
+            switch (keyword)
+            {
+                case "define": Add(TokenKind.DefineDirectiveKeyword); break;
+                case "line": Add(TokenKind.LineDirectiveKeyword); break;
+                case "undef": Add(TokenKind.UndefDirectiveKeyword); break;
+                case "error": Add(TokenKind.ErrorDirectiveKeyword); break;
+                case "pragma": Add(TokenKind.PragmaDirectiveKeyword); break;
+                case "include": Add(TokenKind.IncludeDirectiveKeyword);
+                    SkipWhitespace();
+                    // Handle system includes
+                    if (Match('<'))
+                    {
+                        Eat('<');
+                        var sb = new StringBuilder();
+                        while (!IsAtEnd() && !Match('>'))
+                        {
+                            sb.Append(Advance());
+                        }
+                        Eat('>');
+                        Add(sb.ToString(), TokenKind.SystemIncludeLiteralToken);
+                    }
+                    break;
+
+                case "if": Add(TokenKind.IfDirectiveKeyword); break;
+                case "ifdef": Add(TokenKind.IfdefDirectiveKeyword); break;
+                case "ifndef": Add(TokenKind.IfndefDirectiveKeyword); break;
+                case "elif": Add(TokenKind.ElifDirectiveKeyword); break;
+                case "else": Add(TokenKind.ElseDirectiveKeyword); break;
+                case "endif": Add(TokenKind.EndifDirectiveKeyword); break;
+
+                default:
+                    Add(TokenKind.HashToken);
+                    Add(keyword, TokenKind.IdentifierToken);
+                    break;
+            }
+
+            // TODO: Multiline macros
+            // Go to end of line
+            while (!IsAtEnd() && !Match('\n'))
+            {
+                ProcessChar(Peek());
+            }
+            Add(TokenKind.EndDirectiveToken);
         }
     }
 }

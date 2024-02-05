@@ -116,6 +116,14 @@ namespace UnityShaderParser.Common
             return number;
         }
 
+        protected void SkipWhitespace(bool skipNewLines = false)
+        {
+            while (Peek() is ' ' or '\t' or '\r' || (skipNewLines && Peek() == '\n'))
+            {
+                Advance();
+            }
+        }
+
         protected static bool IsAlphaNumericOrUnderscore(char c) => c == '_' || char.IsLetterOrDigit(c);
 
         protected abstract void ProcessChar(char nextChar);
