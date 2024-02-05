@@ -395,6 +395,40 @@ namespace UnityShaderParser.PreProcessor
             Add(takenTokens);
         }
 
+        private void GlueStringLiteralsPass()
+        {
+            position = 0;
+            tokens = new(outputTokens);
+            outputTokens.Clear();
+            while (!IsAtEnd())
+            {
+                if (Match(TokenKind.StringLiteralToken))
+                {
+                    var strTok = Eat(TokenKind.StringLiteralToken);
+                    string glued = strTok.Identifier ?? string.Empty;
+                    SourceSpan spanStart = strTok.Span;
+                    SourceSpan spanEnd = strTok.Span;
+                    while (Match(TokenKind.StringLiteralToken))
+                    {
+                        var nextStrTok = Eat(TokenKind.StringLiteralToken);
+                        glued += nextStrTok.Identifier ?? string.Empty;
+                        spanEnd = strTok.Span;
+                    }
+                    var gluedToken = new HLSLToken
+                    {
+                        Kind = TokenKind.StringLiteralToken,
+                        Identifier = glued,
+                        Span = new SourceSpan { Start = spanStart.Start, End = spanEnd.End },
+                    };
+                    Add(gluedToken);
+                }
+                else
+                {
+                    Add(Advance());
+                }
+            }
+        }
+
         public void ExpandMacros()
         {
             while (!IsAtEnd())
@@ -487,36 +521,7 @@ namespace UnityShaderParser.PreProcessor
 
             // TODO: ##
             // C spec says we need to glue adjacent string literals
-            position = 0;
-            tokens = new(outputTokens);
-            outputTokens.Clear();
-            while (!IsAtEnd())
-            {
-                if (Match(TokenKind.StringLiteralToken))
-                {
-                    var strTok = Eat(TokenKind.StringLiteralToken);
-                    string glued = strTok.Identifier ?? string.Empty;
-                    SourceSpan spanStart = strTok.Span;
-                    SourceSpan spanEnd = strTok.Span;
-                    while (Match(TokenKind.StringLiteralToken))
-                    {
-                        var nextStrTok = Eat(TokenKind.StringLiteralToken);
-                        glued += nextStrTok.Identifier ?? string.Empty;
-                        spanEnd = strTok.Span;
-                    }
-                    var gluedToken = new HLSLToken
-                    {
-                        Kind = TokenKind.StringLiteralToken,
-                        Identifier = glued,
-                        Span = new SourceSpan { Start = spanStart.Start, End = spanEnd.End },
-                    };
-                    Add(gluedToken);
-                }
-                else
-                {
-                    Add(Advance());
-                }
-            }
+            GlueStringLiteralsPass();
         }
 
         public void ExpandIncludesOnly()
