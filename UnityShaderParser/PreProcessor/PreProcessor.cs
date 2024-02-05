@@ -70,6 +70,48 @@ namespace UnityShaderParser.PreProcessor
             Add(tokensToAdd);
         }
 
+        private void GlueIdentifiersIn(List<HLSLToken> tokens)
+        {
+            HLSLToken LocalPeek(int i) => i < tokens.Count ? tokens[i] : default;
+
+            List<HLSLToken> result = new();
+            for (int i = 0; i < tokens.Count; i++)
+            {
+                var token = tokens[i];
+                if (token.Kind == TokenKind.IdentifierToken && LocalPeek(i + 1).Kind == TokenKind.HashHashToken)
+                {
+                    string gluedIdentifier = token.Identifier ?? string.Empty;
+                    SourceSpan startSpan = token.Span;
+                    SourceSpan endSpan = token.Span;
+
+                    i++; // identifier
+                    while (LocalPeek(i).Kind == TokenKind.HashHashToken && LocalPeek(i + 1).Kind == TokenKind.IdentifierToken)
+                    {
+                        i++; // ##
+                        var nextToken = LocalPeek(i++); // identifier
+                        gluedIdentifier += nextToken.Identifier ?? string.Empty;
+                        endSpan = nextToken.Span;
+                    }
+
+                    var gluedToken = new HLSLToken
+                    {
+                        Identifier = gluedIdentifier,
+                        Kind = TokenKind.IdentifierToken,
+                        Span = new SourceSpan { Start = startSpan.Start, End = endSpan.End },
+                    };
+
+                    result.Add(gluedToken);
+                }
+                else
+                {
+                    result.Add(token);
+                }
+            }
+
+            tokens.Clear();
+            tokens.AddRange(result);
+        }
+
         private bool TryParseFunctionLikeMacroInvocationParameters(List<HLSLToken> tokenStream, ref int streamOffset, out List<List<HLSLToken>> parameters)
         {
             int localOffset = streamOffset + 1;
@@ -167,8 +209,10 @@ namespace UnityShaderParser.PreProcessor
                     return expanded;
                 }
             }
-            
 
+            // Glue identifiers if needed
+            GlueIdentifiersIn(expanded);
+            
             HashSet<string> hideSet = new();
             
             // Loop until we can't apply macros anymore
@@ -239,6 +283,9 @@ namespace UnityShaderParser.PreProcessor
                             next.Add(token);
                         }
                     }
+
+                    // Glue identifiers between each expansion
+                    GlueIdentifiersIn(next);
 
                     expanded = next;
                 }
@@ -519,7 +566,6 @@ namespace UnityShaderParser.PreProcessor
                 }
             }
 
-            // TODO: ##
             // C spec says we need to glue adjacent string literals
             GlueStringLiteralsPass();
         }
