@@ -200,7 +200,7 @@ namespace UnityShaderParser.PreProcessor
                                 hideSet.Add(macro.Key);
                             }
 
-                            // We need to replace tokens. (TODO: Span?)
+                            // We need to replace tokens.
                             // First, check if we have a functionlike macro
                             if (macro.Value.FunctionLike)
                             {
