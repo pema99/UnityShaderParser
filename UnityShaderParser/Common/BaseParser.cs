@@ -15,6 +15,9 @@
 
         protected List<string> diagnostics = new();
 
+        public List<Token<T>> Tokens => tokens;
+        public List<string> Diagnostics => diagnostics;
+
         public BaseParser(List<Token<T>> tokens)
         {
             this.tokens = tokens;

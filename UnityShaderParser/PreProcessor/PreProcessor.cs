@@ -253,6 +253,148 @@ namespace UnityShaderParser.PreProcessor
             return expanded;
         }
 
+        private List<HLSLToken> SkipUntilEndOfConditional()
+        {
+            List<HLSLToken> skipped = new();
+            while (true)
+            {
+                if (IsAtEnd())
+                {
+                    Error("Unterminated conditional directive.");
+                    break;
+                }
+
+                switch (Peek().Kind)
+                {
+                    case TokenKind.ElifDirectiveKeyword:
+                    case TokenKind.ElseDirectiveKeyword:
+                    case TokenKind.EndifDirectiveKeyword:
+                        return skipped;
+
+                    default:
+                        skipped.Add(Advance());
+                        break;
+                }
+            }
+            return skipped;
+        }
+
+        private bool EvaluateConstExpr(List<HLSLToken> exprTokens)
+        {
+            bool result = ConstExpressionEvaluator.EvaluateConstExprTokens(exprTokens, out var evalDiags);
+            if (evalDiags.Count > 0)
+            {
+                foreach (string diag in evalDiags)
+                {
+                    Error(diag);
+                }
+                return false;
+            }
+            return result;
+        }
+
+        private bool EvaluateCondition(bool continued)
+        {
+            HLSLToken conditional = Advance();
+            switch (conditional.Kind)
+            {
+                case TokenKind.IfdefDirectiveKeyword:
+                    string ifdefName = ParseIdentifier();
+                    Eat(TokenKind.EndDirectiveToken);
+                    return defines.ContainsKey(ifdefName);
+
+                case TokenKind.IfndefDirectiveKeyword:
+                    string ifndefName = ParseIdentifier();
+                    Eat(TokenKind.EndDirectiveToken);
+                    return !defines.ContainsKey(ifndefName);
+
+                case TokenKind.ElseDirectiveKeyword:
+                    Eat(TokenKind.EndDirectiveToken);
+                    if (!continued)
+                    {
+                        Error("Unexpected #else directive - there is no conditional directive preceding it.");
+                    }
+                    return true;
+
+                case TokenKind.IfDirectiveKeyword:
+                case TokenKind.ElifDirectiveKeyword:
+                    if (!continued && conditional.Kind == TokenKind.ElifDirectiveKeyword)
+                    {
+                        Error("Unexpected #elif directive - there is no conditional directive preceding it.");
+                    }
+                    // Get the expanded tokens for the condition expression
+                    List<HLSLToken> expandedConditionTokens = new();
+                    while (!IsAtEnd() && !Match(TokenKind.EndDirectiveToken))
+                    {
+                        // If we find an identifier, eagerly expand (https://www.math.utah.edu/docs/info/cpp_1.html)
+                        if (Match(TokenKind.IdentifierToken))
+                        {
+                            expandedConditionTokens.AddRange(ApplyMacros());
+                        }
+                        else
+                        {
+                            expandedConditionTokens.Add(Advance());
+                        }
+                    }
+                    // The C spec says we should replace any identifiers remaining after expansion with the literal 0
+                    for (int i = 0; i < expandedConditionTokens.Count; i++)
+                    {
+                        var token = expandedConditionTokens[i];
+                        if (token.Kind == TokenKind.IdentifierToken)
+                        {
+                            token.Kind = TokenKind.IntegerLiteralToken;
+                            token.Identifier = "0";
+                            expandedConditionTokens[i] = token;
+                        }
+                    }
+                    Eat(TokenKind.EndDirectiveToken);
+                    // Finally evaluate the expression
+                    return EvaluateConstExpr(expandedConditionTokens);
+                default:
+                    Error($"Unexpected token '{conditional.Kind}', expected preprocessor directive.");
+                    return false;
+            }
+        }
+
+        private void ExpandConditional()
+        {
+            List<HLSLToken> takenTokens = new();
+            bool branchTaken = false;
+
+            bool condEvaluation = EvaluateCondition(false);
+
+            while (true)
+            {
+                if (IsAtEnd())
+                {
+                    Error("Unterminated conditional directive.");
+                    break;
+                }
+
+                // Eat the body
+                var skipped = SkipUntilEndOfConditional();
+
+                // If we haven't already taken a branch, and this one is true, take it
+                if (!branchTaken && condEvaluation)
+                {
+                    branchTaken = true;
+                    takenTokens = skipped;
+                }
+
+                // If we have reached the end, stop
+                if (Match(TokenKind.EndifDirectiveKeyword))
+                {
+                    Eat(TokenKind.EndifDirectiveKeyword);
+                    Eat(TokenKind.EndDirectiveToken);
+                    break;
+                }
+
+                condEvaluation = EvaluateCondition(true);
+            }
+
+            Add(takenTokens);
+        }
+
         public void ExpandMacros()
         {
             while (!IsAtEnd())
@@ -324,19 +466,20 @@ namespace UnityShaderParser.PreProcessor
                         outputPragmas.Add(pragma);
                         break;
 
-                    case TokenKind.IfDirectiveKeyword:
                     case TokenKind.IfdefDirectiveKeyword:
                     case TokenKind.IfndefDirectiveKeyword:
+                    case TokenKind.IfDirectiveKeyword:
                     case TokenKind.ElifDirectiveKeyword:
                     case TokenKind.ElseDirectiveKeyword:
                     case TokenKind.EndifDirectiveKeyword:
+                        ExpandConditional();
+                        break;
 
+                    // TODO: Glue identifiers, glue adjacent string literals
                     case TokenKind.HashHashToken:
 
                     case TokenKind.IdentifierToken:
                         Add(ApplyMacros());
-
-                        // TODO: Skip N tokens
                         break;
 
                     default:

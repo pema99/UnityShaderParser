@@ -42,7 +42,7 @@ namespace UnityShaderParser.HLSL
             diagnostics = parser.diagnostics;
         }
 
-        private List<HLSLSyntaxNode> ParseTopLevelDeclarations()
+        internal List<HLSLSyntaxNode> ParseTopLevelDeclarations()
         {
             List<HLSLSyntaxNode> result = new();
 
@@ -54,7 +54,7 @@ namespace UnityShaderParser.HLSL
             return result;
         }
 
-        private HLSLSyntaxNode ParseTopLevelDeclaration()
+        internal HLSLSyntaxNode ParseTopLevelDeclaration()
         {
             switch (Peek().Kind)
             {
@@ -244,7 +244,7 @@ namespace UnityShaderParser.HLSL
             };
         }
 
-        private ExpressionNode ParseExpression(int level = 0)
+        internal ExpressionNode ParseExpression(int level = 0)
         {
             if (Match(TokenKind.SamplerStateLegacyKeyword))
             {
@@ -1082,7 +1082,7 @@ namespace UnityShaderParser.HLSL
             return false;
         }
 
-        private StatementNode ParseStatement()
+        internal StatementNode ParseStatement()
         {
             List<AttributeNode> attributes = ParseMany0(TokenKind.OpenBracketToken, ParseAttribute);
 
@@ -1224,7 +1224,7 @@ namespace UnityShaderParser.HLSL
             };
         }
 
-        public WhileStatementNode ParseWhileStatement(List<AttributeNode> attributes)
+        private WhileStatementNode ParseWhileStatement(List<AttributeNode> attributes)
         {
             Eat(TokenKind.WhileKeyword);
             Eat(TokenKind.OpenParenToken);
@@ -1243,7 +1243,7 @@ namespace UnityShaderParser.HLSL
             };
         }
 
-        public DoWhileStatementNode ParseDoWhileStatement(List<AttributeNode> attributes)
+        private DoWhileStatementNode ParseDoWhileStatement(List<AttributeNode> attributes)
         {
             Eat(TokenKind.DoKeyword);
             var body = ParseStatement();
