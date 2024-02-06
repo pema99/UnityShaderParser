@@ -1,5 +1,6 @@
 ﻿namespace UnityShaderParser.Common
 {
+    // TODO: Filename
     public struct SourceSpan
     {
         public (int Line, int Column) Start;

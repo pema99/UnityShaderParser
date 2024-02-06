@@ -838,7 +838,8 @@ namespace UnityShaderParser.HLSL
                 return type;
             }
 
-            throw new NotImplementedException(typeToken.Span.ToString() + ": " + typeToken.ToString()); // TODO
+            Error("a valid type", typeToken);
+            return new ScalarTypeNode { Kind = ScalarType.Void };
         }
 
         private UserDefinedTypeNode ParseUserDefinedTypeName()

@@ -44,7 +44,7 @@ namespace UnityShaderParser.HLSL.Tests
 
             // Lex
             HLSLParser.ParseTopLevelDeclarations(tokens, out var nodes, out var parserDiags);
-            Assert.IsEmpty(lexerDiags, $"Expected no parser errors, got: {parserDiags.FirstOrDefault()}");
+            Assert.IsEmpty(parserDiags, $"Expected no parser errors, got: {parserDiags.FirstOrDefault()}");
         }
 
         public static string[] GetTestShadersContainingMacros()
@@ -70,7 +70,7 @@ namespace UnityShaderParser.HLSL.Tests
 
             // Lex
             HLSLParser.ParseTopLevelDeclarations(pp.outputTokens, out var nodes, out var parserDiags);
-            Assert.IsEmpty(lexerDiags, $"Expected no parser errors, got: {parserDiags.FirstOrDefault()}");
+            Assert.IsEmpty(parserDiags, $"Expected no parser errors, got: {parserDiags.FirstOrDefault()}");
         }
     }
 }

@@ -22,7 +22,7 @@
             this.tokens = new(tokens);
         }
 
-        protected E Try<E>(Func<E> parser)
+        protected bool Try(Func<bool> parser)
         {
             int orignalPosition = position;
             SourceSpan originalSpan = anchorSpan;
@@ -30,7 +30,17 @@
 
             try
             {
-                return parser();
+                // Try the parser
+                bool result = parser();
+
+                // If we encountered any errors, report false
+                if (diagnostics.Count > originalDiagnosticCount)
+                {
+                    return false;
+                }
+
+                // Otherwise report whatever the parser got
+                return result;
             }
             finally
             {
