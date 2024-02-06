@@ -50,7 +50,7 @@ namespace UnityShaderParser.HLSL
                     Add(EatStringLiteral('"', '"'), TokenKind.StringLiteralToken);
                     break;
 
-                case ' ' or '\t' or '\r' or '\n':
+                case ' ' or '\t' or '\r' or '\n' or '\\':
                     Advance(); // Only consume 1 (preprocessor might care about the newlines)
                     break;
 
@@ -200,10 +200,21 @@ namespace UnityShaderParser.HLSL
                     break;
             }
 
-            // TODO: Multiline macros
             // Go to end of line
             while (!IsAtEnd() && !Match('\n'))
             {
+                // Skip multiline macro line breaks
+                if (Match('\\'))
+                {
+                    Advance();
+                    SkipWhitespace();
+                    if (Match('\n'))
+                    {
+                        Advance();
+                    }
+                }
+
+                // Process char
                 ProcessChar(Peek());
             }
             Add(TokenKind.EndDirectiveToken);

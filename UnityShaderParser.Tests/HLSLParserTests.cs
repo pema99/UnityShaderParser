@@ -16,17 +16,13 @@ namespace UnityShaderParser.HLSL.Tests
         }
 
         [Test, TestCaseSource(nameof(GetTestShaders))]
-        public void LexTestShadersWithoutMacros(string path)
+        public void LexTestShaders(string path)
         {
             // Read text
-            string[] source = File.ReadAllLines(path);
-
-            // De-macro-ify
-            source = source.Where(line => !line.Trim().StartsWith("#") && !line.Trim().EndsWith('\\')).ToArray();
-            string concatted = string.Join('\n', source);
+            string source = File.ReadAllText(path);
 
             // Lex
-            HLSLLexer.Lex(concatted, out var tokens, out var lexerDiags);
+            HLSLLexer.Lex(source, out var tokens, out var lexerDiags);
             Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
         }
 
