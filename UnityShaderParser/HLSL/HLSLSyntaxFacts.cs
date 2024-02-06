@@ -47,7 +47,6 @@ namespace UnityShaderParser.HLSL
                 case "class": token = TokenKind.ClassKeyword; return true;
                 case "column_major": token = TokenKind.ColumnMajorKeyword; return true;
                 case "compile": token = TokenKind.CompileKeyword; return true;
-                case "ConstantBuffer": token = TokenKind.ConstantBufferKeyword; return true;
                 case "const": token = TokenKind.ConstKeyword; return true;
                 case "ConsumeStructuredBuffer": token = TokenKind.ConsumeStructuredBufferKeyword; return true;
                 case "continue": token = TokenKind.ContinueKeyword; return true;
@@ -478,9 +477,9 @@ namespace UnityShaderParser.HLSL
             }
         }
 
-        public static bool TryConvertToPredefinedObjectType(TokenKind kind, out PredefinedObjectType type)
+        public static bool TryConvertToPredefinedObjectType(Token<TokenKind> token, out PredefinedObjectType type)
         {
-            switch (kind)
+            switch (token.Kind)
             {
                 case TokenKind.AppendStructuredBufferKeyword: type = PredefinedObjectType.AppendStructuredBuffer; return true;
                 case TokenKind.BlendStateKeyword: type = PredefinedObjectType.BlendState; return true;
@@ -530,7 +529,8 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.RasterizerOrderedTexture2DArrayKeyword: type = PredefinedObjectType.RasterizerOrderedTexture2DArray; return true;
                 case TokenKind.RasterizerOrderedTexture2DKeyword: type = PredefinedObjectType.RasterizerOrderedTexture2D; return true;
                 case TokenKind.RasterizerOrderedTexture3DKeyword: type = PredefinedObjectType.RasterizerOrderedTexture3D; return true;
-                case TokenKind.ConstantBufferKeyword: type = PredefinedObjectType.ConstantBuffer; return true;
+                // Weird edge case of HLSL grammar - 'ConstantBuffer' is not a real keyword, but is allowed as a generic type.
+                case TokenKind.IdentifierToken when token.Identifier == "ConstantBuffer": type = PredefinedObjectType.ConstantBuffer; return true;
                 default: type = default; return false;
             }
         }
@@ -736,7 +736,7 @@ namespace UnityShaderParser.HLSL
             }
         }
 
-        public static bool IsNumericConstructor(TokenKind kind)
+        public static bool IsMultiArityNumericConstructor(TokenKind kind)
         {
             switch (kind)
             {
@@ -994,6 +994,27 @@ namespace UnityShaderParser.HLSL
             }
         }
 
+        public static bool IsSingleArityNumericConstructor(TokenKind kind)
+        {
+            switch (kind)
+            {
+                case TokenKind.BoolKeyword:
+                case TokenKind.HalfKeyword:
+                case TokenKind.IntKeyword:
+                case TokenKind.UintKeyword:
+                case TokenKind.FloatKeyword:
+                case TokenKind.DoubleKeyword:
+                case TokenKind.Min16FloatKeyword:
+                case TokenKind.Min16IntKeyword:
+                case TokenKind.Min16UintKeyword:
+                case TokenKind.StringKeyword:
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
         public static bool IsBuiltinType(TokenKind kind)
         {
             switch (kind)
@@ -1067,7 +1088,7 @@ namespace UnityShaderParser.HLSL
                     return true;
 
                 default:
-                    return IsNumericConstructor(kind);
+                    return IsMultiArityNumericConstructor(kind);
             }
         }
 
@@ -1333,7 +1354,6 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.ClassKeyword: return "class";
                 case TokenKind.ColumnMajorKeyword: return "column_major";
                 case TokenKind.CompileKeyword: return "compile";
-                case TokenKind.ConstantBufferKeyword: return "ConstantBuffer";
                 case TokenKind.ConstKeyword: return "const";
                 case TokenKind.ConsumeStructuredBufferKeyword: return "ConsumeStructuredBuffer";
                 case TokenKind.ContinueKeyword: return "continue";

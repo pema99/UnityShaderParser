@@ -22,6 +22,16 @@ void foo()
 
 	vector<unsigned int, 3> dd = 3;
 
+	bool a = bool(true);
+	half b = half(1);
+	int c = int(45);
+	uint d = uint(5);
+	float f = float(55);
+	double dd = double(55);
+	double acv = min16float(11);
+	double acv2 = min16int(11);
+	double acv23 = min16uint(11);
+	double acv24 = string("foo");
 
 	[foobar] [baz] typedef const float FLAAT, BLAAT, BLOM;
 

@@ -36,7 +36,7 @@ namespace UnityShaderParser.HLSL
                     Add(hexVal.ToString(), TokenKind.IntegerLiteralToken);
                     break;
 
-                case char c when char.IsDigit(c) || ((c == '.' || c == '-') && char.IsDigit(LookAhead())):
+                case char c when char.IsDigit(c) || (c == '.' && char.IsDigit(LookAhead())):
                     string num = EatNumber(out bool isFloat);
                     TokenKind kind = isFloat ? TokenKind.FloatLiteralToken : TokenKind.IntegerLiteralToken;
                     Add(num, kind);

@@ -39,7 +39,6 @@ namespace UnityShaderParser.HLSL
         ClassKeyword,
         ColumnMajorKeyword,
         CompileKeyword,
-        ConstantBufferKeyword,
         ConstKeyword,
         ConsumeStructuredBufferKeyword,
         ContinueKeyword,

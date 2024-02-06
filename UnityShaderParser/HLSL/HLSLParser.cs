@@ -441,11 +441,21 @@ namespace UnityShaderParser.HLSL
 
                 default:
                     // Special case for constructors of built-in types. Their target is not an expression, but a keyword.
-                    if (Match(HLSLSyntaxFacts.IsNumericConstructor))
+                    if (Match(HLSLSyntaxFacts.IsMultiArityNumericConstructor))
                     {
                         var kind = ParseNumericType();
                         var ctorArgs = ParseParameterList();
                         return new NumericConstructorCallExpressionNode { Kind = kind, Arguments = ctorArgs };
+                    }
+
+                    // Special case for function style C-casts
+                    if (Match(HLSLSyntaxFacts.IsSingleArityNumericConstructor))
+                    {
+                        var kind = ParseNumericType();
+                        Eat(TokenKind.OpenParenToken);
+                        var castFrom = ParseExpression();
+                        Eat(TokenKind.CloseParenToken);
+                        return new CastExpressionNode { Kind = kind, Expression = castFrom, ArrayRanks = new() };
                     }
 
                     var higher = ParseTerminalExpression();
@@ -775,12 +785,7 @@ namespace UnityShaderParser.HLSL
 
         private TypeNode ParseType(bool allowVoid = false)
         {
-            if (Match(TokenKind.IdentifierToken))
-            {
-                return ParseUserDefinedTypeName();
-            }
-
-            if (HLSLSyntaxFacts.TryConvertToPredefinedObjectType(Peek().Kind, out PredefinedObjectType predefinedType))
+            if (HLSLSyntaxFacts.TryConvertToPredefinedObjectType(Peek(), out PredefinedObjectType predefinedType))
             {
                 Advance();
 
@@ -800,6 +805,11 @@ namespace UnityShaderParser.HLSL
                     Kind = predefinedType,
                     TemplateArguments = args,
                 };
+            }
+
+            if (Match(TokenKind.IdentifierToken))
+            {
+                return ParseUserDefinedTypeName();
             }
 
             return ParseNumericType(allowVoid);
