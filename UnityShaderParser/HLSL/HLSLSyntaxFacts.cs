@@ -321,7 +321,6 @@ namespace UnityShaderParser.HLSL
                 case "RWTexture2D": token = TokenKind.RWTexture2DKeyword; return true;
                 case "RWTexture2DArray": token = TokenKind.RWTexture2DArrayKeyword; return true;
                 case "RWTexture3D": token = TokenKind.RWTexture3DKeyword; return true;
-                case "sample": token = TokenKind.SampleKeyword; return true;
                 case "sampler": token = TokenKind.SamplerKeyword; return true;
                 case "sampler1d": token = TokenKind.Sampler1DKeyword; return true;
                 case "sampler2d": token = TokenKind.Sampler2DKeyword; return true;
@@ -1192,9 +1191,9 @@ namespace UnityShaderParser.HLSL
             }
         }
 
-        public static bool TryConvertToDeclarationModifier(TokenKind kind, out BindingModifier modifier)
+        public static bool TryConvertToDeclarationModifier(Token<TokenKind> token, out BindingModifier modifier)
         {
-            switch (kind)
+            switch (token.Kind)
             {
                 case TokenKind.ConstKeyword: modifier = BindingModifier.Const; return true;
                 case TokenKind.RowMajorKeyword: modifier = BindingModifier.RowMajor; return true;
@@ -1215,17 +1214,18 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.CentroidKeyword: modifier = BindingModifier.Centroid; return true;
                 case TokenKind.NointerpolationKeyword: modifier = BindingModifier.Nointerpolation; return true;
                 case TokenKind.NoperspectiveKeyword: modifier = BindingModifier.Noperspective; return true;
-                case TokenKind.SampleKeyword: modifier = BindingModifier.Sample; return true;
+                // Weird edge case of HLSL grammar - 'sample' is not a real keyword.
+                case TokenKind.IdentifierToken when token.Identifier == "sample": modifier = BindingModifier.Sample; return true;
                 default: modifier = default; return false;
             }
         }
 
-        public static bool TryConvertToParameterModifier(TokenKind kind, out BindingModifier modifier)
+        public static bool TryConvertToParameterModifier(Token<TokenKind> token, out BindingModifier modifier)
         {
-            if (TryConvertToDeclarationModifier(kind, out modifier))
+            if (TryConvertToDeclarationModifier(token, out modifier))
                 return true;
 
-            switch (kind)
+            switch (token.Kind)
             {
                 case TokenKind.InKeyword: modifier = BindingModifier.In; return true;
                 case TokenKind.OutKeyword: modifier = BindingModifier.Out; return true;
@@ -1607,7 +1607,6 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.RWTexture2DKeyword: return "RWTexture2D";
                 case TokenKind.RWTexture2DArrayKeyword: return "RWTexture2DArray";
                 case TokenKind.RWTexture3DKeyword: return "RWTexture3D";
-                case TokenKind.SampleKeyword: return "sample";
                 case TokenKind.SamplerKeyword: return "sampler";
                 case TokenKind.Sampler1DKeyword: return "sampler1d";
                 case TokenKind.Sampler2DKeyword: return "sampler2d";

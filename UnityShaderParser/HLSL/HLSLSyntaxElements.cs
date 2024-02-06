@@ -313,7 +313,6 @@ namespace UnityShaderParser.HLSL
         RWTexture2DKeyword,
         RWTexture2DArrayKeyword,
         RWTexture3DKeyword,
-        SampleKeyword,
         SamplerKeyword,
         Sampler1DKeyword,
         Sampler2DKeyword,

@@ -1164,7 +1164,7 @@ namespace UnityShaderParser.HLSL
         private List<BindingModifier> ParseParameterModifiers()
         {
             List<BindingModifier> modifiers = new();
-            while (HLSLSyntaxFacts.TryConvertToParameterModifier(Peek().Kind, out var modifier))
+            while (HLSLSyntaxFacts.TryConvertToParameterModifier(Peek(), out var modifier))
             {
                 Advance();
                 modifiers.Add(modifier);
@@ -1175,7 +1175,7 @@ namespace UnityShaderParser.HLSL
         private List<BindingModifier> ParseDeclarationModifiers()
         {
             List<BindingModifier> modifiers = new();
-            while (HLSLSyntaxFacts.TryConvertToDeclarationModifier(Peek().Kind, out var modifier))
+            while (HLSLSyntaxFacts.TryConvertToDeclarationModifier(Peek(), out var modifier))
             {
                 Advance();
                 modifiers.Add(modifier);
