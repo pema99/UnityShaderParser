@@ -65,8 +65,7 @@ namespace UnityShaderParser.HLSL.Tests
             // Expand
             HLSLPreProcessor pp = new(tokens, Directory.GetParent(path)?.FullName ?? Directory.GetCurrentDirectory());
             pp.ExpandMacros();
-
-            string foo = string.Join(" ", pp.outputTokens.Select(HLSLSyntaxFacts.TokenToString));
+            Assert.IsEmpty(pp.Diagnostics, $"Expected no preprocessing errors, got: {pp.Diagnostics.FirstOrDefault()}");
 
             // Lex
             HLSLParser.ParseTopLevelDeclarations(pp.outputTokens, out var nodes, out var parserDiags);
