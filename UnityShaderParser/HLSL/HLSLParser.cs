@@ -1320,7 +1320,7 @@ namespace UnityShaderParser.HLSL
                 }
 
                 List<StatementNode> statements = ParseMany0(
-                    () => !Match(TokenKind.CloseBraceToken, TokenKind.CaseKeyword),
+                    () => !Match(TokenKind.CloseBraceToken, TokenKind.CaseKeyword, TokenKind.DefaultKeyword),
                     ParseStatement);
                 switchClauses.Add(new SwitchClauseNode { Labels = switchLabels, Statements = statements });
             }
