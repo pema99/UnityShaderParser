@@ -510,7 +510,7 @@ namespace UnityShaderParser.HLSL
         private LiteralExpressionNode ParseLiteralExpression()
         {
             HLSLToken next = Advance();
-            string lexeme = next.Identifier ?? string.Empty;
+            string lexeme = HLSLSyntaxFacts.IdentifierOrKeywordToString(next);
 
             if (!HLSLSyntaxFacts.TryConvertLiteralKind(next.Kind, out var literalKind))
             {

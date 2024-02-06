@@ -1133,6 +1133,8 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.FloatLiteralToken: outKind = LiteralKind.Float; return true;
                 case TokenKind.IntegerLiteralToken: outKind = LiteralKind.Integer; return true;
                 case TokenKind.CharacterLiteralToken: outKind = LiteralKind.Character; return true;
+                case TokenKind.TrueKeyword: outKind = LiteralKind.Boolean; return true;
+                case TokenKind.FalseKeyword: outKind = LiteralKind.Boolean; return true;
                 case TokenKind.NullKeyword: outKind = LiteralKind.Null; return true;
                 default: outKind = default; return false;
             }

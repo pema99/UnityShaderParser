@@ -483,6 +483,7 @@ namespace UnityShaderParser.HLSL
         Float,
         Integer,
         Character,
+        Boolean,
         Null,
     }
 
