@@ -303,6 +303,7 @@ namespace UnityShaderParser.PreProcessor
         private List<HLSLToken> SkipUntilEndOfConditional()
         {
             List<HLSLToken> skipped = new();
+            int depth = 0;
             while (true)
             {
                 if (IsAtEnd())
@@ -313,10 +314,26 @@ namespace UnityShaderParser.PreProcessor
 
                 switch (Peek().Kind)
                 {
+                    case TokenKind.IfdefDirectiveKeyword:
+                    case TokenKind.IfndefDirectiveKeyword:
+                    case TokenKind.IfDirectiveKeyword:
+                        depth++;
+                        skipped.Add(Advance());
+                        break;
+
                     case TokenKind.ElifDirectiveKeyword:
                     case TokenKind.ElseDirectiveKeyword:
                     case TokenKind.EndifDirectiveKeyword:
-                        return skipped;
+                        if (depth == 0)
+                        {
+                            return skipped;
+                        }
+                        else
+                        {
+                            depth--;
+                            skipped.Add(Advance());
+                        }
+                        break;
 
                     default:
                         skipped.Add(Advance());
