@@ -1275,7 +1275,7 @@ namespace UnityShaderParser.HLSL
     }
 
     // Part of an object literal (SamplerState, BlendState, etc)
-    public class StatePropertyNode : HLSLSyntaxNode
+    public class StatePropertyNode : StatementNode
     {
         public UserDefinedTypeNode Name { get; set; }
         public ArrayRankNode? ArrayRank { get; set; }

@@ -167,7 +167,7 @@ namespace UnityShaderParser.HLSL
             });
         }
 
-        private StatePropertyNode ParseStatePropertyNode()
+        private StatePropertyNode ParseStateProperty()
         {
             UserDefinedTypeNode name;
             if (Match(TokenKind.TextureKeyword))
@@ -192,6 +192,17 @@ namespace UnityShaderParser.HLSL
             {
                 Eat(TokenKind.LessThanToken);
                 expr = ParseNamedExpression();
+                if (Match(TokenKind.OpenBracketToken))
+                {
+                    Eat(TokenKind.OpenBracketToken);
+                    var indexExpr = ParseExpression();
+                    Eat(TokenKind.CloseBracketToken);
+                    expr = new ElementAccessExpressionNode
+                    {
+                        Target = expr,
+                        Index = indexExpr
+                    };
+                }
                 Eat(TokenKind.GreaterThanToken);
             }
             else
@@ -217,7 +228,7 @@ namespace UnityShaderParser.HLSL
             List<StatePropertyNode> states = new();
             while (Match(TokenKind.IdentifierToken, TokenKind.TextureKeyword))
             {
-                states.Add(ParseStatePropertyNode());
+                states.Add(ParseStateProperty());
             }
 
             Eat(TokenKind.CloseBraceToken);
@@ -952,7 +963,7 @@ namespace UnityShaderParser.HLSL
             List<StatePropertyNode> states = new();
             while (Match(TokenKind.IdentifierToken))
             {
-                states.Add(ParseStatePropertyNode());
+                states.Add(ParseStateProperty());
             }
             Eat(TokenKind.CloseBraceToken);
             return new StateInitializerNode { States = states };
@@ -1383,7 +1394,24 @@ namespace UnityShaderParser.HLSL
             }
 
             Eat(TokenKind.OpenBraceToken);
-            List<StatementNode> statements = ParseMany0(() => !Match(TokenKind.CloseBraceToken), ParseStatement);
+            var statements = ParseMany0(() => !Match(TokenKind.CloseBraceToken), () =>
+            {
+                bool isRegularStatement = Try(() =>
+                {
+                    ParseStatement();
+                    return true;
+                });
+
+                if (isRegularStatement)
+                {
+                    return ParseStatement();
+                }
+                // Assume state property
+                else
+                {
+                    return ParseStateProperty();
+                }
+            });
             Eat(TokenKind.CloseBraceToken);
 
             return new PassNode
