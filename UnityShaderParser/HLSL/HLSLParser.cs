@@ -425,8 +425,13 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.OpenParenToken when IsNextCast():
                     Eat(TokenKind.OpenParenToken);
                     var type = ParseType();
+                    List<ArrayRankNode> arrayRanks = new();
+                    while (Match(TokenKind.OpenBracketToken))
+                    {
+                        arrayRanks.Add(ParseArrayRank());
+                    }
                     Eat(TokenKind.CloseParenToken);
-                    return new CastExpressionNode { Kind = type, Expression = ParsePrefixOrPostFixExpression() };
+                    return new CastExpressionNode { Kind = type, Expression = ParsePrefixOrPostFixExpression(), ArrayRanks = arrayRanks };
 
                 case TokenKind.OpenParenToken:
                     Eat(TokenKind.OpenParenToken);

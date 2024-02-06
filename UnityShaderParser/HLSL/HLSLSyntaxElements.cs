@@ -1139,9 +1139,9 @@ namespace UnityShaderParser.HLSL
     {
         public TypeNode Kind { get; set; }
         public ExpressionNode Expression { get; set; }
-
+        public List<ArrayRankNode> ArrayRanks { get; set; }
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
-            MergeChildren(Child(Kind), Child(Expression));
+            MergeChildren(Child(Kind), Child(Expression), ArrayRanks);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitCastExpressionNode(this);
     }
