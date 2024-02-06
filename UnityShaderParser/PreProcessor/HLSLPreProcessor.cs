@@ -5,7 +5,7 @@ namespace UnityShaderParser.PreProcessor
 {
     using HLSLToken = Token<TokenKind>;
 
-    public class PreProcessor : BaseParser<TokenKind>
+    public class HLSLPreProcessor : BaseParser<TokenKind>
     {
         protected override TokenKind StringLiteralTokenKind => TokenKind.StringLiteralToken;
         protected override TokenKind IntegerLiteralTokenKind => TokenKind.IntegerLiteralToken;
@@ -44,14 +44,14 @@ namespace UnityShaderParser.PreProcessor
         }
 
         // TODO: Pre-defines
-        public PreProcessor(List<HLSLToken> tokens, string basePath, IPreProcessorIncludeResolver includeResolver)
+        public HLSLPreProcessor(List<HLSLToken> tokens, string basePath, IPreProcessorIncludeResolver includeResolver)
             : base(tokens)
         {
             this.basePath = basePath;
             this.includeResolver = includeResolver;
         }
 
-        public PreProcessor(List<HLSLToken> tokens, string basePath)
+        public HLSLPreProcessor(List<HLSLToken> tokens, string basePath)
             : base(tokens)
         {
             this.basePath = basePath;
@@ -67,7 +67,7 @@ namespace UnityShaderParser.PreProcessor
             string source = includeResolver.ReadFile(basePath, filePath);
             HLSLLexer.Lex(source, out var tokensToAdd, out var diagnosticsToAdd);
             diagnostics.AddRange(diagnosticsToAdd);
-            Add(tokensToAdd);
+            tokens.InsertRange(position, tokensToAdd);
         }
 
         private void GlueIdentifiersIn(List<HLSLToken> tokens)
@@ -439,7 +439,7 @@ namespace UnityShaderParser.PreProcessor
                 condEvaluation = EvaluateCondition(true);
             }
 
-            Add(takenTokens);
+            tokens.InsertRange(position, takenTokens);
         }
 
         private void GlueStringLiteralsPass()

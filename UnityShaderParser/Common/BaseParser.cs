@@ -14,13 +14,12 @@
         protected SourceSpan anchorSpan = default;
 
         protected List<string> diagnostics = new();
-
-        public List<Token<T>> Tokens => tokens;
         public List<string> Diagnostics => diagnostics;
 
         public BaseParser(List<Token<T>> tokens)
         {
-            this.tokens = tokens;
+            // Need to copy since the parser might want to modify tokens in place
+            this.tokens = new(tokens);
         }
 
         protected E Try<E>(Func<E> parser)

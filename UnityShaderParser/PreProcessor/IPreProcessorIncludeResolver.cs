@@ -19,6 +19,16 @@ namespace UnityShaderParser.PreProcessor
                 ? filePath
                 : Path.Combine(basePath, filePath);
 
+            if (!File.Exists(path))
+            {
+                // Attempt current directory instead
+                string lastFolder = Path.GetFileName(basePath);
+                if (!string.IsNullOrEmpty(lastFolder) && filePath.StartsWith(lastFolder))
+                {
+                    path = Path.Combine($"{basePath}/..", filePath);
+                }
+            }
+
             return File.ReadAllText(path);
         }
     }
