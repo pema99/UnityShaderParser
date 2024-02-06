@@ -40,19 +40,17 @@ namespace UnityShaderParser.HLSL.Tests
         public void ParseTestShadersNotContainingMacros(string path)
         {
             // Read text
-            string[] source = File.ReadAllLines(path);
-
-            // De-macro-ify
-            source = source.Where(line => !line.Trim().StartsWith("#") && !line.Trim().EndsWith('\\')).ToArray();
-            string concatted = string.Join('\n', source);
+            string source = File.ReadAllText(path);
 
             // Lex
-            HLSLLexer.Lex(concatted, out var tokens, out var lexerDiags);
+            HLSLLexer.Lex(source, out var tokens, out var lexerDiags);
             Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
 
             // Lex
             HLSLParser.ParseTopLevelDeclarations(tokens, out var nodes, out var parserDiags);
             Assert.IsEmpty(lexerDiags, $"Expected no parser errors, got: {parserDiags.FirstOrDefault()}");
         }
+
+
     }
 }
