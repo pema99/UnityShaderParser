@@ -5,6 +5,7 @@ namespace UnityShaderParser.PreProcessor
 {
     using HLSLToken = Token<TokenKind>;
 
+    // TODO: defined()
     public class HLSLPreProcessor : BaseParser<TokenKind>
     {
         protected override TokenKind StringLiteralTokenKind => TokenKind.StringLiteralToken;
@@ -321,8 +322,18 @@ namespace UnityShaderParser.PreProcessor
                         skipped.Add(Advance());
                         break;
 
-                    case TokenKind.ElifDirectiveKeyword:
                     case TokenKind.ElseDirectiveKeyword:
+                    case TokenKind.ElifDirectiveKeyword:
+                        if (depth == 0)
+                        {
+                            return skipped;
+                        }
+                        else
+                        {
+                            skipped.Add(Advance());
+                        }
+                        break;
+
                     case TokenKind.EndifDirectiveKeyword:
                         if (depth == 0)
                         {
@@ -422,6 +433,7 @@ namespace UnityShaderParser.PreProcessor
 
         private void ExpandConditional()
         {
+            int startPosition = position;
             List<HLSLToken> takenTokens = new();
             bool branchTaken = false;
 
@@ -456,6 +468,11 @@ namespace UnityShaderParser.PreProcessor
                 condEvaluation = EvaluateCondition(true);
             }
 
+            // Substitution. First take away the tokens we just evaluated, then insert the substitution,
+            // and rewind to the start of it
+            int numTokensInDirective = position - startPosition;
+            position = startPosition;
+            tokens.RemoveRange(position, numTokensInDirective);
             tokens.InsertRange(position, takenTokens);
         }
 
@@ -521,10 +538,10 @@ namespace UnityShaderParser.PreProcessor
                         string from = ParseIdentifier();
                         List<string> args = new();
                         bool functionLike = false;
-                        if (Match(TokenKind.OpenParenToken))
+                        if (Match(TokenKind.OpenFunctionLikeMacroParenToken))
                         {
                             functionLike = true;
-                            Eat(TokenKind.OpenParenToken);
+                            Eat(TokenKind.OpenFunctionLikeMacroParenToken);
                             args = ParseSeparatedList0(TokenKind.CloseParenToken, TokenKind.CommaToken, ParseIdentifier);
                             Eat(TokenKind.CloseParenToken);
                         }

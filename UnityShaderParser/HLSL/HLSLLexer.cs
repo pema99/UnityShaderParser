@@ -62,7 +62,6 @@ namespace UnityShaderParser.HLSL
                         if (IsAtEnd())
                             break;
                     }
-                    Advance();
                     break;
 
                 case '/' when LookAhead('*'):
@@ -70,6 +69,8 @@ namespace UnityShaderParser.HLSL
                     while (!(Match('*') && LookAhead('/')))
                     {
                         Advance();
+                        if (IsAtEnd())
+                            break;
                     }
                     Advance(2);
                     break;
@@ -166,7 +167,18 @@ namespace UnityShaderParser.HLSL
             string keyword = EatIdentifier();
             switch (keyword)
             {
-                case "define": Add(TokenKind.DefineDirectiveKeyword); break;
+                case "define":
+                    Add(TokenKind.DefineDirectiveKeyword);
+                    SkipWhitespace();
+                    Add(EatIdentifier(), TokenKind.IdentifierToken);
+                    if (Match('(')) // No whitespace
+                    {
+                        // In order to distinguish function like macros and regular macros, one must inspect whitespace
+                        Advance();
+                        Add(TokenKind.OpenFunctionLikeMacroParenToken);
+                    }
+                    break;
+
                 case "line": Add(TokenKind.LineDirectiveKeyword); break;
                 case "undef": Add(TokenKind.UndefDirectiveKeyword); break;
                 case "error": Add(TokenKind.ErrorDirectiveKeyword); break;

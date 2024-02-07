@@ -455,6 +455,7 @@ namespace UnityShaderParser.HLSL
         EndifDirectiveKeyword,
         SystemIncludeLiteralToken,
         EndDirectiveToken,
+        OpenFunctionLikeMacroParenToken,
     }
 
     public enum ScalarType
