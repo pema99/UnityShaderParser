@@ -70,7 +70,10 @@ namespace UnityShaderParser.HLSL
                     {
                         Advance();
                         if (IsAtEnd())
+                        {
+                            diagnostics.Add($"Error at line {line} column {column}: Unterminated comment.");
                             break;
+                        }
                     }
                     Advance(2);
                     break;

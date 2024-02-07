@@ -98,15 +98,11 @@ namespace UnityShaderParser.HLSL
                 return false;
             offset++;
 
-            // If we mention a builtin type - it's a cast
-            if (HLSLSyntaxFacts.IsBuiltinType(LookAhead(offset).Kind))
+            // If we mention a builtin or user defined type - it might be a cast
+            if (HLSLSyntaxFacts.IsBuiltinType(LookAhead(offset).Kind) ||
+                LookAhead(offset).Kind is TokenKind.ClassKeyword or TokenKind.StructKeyword or TokenKind.InterfaceKeyword)
             {
-                return true;
-            }
-            // If we have a user defined type keyword, it's a cast
-            else if (LookAhead(offset).Kind is TokenKind.ClassKeyword or TokenKind.StructKeyword or TokenKind.InterfaceKeyword)
-            {
-                return true;
+                offset++;
             }
             // If there is an identifier
             else if (LookAhead(offset).Kind == TokenKind.IdentifierToken)
@@ -123,7 +119,7 @@ namespace UnityShaderParser.HLSL
                     offset++;
                 }
             }
-            // If none of the above are true, can't be a type
+            // If none of the above are true, can't be a cast
             else
             {
                 return false;
@@ -157,7 +153,7 @@ namespace UnityShaderParser.HLSL
 
         private bool IsNextPossiblyFunctionDeclaration()
         {
-            return Try(() =>
+            return Speculate(() =>
             {
                 ParseMany0(TokenKind.OpenBracketToken, ParseAttribute);
                 ParseDeclarationModifiers();
@@ -410,6 +406,7 @@ namespace UnityShaderParser.HLSL
 
         private ExpressionNode ParsePrefixOrPostFixExpression()
         {
+            ExpressionNode higher;
             switch (Peek().Kind)
             {
                 case TokenKind.PlusPlusToken:
@@ -420,7 +417,8 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.TildeToken:
                     TokenKind opKind = Eat(HLSLSyntaxFacts.IsPrefixUnaryToken).Kind;
                     HLSLSyntaxFacts.TryConvertToOperator(opKind, out var op);
-                    return new PrefixUnaryExpressionNode { Operator = op, Expression = ParsePrefixOrPostFixExpression() };
+                    higher = new PrefixUnaryExpressionNode { Operator = op, Expression = ParsePrefixOrPostFixExpression() };
+                    break;
 
                 case TokenKind.OpenParenToken when IsNextCast():
                     Eat(TokenKind.OpenParenToken);
@@ -431,13 +429,14 @@ namespace UnityShaderParser.HLSL
                         arrayRanks.Add(ParseArrayRank());
                     }
                     Eat(TokenKind.CloseParenToken);
-                    return new CastExpressionNode { Kind = type, Expression = ParsePrefixOrPostFixExpression(), ArrayRanks = arrayRanks };
+                    higher = new CastExpressionNode { Kind = type, Expression = ParsePrefixOrPostFixExpression(), ArrayRanks = arrayRanks };
+                    break;
 
                 case TokenKind.OpenParenToken:
                     Eat(TokenKind.OpenParenToken);
-                    var expr = ParseExpression();
+                    higher = ParseExpression();
                     Eat(TokenKind.CloseParenToken);
-                    return expr;
+                    break;
 
                 default:
                     // Special case for constructors of built-in types. Their target is not an expression, but a keyword.
@@ -458,48 +457,50 @@ namespace UnityShaderParser.HLSL
                         return new CastExpressionNode { Kind = kind, Expression = castFrom, ArrayRanks = new() };
                     }
 
-                    var higher = ParseTerminalExpression();
-                    while (true)
-                    {
-                        switch (Peek().Kind)
+                    higher = ParseTerminalExpression();
+                    break;
+            }
+
+            while (true)
+            {
+                switch (Peek().Kind)
+                {
+                    case TokenKind.PlusPlusToken:
+                    case TokenKind.MinusMinusToken:
+                        HLSLSyntaxFacts.TryConvertToOperator(Advance().Kind, out var incrOp);
+                        higher = new PostfixUnaryExpressionNode { Expression = higher, Operator = incrOp };
+                        break;
+
+                    case TokenKind.OpenParenToken when higher is NamedExpressionNode target:
+                        var funcArgs = ParseParameterList();
+                        higher = new FunctionCallExpressionNode { Name = target, Arguments = funcArgs };
+                        break;
+
+                    case TokenKind.OpenBracketToken:
+                        Eat(TokenKind.OpenBracketToken);
+                        var indexArg = ParseExpression();
+                        Eat(TokenKind.CloseBracketToken);
+                        higher = new ElementAccessExpressionNode { Target = higher, Index = indexArg };
+                        break;
+
+                    case TokenKind.DotToken:
+                        Eat(TokenKind.DotToken);
+                        string identifier = ParseIdentifier();
+
+                        if (Match(TokenKind.OpenParenToken))
                         {
-                            case TokenKind.PlusPlusToken:
-                            case TokenKind.MinusMinusToken:
-                                HLSLSyntaxFacts.TryConvertToOperator(Advance().Kind, out var incrOp);
-                                higher = new PostfixUnaryExpressionNode { Expression = higher, Operator = incrOp };
-                                break;
-
-                            case TokenKind.OpenParenToken when higher is NamedExpressionNode target:
-                                var funcArgs = ParseParameterList();
-                                higher = new FunctionCallExpressionNode { Name = target, Arguments = funcArgs };
-                                break;
-
-                            case TokenKind.OpenBracketToken:
-                                Eat(TokenKind.OpenBracketToken);
-                                var indexArg = ParseExpression();
-                                Eat(TokenKind.CloseBracketToken);
-                                higher = new ElementAccessExpressionNode { Target = higher, Index = indexArg };
-                                break;
-
-                            case TokenKind.DotToken:
-                                Eat(TokenKind.DotToken);
-                                string identifier = ParseIdentifier();
-
-                                if (Match(TokenKind.OpenParenToken))
-                                {
-                                    var methodArgs = ParseParameterList();
-                                    higher = new MethodCallExpressionNode { Target = higher, Name = identifier, Arguments = methodArgs };
-                                }
-                                else
-                                {
-                                    higher = new FieldAccessExpressionNode { Target = higher, Name = identifier };
-                                }
-                                break;
-
-                            default:
-                                return higher;
+                            var methodArgs = ParseParameterList();
+                            higher = new MethodCallExpressionNode { Target = higher, Name = identifier, Arguments = methodArgs };
                         }
-                    }
+                        else
+                        {
+                            higher = new FieldAccessExpressionNode { Target = higher, Name = identifier };
+                        }
+                        break;
+
+                    default:
+                        return higher;
+                }
             }
         }
 
@@ -1100,7 +1101,7 @@ namespace UnityShaderParser.HLSL
                 return true;
             if ((HLSLSyntaxFacts.IsBuiltinType(nextKind) || nextKind == TokenKind.IdentifierToken))
             {
-                return Try(() =>
+                return Speculate(() =>
                 {
                     ParseType();
                     return Match(TokenKind.IdentifierToken);
@@ -1125,7 +1126,11 @@ namespace UnityShaderParser.HLSL
 
                 case TokenKind.ReturnKeyword:
                     Advance();
-                    ExpressionNode returnExpr = ParseExpression();
+                    ExpressionNode? returnExpr = null;
+                    if (!Match(TokenKind.SemiToken))
+                    {
+                        returnExpr = ParseExpression();
+                    }
                     Eat(TokenKind.SemiToken);
                     return new ReturnStatementNode { Attributes = attributes, Expression = returnExpr };
 
@@ -1220,9 +1225,24 @@ namespace UnityShaderParser.HLSL
             Eat(TokenKind.OpenParenToken);
 
             VariableDeclarationStatementNode? decl = null;
+            ExpressionNode? initializer = null;
             if (!Match(TokenKind.SemiToken))
             {
-                decl = ParseVariableDeclarationStatement(new());
+                if (!TryParse(() => ParseVariableDeclarationStatement(new()), out decl))
+                {
+                    if (TryParse(() => ParseExpression(), out initializer))
+                    {
+                        Eat(TokenKind.SemiToken);
+                    }
+                    else
+                    {
+                        Error("an expression or declaration in first section of for loop", Peek());
+                    }
+                }
+            }
+            else
+            {
+                Eat(TokenKind.SemiToken);
             }
 
             ExpressionNode? cond = null;
@@ -1411,15 +1431,9 @@ namespace UnityShaderParser.HLSL
             Eat(TokenKind.OpenBraceToken);
             var statements = ParseMany0(() => !Match(TokenKind.CloseBraceToken), () =>
             {
-                bool isRegularStatement = Try(() =>
+                if (TryParse(ParseStatement, out var stmt))
                 {
-                    ParseStatement();
-                    return true;
-                });
-
-                if (isRegularStatement)
-                {
-                    return ParseStatement();
+                    return stmt;
                 }
                 // Assume state property
                 else

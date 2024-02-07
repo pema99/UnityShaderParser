@@ -22,11 +22,27 @@
             this.tokens = new(tokens);
         }
 
-        protected bool Try(Func<bool> parser)
+        private int snapshotPosition = 0;
+        private SourceSpan snapshotSpan = default;
+        private int snapshotDiagnosticCount = 0;
+
+        private void SnapshotState()
         {
-            int orignalPosition = position;
-            SourceSpan originalSpan = anchorSpan;
-            int originalDiagnosticCount = diagnostics.Count;
+            snapshotPosition = position;
+            snapshotSpan = anchorSpan;
+            snapshotDiagnosticCount = diagnostics.Count;
+        }
+
+        private void RestoreState()
+        {
+            position = snapshotPosition;
+            anchorSpan = snapshotSpan;
+            diagnostics.RemoveRange(snapshotDiagnosticCount, diagnostics.Count - snapshotDiagnosticCount);
+        }
+
+        protected bool Speculate(Func<bool> parser)
+        {
+            SnapshotState();
 
             try
             {
@@ -34,7 +50,7 @@
                 bool result = parser();
 
                 // If we encountered any errors, report false
-                if (diagnostics.Count > originalDiagnosticCount)
+                if (diagnostics.Count > snapshotDiagnosticCount)
                 {
                     return false;
                 }
@@ -44,9 +60,35 @@
             }
             finally
             {
-                position = orignalPosition;
-                anchorSpan = originalSpan;
-                diagnostics.RemoveRange(originalDiagnosticCount, diagnostics.Count - originalDiagnosticCount);
+                RestoreState();   
+            }
+        }
+
+        protected bool TryParse<P>(Func<P> parser, out P parsed)
+        {
+            SnapshotState();
+
+            try
+            {
+                // Try the parser
+                parsed = parser();
+
+                // If we encountered any errors, report false
+                if (diagnostics.Count > snapshotDiagnosticCount)
+                {
+                    RestoreState();
+                    parsed = default!;
+                    return false;
+                }
+
+                // Otherwise return whatever the parser got
+                return true;
+            }
+            catch
+            {
+                RestoreState();
+                parsed = default!;
+                return false;
             }
         }
 

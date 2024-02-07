@@ -878,13 +878,18 @@ namespace UnityShaderParser.HLSL
 
     public class ForStatementNode : StatementNode
     {
-        public VariableDeclarationStatementNode? Declaration { get; set; }
+        public VariableDeclarationStatementNode? Declaration { get; set; } // This is mutually exclusive with Initializer
+        public ExpressionNode? Initializer { get; set; }
+
         public ExpressionNode? Condition { get; set; }
         public ExpressionNode? Increment { get; set; }
         public StatementNode Body { get; set; }
 
+        public bool FirstIsDeclaration => Declaration != null;
+        public bool FirstIsExpression => Initializer != null;
+
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
-            MergeChildren(base.GetChildren, OptionalChild(Declaration), OptionalChild(Condition), OptionalChild(Increment), Child(Body));
+            MergeChildren(base.GetChildren, OptionalChild(Declaration), OptionalChild(Initializer), OptionalChild(Condition), OptionalChild(Increment), Child(Body));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitForStatementNode(this);
     }

@@ -59,7 +59,6 @@ namespace UnityShaderParser.ShaderLab
                         if (IsAtEnd())
                             break;
                     }
-                    Advance();
                     break;
 
                 case '/' when LookAhead('*'):
@@ -67,6 +66,11 @@ namespace UnityShaderParser.ShaderLab
                     while (!(Match('*') && LookAhead('/')))
                     {
                         Advance();
+                        if (IsAtEnd())
+                        {
+                            diagnostics.Add($"Error at line {line} column {column}: Unterminated comment.");
+                            break;
+                        }
                     }
                     Advance(2);
                     break;

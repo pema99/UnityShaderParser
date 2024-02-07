@@ -77,7 +77,6 @@ namespace UnityShaderParser.HLSL
                 case "double4x3": token = TokenKind.Double4x3Keyword; return true;
                 case "double4x4": token = TokenKind.Double4x4Keyword; return true;
                 case "else": token = TokenKind.ElseKeyword; return true;
-                case "error": token = TokenKind.ErrorKeyword; return true;
                 case "export": token = TokenKind.ExportKeyword; return true;
                 case "extern": token = TokenKind.ExternKeyword; return true;
                 case "float": token = TokenKind.FloatKeyword; return true;
@@ -293,6 +292,7 @@ namespace UnityShaderParser.HLSL
                 case "OutputPatch": token = TokenKind.OutputPatchKeyword; return true;
                 case "packmatrix": token = TokenKind.PackMatrixKeyword; return true;
                 case "packoffset": token = TokenKind.PackoffsetKeyword; return true;
+                case "Pass": token = TokenKind.PassKeyword; return true;
                 case "pass": token = TokenKind.PassKeyword; return true;
                 case "payload": token = TokenKind.PayloadKeyword; return true;
                 case "point": token = TokenKind.PointKeyword; return true;
@@ -336,6 +336,7 @@ namespace UnityShaderParser.HLSL
                 case "StructuredBuffer": token = TokenKind.StructuredBufferKeyword; return true;
                 case "switch": token = TokenKind.SwitchKeyword; return true;
                 case "tbuffer": token = TokenKind.TBufferKeyword; return true;
+                case "Technique": token = TokenKind.TechniqueKeyword; return true;
                 case "technique": token = TokenKind.TechniqueKeyword; return true;
                 case "technique10": token = TokenKind.Technique10Keyword; return true;
                 case "technique11": token = TokenKind.Technique11Keyword; return true;
