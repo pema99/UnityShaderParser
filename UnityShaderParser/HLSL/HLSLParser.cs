@@ -64,7 +64,7 @@ namespace UnityShaderParser.HLSL
 
                 case TokenKind.StructKeyword:
                 case TokenKind.ClassKeyword:
-                    return ParseStructDefinition(new());
+                    return ParseStructDefinitionOrDeclaration(new());
 
                 case TokenKind.InterfaceKeyword:
                   return ParseInterfaceDefinition(new());
@@ -158,14 +158,14 @@ namespace UnityShaderParser.HLSL
                 ParseMany0(TokenKind.OpenBracketToken, ParseAttribute);
                 ParseDeclarationModifiers();
                 ParseType(true);
-                ParseUserDefinedTypeName();
+                ParseUserDefinedNamedType();
                 return Match(TokenKind.OpenParenToken);
             });
         }
 
         private StatePropertyNode ParseStateProperty()
         {
-            UserDefinedTypeNode name;
+            UserDefinedNamedTypeNode name;
             if (Match(TokenKind.TextureKeyword))
             {
                 Advance();
@@ -173,7 +173,7 @@ namespace UnityShaderParser.HLSL
             }
             else
             {
-                name = ParseUserDefinedTypeName();
+                name = ParseUserDefinedNamedType();
             }
             ArrayRankNode? rank = null;
             if (Match(TokenKind.OpenBracketToken))
@@ -610,7 +610,7 @@ namespace UnityShaderParser.HLSL
             var modifiers = ParseDeclarationModifiers();
             TypeNode returnType = ParseType(true);
 
-            UserDefinedTypeNode name = ParseUserDefinedTypeName();
+            UserDefinedNamedTypeNode name = ParseUserDefinedNamedType();
 
             Eat(TokenKind.OpenParenToken);
             List<FormalParameterNode> parameters = ParseSeparatedList0(TokenKind.CloseParenToken, TokenKind.CommaToken, ParseFormalParameter);
@@ -647,54 +647,45 @@ namespace UnityShaderParser.HLSL
             };
         }
 
-        private StructDefinitionNode ParseStructDefinition(List<AttributeNode> attributes)
+        private StatementNode ParseStructDefinitionOrDeclaration(List<AttributeNode> attributes)
         {
-            bool isClass = Eat(TokenKind.StructKeyword, TokenKind.ClassKeyword).Kind == TokenKind.ClassKeyword;
-            var name = ParseOptional(TokenKind.IdentifierToken, ParseUserDefinedTypeName);
+            var modifiers = ParseDeclarationModifiers();
+            StructTypeNode structType = ParseStructType();
 
-            // base list
-            List<UserDefinedTypeNode> baseList = new();
-            if (Match(TokenKind.ColonToken))
+            // This is a definition - no instance
+            if (Match(TokenKind.SemiToken))
             {
-                Eat(TokenKind.ColonToken);
-
-                baseList = ParseSeparatedList1(TokenKind.CommaToken, ParseUserDefinedTypeName);
-            }
-
-            Eat(TokenKind.OpenBraceToken);
-
-            List<VariableDeclarationStatementNode> decls = new();
-            List<FunctionNode> methods = new();
-            while (!IsAtEnd() && !Match(TokenKind.CloseBraceToken))
-            {
-                if (IsNextPossiblyFunctionDeclaration())
+                if (modifiers.Count > 0)
                 {
-                    methods.Add(ParseFunction());
+                    Error($"Struct definitions cannot have modifiers, found '{string.Join(", ", modifiers)}'.");
                 }
-                else
+
+                Eat(TokenKind.SemiToken);
+                return new StructDefinitionNode
                 {
-                    decls.Add(ParseVariableDeclarationStatement(new()));
-                }
+                    Attributes = attributes,
+                    StructType = structType,
+                };
             }
-
-            Eat(TokenKind.CloseBraceToken);
-            Eat(TokenKind.SemiToken);
-
-            return new StructDefinitionNode
+            // This is a declaration - making a type and an instance
+            else
             {
-                Attributes = attributes,
-                Name = name,
-                Inherits = baseList,
-                Fields = decls,
-                Methods = methods,
-                IsClass = isClass,
-            };
+                List<VariableDeclaratorNode> variables = ParseSeparatedList1(TokenKind.CommaToken, ParseVariableDeclarator);
+                Eat(TokenKind.SemiToken);
+                return new VariableDeclarationStatementNode
+                {
+                    Modifiers = modifiers,
+                    Kind = structType,
+                    Declarators = variables,
+                    Attributes = attributes,
+                };
+            }
         }
 
         private InterfaceDefinitionNode ParseInterfaceDefinition(List<AttributeNode> attributes)
         {
             Eat(TokenKind.InterfaceKeyword);
-            var name = ParseUserDefinedTypeName();
+            var name = ParseUserDefinedNamedType();
 
             Eat(TokenKind.OpenBraceToken);
 
@@ -729,7 +720,7 @@ namespace UnityShaderParser.HLSL
         private ConstantBufferNode ParseConstantBuffer()
         {
             var buffer = Eat(TokenKind.CBufferKeyword, TokenKind.TBufferKeyword);
-            var name = ParseUserDefinedTypeName();
+            var name = ParseUserDefinedNamedType();
 
             RegisterLocationNode? reg = null;
             if (Match(TokenKind.ColonToken))
@@ -771,7 +762,7 @@ namespace UnityShaderParser.HLSL
 
             var type = ParseType();
 
-            var names = ParseSeparatedList1(TokenKind.CommaToken, ParseUserDefinedTypeName);
+            var names = ParseSeparatedList1(TokenKind.CommaToken, ParseUserDefinedNamedType);
 
             Eat(TokenKind.SemiToken);
 
@@ -810,10 +801,57 @@ namespace UnityShaderParser.HLSL
 
             if (Match(TokenKind.IdentifierToken))
             {
-                return ParseUserDefinedTypeName();
+                return ParseUserDefinedNamedType();
+            }
+
+            if (Match(TokenKind.StructKeyword, TokenKind.ClassKeyword))
+            {
+                return ParseStructType();
             }
 
             return ParseNumericType(allowVoid);
+        }
+
+        private StructTypeNode ParseStructType()
+        {
+            bool isClass = Eat(TokenKind.StructKeyword, TokenKind.ClassKeyword).Kind == TokenKind.ClassKeyword;
+            var name = ParseOptional(TokenKind.IdentifierToken, ParseUserDefinedNamedType);
+
+            // base list
+            List<UserDefinedNamedTypeNode> baseList = new();
+            if (Match(TokenKind.ColonToken))
+            {
+                Eat(TokenKind.ColonToken);
+
+                baseList = ParseSeparatedList1(TokenKind.CommaToken, ParseUserDefinedNamedType);
+            }
+
+            Eat(TokenKind.OpenBraceToken);
+
+            List<VariableDeclarationStatementNode> decls = new();
+            List<FunctionNode> methods = new();
+            while (!IsAtEnd() && !Match(TokenKind.CloseBraceToken))
+            {
+                if (IsNextPossiblyFunctionDeclaration())
+                {
+                    methods.Add(ParseFunction());
+                }
+                else
+                {
+                    decls.Add(ParseVariableDeclarationStatement(new()));
+                }
+            }
+
+            Eat(TokenKind.CloseBraceToken);
+
+            return new StructTypeNode
+            {
+                Name = name,
+                Inherits = baseList,
+                Fields = decls,
+                Methods = methods,
+                IsClass = isClass,
+            };
         }
 
         private NumericTypeNode ParseNumericType(bool allowVoid = false/* List<Modifier> Modifiers */)
@@ -869,7 +907,7 @@ namespace UnityShaderParser.HLSL
             return new ScalarTypeNode { Kind = ScalarType.Void };
         }
 
-        private UserDefinedTypeNode ParseUserDefinedTypeName()
+        private UserDefinedNamedTypeNode ParseUserDefinedNamedType()
         {
             string identifier = ParseIdentifier();
             var name = new NamedTypeNode { Name = identifier };
@@ -878,7 +916,7 @@ namespace UnityShaderParser.HLSL
             {
                 Eat(TokenKind.ColonColonToken);
 
-                return new QualifiedNamedTypeNode { Left = name, Right = ParseUserDefinedTypeName() };
+                return new QualifiedNamedTypeNode { Left = name, Right = ParseUserDefinedNamedType() };
             }
             else
             {
@@ -953,7 +991,7 @@ namespace UnityShaderParser.HLSL
             }
             else if (Match(TokenKind.OpenBraceToken))
             {
-                initializer = ParseStateInitializer();
+                initializer = ParseStateInitializerOrArray();
             }
 
             return new VariableDeclaratorNode
@@ -983,6 +1021,21 @@ namespace UnityShaderParser.HLSL
             }
             Eat(TokenKind.CloseBraceToken);
             return new StateInitializerNode { States = states };
+        }
+
+        private InitializerNode ParseStateInitializerOrArray()
+        {
+            if (LookAhead().Kind == TokenKind.OpenBraceToken)
+            {
+                Eat(TokenKind.OpenBraceToken);
+                List<StateInitializerNode> initializers = ParseSeparatedList0(TokenKind.CloseBraceToken, TokenKind.CommaToken, ParseStateInitializer);
+                Eat(TokenKind.CloseBraceToken);
+                return new StateArrayInitializerNode { Initializers = initializers };
+            }
+            else
+            {
+                return ParseStateInitializer();
+            }
         }
 
         private VariableDeclaratorQualifierNode ParseVariableDeclaratorQualifierNode()
@@ -1169,7 +1222,7 @@ namespace UnityShaderParser.HLSL
 
                 case TokenKind.StructKeyword:
                 case TokenKind.ClassKeyword:
-                    return ParseStructDefinition(attributes);
+                    return ParseStructDefinitionOrDeclaration(attributes);
 
                 case TokenKind kind when IsVariableDeclarationStatement(kind):
                     return ParseVariableDeclarationStatement(attributes);
@@ -1387,7 +1440,11 @@ namespace UnityShaderParser.HLSL
                 Eat(TokenKind.TechniqueKeyword, TokenKind.Technique10Keyword, TokenKind.Technique11Keyword).Kind
                     == TokenKind.Technique10Keyword ? 10 : 11;
 
-            var name = ParseUserDefinedTypeName();
+            UserDefinedNamedTypeNode? name = null;
+            if (Match(TokenKind.IdentifierToken))
+            {
+                name = ParseUserDefinedNamedType();
+            }
 
             List<VariableDeclarationStatementNode> annotations = new();
             if (Match(TokenKind.LessThanToken))
@@ -1418,7 +1475,11 @@ namespace UnityShaderParser.HLSL
         private PassNode ParsePass()
         {
             Eat(TokenKind.PassKeyword);
-            var name = ParseUserDefinedTypeName();
+            UserDefinedNamedTypeNode? name = null;
+            if (Match(TokenKind.IdentifierToken))
+            {
+                name = ParseUserDefinedNamedType();
+            }
 
             List<VariableDeclarationStatementNode> annotations = new();
             if (Match(TokenKind.LessThanToken))

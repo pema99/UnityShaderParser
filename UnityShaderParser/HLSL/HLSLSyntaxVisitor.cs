@@ -16,6 +16,7 @@
         public virtual void VisitArrayRankNode(ArrayRankNode node) => DefaultVisit(node);
         public virtual void VisitValueInitializerNode(ValueInitializerNode node) => DefaultVisit(node);
         public virtual void VisitStateInitializerNode(StateInitializerNode node) => DefaultVisit(node);
+        public virtual void VisitStateArrayInitializerNode(StateArrayInitializerNode node) => DefaultVisit(node);
         public virtual void VisitFunctionDeclarationNode(FunctionDeclarationNode node) => DefaultVisit(node);
         public virtual void VisitFunctionDefinitionNode(FunctionDefinitionNode node) => DefaultVisit(node);
         public virtual void VisitStructDefinitionNode(StructDefinitionNode node) => DefaultVisit(node);
@@ -63,6 +64,7 @@
         public virtual void VisitQualifiedNamedTypeNode(QualifiedNamedTypeNode node) => DefaultVisit(node);
         public virtual void VisitNamedTypeNode(NamedTypeNode node) => DefaultVisit(node);
         public virtual void VisitPredefinedObjectTypeNode(PredefinedObjectTypeNode node) => DefaultVisit(node);
+        public virtual void VisitStructTypeNode(StructTypeNode node) => DefaultVisit(node);
         public virtual void VisitScalarTypeNode(ScalarTypeNode node) => DefaultVisit(node);
         public virtual void VisitMatrixTypeNode(MatrixTypeNode node) => DefaultVisit(node);
         public virtual void VisitVectorTypeNode(VectorTypeNode node) => DefaultVisit(node);

@@ -22,22 +22,19 @@
             this.tokens = new(tokens);
         }
 
-        private int snapshotPosition = 0;
-        private SourceSpan snapshotSpan = default;
-        private int snapshotDiagnosticCount = 0;
+        private Stack<(int position, SourceSpan span, int diagnosticCount)> snapshots = new();
 
         private void SnapshotState()
         {
-            snapshotPosition = position;
-            snapshotSpan = anchorSpan;
-            snapshotDiagnosticCount = diagnostics.Count;
+            snapshots.Push((position, anchorSpan, diagnostics.Count));
         }
 
         private void RestoreState()
         {
-            position = snapshotPosition;
-            anchorSpan = snapshotSpan;
-            diagnostics.RemoveRange(snapshotDiagnosticCount, diagnostics.Count - snapshotDiagnosticCount);
+            var snapshot = snapshots.Pop();
+            position = snapshot.position;
+            anchorSpan = snapshot.span;
+            diagnostics.RemoveRange(snapshot.diagnosticCount, diagnostics.Count - snapshot.diagnosticCount);
         }
 
         protected bool Speculate(Func<bool> parser)
@@ -50,7 +47,7 @@
                 bool result = parser();
 
                 // If we encountered any errors, report false
-                if (diagnostics.Count > snapshotDiagnosticCount)
+                if (diagnostics.Count > snapshots.Peek().diagnosticCount)
                 {
                     return false;
                 }
@@ -74,7 +71,7 @@
                 parsed = parser();
 
                 // If we encountered any errors, report false
-                if (diagnostics.Count > snapshotDiagnosticCount)
+                if (diagnostics.Count > snapshots.Peek().diagnosticCount)
                 {
                     RestoreState();
                     parsed = default!;

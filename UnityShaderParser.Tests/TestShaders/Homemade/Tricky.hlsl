@@ -40,3 +40,12 @@ void foo()
 		typedef const float FLAAT, BLAAT, BLOM;
 	} while (i < 2);
 }
+
+struct bla { int a; };
+
+struct bla { int a; } b;
+
+void foo()
+{
+	[bla] nointerpolation struct bla { int a; } b;
+}

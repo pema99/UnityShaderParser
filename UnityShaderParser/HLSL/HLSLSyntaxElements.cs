@@ -646,7 +646,7 @@ namespace UnityShaderParser.HLSL
         public List<AttributeNode> Attributes { get; set; }
         public List<BindingModifier> Modifiers { get; set; }
         public TypeNode ReturnType { get; set; }
-        public UserDefinedTypeNode Name { get; set; }
+        public UserDefinedNamedTypeNode Name { get; set; }
         public List<FormalParameterNode> Parameters { get; set; }
         public SemanticNode? Semantic { get; set; }
 
@@ -714,6 +714,16 @@ namespace UnityShaderParser.HLSL
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitStateInitializerNode(this);
     }
 
+    public class StateArrayInitializerNode : InitializerNode
+    {
+        public List<StateInitializerNode> Initializers { get; set; }
+
+        protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
+            Initializers;
+
+        public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitStateArrayInitializerNode(this);
+    }
+
     public class FunctionDeclarationNode : FunctionNode
     {
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitFunctionDeclarationNode(this);
@@ -731,21 +741,17 @@ namespace UnityShaderParser.HLSL
 
     public class StructDefinitionNode : StatementNode
     {
-        public UserDefinedTypeNode? Name { get; set; }
-        public List<UserDefinedTypeNode> Inherits { get; set; }
-        public List<VariableDeclarationStatementNode> Fields { get; set; }
-        public List<FunctionNode> Methods { get; set; }
-        public bool IsClass { get; set; }
+        public StructTypeNode StructType { get; set; }
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
-            MergeChildren(base.GetChildren, OptionalChild(Name), Inherits, Fields, Methods);
+            MergeChildren(base.GetChildren, Child(StructType));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitStructDefinitionNode(this);
     }
 
     public class InterfaceDefinitionNode : StatementNode
     {
-        public UserDefinedTypeNode Name { get; set; }
+        public UserDefinedNamedTypeNode Name { get; set; }
         public List<FunctionDeclarationNode> Functions { get; set; }
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
@@ -756,7 +762,7 @@ namespace UnityShaderParser.HLSL
 
     public class ConstantBufferNode : HLSLSyntaxNode
     {
-        public UserDefinedTypeNode Name { get; set; }
+        public UserDefinedNamedTypeNode Name { get; set; }
         public RegisterLocationNode? RegisterLocation { get; set; }
         public List<VariableDeclarationStatementNode> Declarations { get; set; }
         public bool IsTextureBuffer { get; set; }
@@ -770,7 +776,7 @@ namespace UnityShaderParser.HLSL
     public class TypedefNode : StatementNode
     {
         public TypeNode FromType { get; set; }
-        public List<UserDefinedTypeNode> ToNames { get; set; }
+        public List<UserDefinedNamedTypeNode> ToNames { get; set; }
         public bool IsConst { get; set; }
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
@@ -1198,12 +1204,13 @@ namespace UnityShaderParser.HLSL
 
     public abstract class TypeNode : HLSLSyntaxNode { }
     public abstract class UserDefinedTypeNode : TypeNode { }
+    public abstract class UserDefinedNamedTypeNode : UserDefinedTypeNode { }
     public abstract class PredefinedTypeNode : TypeNode { }
 
-    public class QualifiedNamedTypeNode : UserDefinedTypeNode
+    public class QualifiedNamedTypeNode : UserDefinedNamedTypeNode
     {
         public NamedTypeNode Left { get; set; }
-        public UserDefinedTypeNode Right { get; set; }
+        public UserDefinedNamedTypeNode Right { get; set; }
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             MergeChildren(Child(Left), Child(Right));
@@ -1211,7 +1218,7 @@ namespace UnityShaderParser.HLSL
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitQualifiedNamedTypeNode(this);
     }
 
-    public class NamedTypeNode : UserDefinedTypeNode
+    public class NamedTypeNode : UserDefinedNamedTypeNode
     {
         public string Name { get; set; }
 
@@ -1230,6 +1237,20 @@ namespace UnityShaderParser.HLSL
             TemplateArguments;
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitPredefinedObjectTypeNode(this);
+    }
+
+    public class StructTypeNode : UserDefinedTypeNode
+    {
+        public UserDefinedNamedTypeNode? Name { get; set; }
+        public List<UserDefinedNamedTypeNode> Inherits { get; set; }
+        public List<VariableDeclarationStatementNode> Fields { get; set; }
+        public List<FunctionNode> Methods { get; set; }
+        public bool IsClass { get; set; }
+
+        protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
+            MergeChildren(OptionalChild(Name), Inherits, Fields, Methods);
+
+        public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitStructTypeNode(this);
     }
 
     public abstract class NumericTypeNode : PredefinedTypeNode
@@ -1281,7 +1302,7 @@ namespace UnityShaderParser.HLSL
     // Part of an object literal (SamplerState, BlendState, etc)
     public class StatePropertyNode : StatementNode
     {
-        public UserDefinedTypeNode Name { get; set; }
+        public UserDefinedNamedTypeNode Name { get; set; }
         public ArrayRankNode? ArrayRank { get; set; }
         public ExpressionNode Value { get; set; }
         public bool IsReference { get; set; }
@@ -1296,7 +1317,7 @@ namespace UnityShaderParser.HLSL
     public class TechniqueNode : HLSLSyntaxNode
     {
         public int Version { get; set; }
-        public UserDefinedTypeNode Name { get; set; }
+        public UserDefinedNamedTypeNode? Name { get; set; }
         public List<VariableDeclarationStatementNode> Annotations { get; set; }
         public List<PassNode> Passes { get; set; }
 
@@ -1309,7 +1330,7 @@ namespace UnityShaderParser.HLSL
     // Old FX pipeline syntax
     public class PassNode : HLSLSyntaxNode
     {
-        public UserDefinedTypeNode Name { get; set; }
+        public UserDefinedNamedTypeNode? Name { get; set; }
         public List<VariableDeclarationStatementNode> Annotations { get; set; }
         public List<StatementNode> Statements { get; set; }
 
