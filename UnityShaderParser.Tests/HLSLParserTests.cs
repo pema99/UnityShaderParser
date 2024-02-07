@@ -9,7 +9,7 @@ namespace UnityShaderParser.HLSL.Tests
     {
         public static string[] GetTestShaders()
         {
-            string[] extensions = { "*.hlsl", "*.fx", "*.fxh" };
+            string[] extensions = { "*.hlsl", "*.fx", "*.fxh", "*.h" };
             return extensions
                 .SelectMany(ext => Directory.EnumerateFiles(Directory.GetCurrentDirectory(), ext, SearchOption.AllDirectories))
                 .Select(path => Path.GetRelativePath(Directory.GetCurrentDirectory(), path))
