@@ -42,7 +42,7 @@ namespace UnityShaderParser.HLSL.Tests
             HLSLLexer.Lex(source, out var tokens, out var lexerDiags);
             Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
 
-            // Lex
+            // Parse
             HLSLParser.ParseTopLevelDeclarations(tokens, out var nodes, out var parserDiags);
             Assert.IsEmpty(parserDiags, $"Expected no parser errors, got: {parserDiags.FirstOrDefault()}");
         }
@@ -66,7 +66,7 @@ namespace UnityShaderParser.HLSL.Tests
             HLSLPreProcessor.PreProcess(tokens, PreProcessorMode.ExpandAll, Directory.GetParent(path)?.FullName!, out var preProcessedTokens, out var pragmas, out var preProcessorDiags);
             Assert.IsEmpty(preProcessorDiags, $"Expected no preprocessing errors, got: {preProcessorDiags.FirstOrDefault()}");
 
-            // Lex
+            // Parse
             HLSLParser.ParseTopLevelDeclarations(preProcessedTokens, out var nodes, out var parserDiags);
             Assert.IsEmpty(parserDiags, $"Expected no parser errors, got: {parserDiags.FirstOrDefault()}");
         }
