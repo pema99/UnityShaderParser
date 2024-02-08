@@ -63,13 +63,33 @@ namespace UnityShaderParser.HLSL.Tests
             Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
 
             // Expand
-            HLSLPreProcessor pp = new(tokens, Directory.GetParent(path)?.FullName ?? Directory.GetCurrentDirectory());
-            pp.ExpandMacros();
-            Assert.IsEmpty(pp.Diagnostics, $"Expected no preprocessing errors, got: {pp.Diagnostics.FirstOrDefault()}");
+            HLSLPreProcessor.PreProcess(tokens, PreProcessorMode.ExpandAll, Directory.GetParent(path)?.FullName!, out var preProcessedTokens, out var pragmas, out var preProcessorDiags);
+            Assert.IsEmpty(preProcessorDiags, $"Expected no preprocessing errors, got: {preProcessorDiags.FirstOrDefault()}");
 
             // Lex
-            HLSLParser.ParseTopLevelDeclarations(pp.outputTokens, out var nodes, out var parserDiags);
+            HLSLParser.ParseTopLevelDeclarations(preProcessedTokens, out var nodes, out var parserDiags);
             Assert.IsEmpty(parserDiags, $"Expected no parser errors, got: {parserDiags.FirstOrDefault()}");
+        }
+
+        [Test, TestCaseSource(nameof(GetTestShadersContainingMacros))]
+        public void PreProcessShadersContainingMacros(string path)
+        {
+            // Read text
+            string source = File.ReadAllText(path);
+
+            // Lex
+            HLSLLexer.Lex(source, out var tokens, out var lexerDiags);
+            Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
+
+            // Expand with different strategies
+            HLSLPreProcessor.PreProcess(tokens, PreProcessorMode.ExpandAllExceptIncludes, Directory.GetParent(path)?.FullName!, out var preProcessedTokens, out var pragmas, out var preProcessorDiags);
+            Assert.IsEmpty(preProcessorDiags, $"Expected no preprocessing errors, got: {preProcessorDiags.FirstOrDefault()}");
+
+            HLSLPreProcessor.PreProcess(tokens, PreProcessorMode.ExpandIncludesOnly, Directory.GetParent(path)?.FullName!, out preProcessedTokens, out pragmas, out preProcessorDiags);
+            Assert.IsEmpty(preProcessorDiags, $"Expected no preprocessing errors, got: {preProcessorDiags.FirstOrDefault()}");
+
+            HLSLPreProcessor.PreProcess(tokens, PreProcessorMode.StripDirectives, Directory.GetParent(path)?.FullName!, out preProcessedTokens, out pragmas, out preProcessorDiags);
+            Assert.IsEmpty(preProcessorDiags, $"Expected no preprocessing errors, got: {preProcessorDiags.FirstOrDefault()}");
         }
     }
 }

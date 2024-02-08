@@ -5,6 +5,14 @@ namespace UnityShaderParser.PreProcessor
 {
     using HLSLToken = Token<TokenKind>;
 
+    public enum PreProcessorMode
+    {
+        ExpandAll,
+        ExpandIncludesOnly,
+        ExpandAllExceptIncludes,
+        StripDirectives,
+    }
+
     // TODO: defined()
     public class HLSLPreProcessor : BaseParser<TokenKind>
     {
@@ -27,8 +35,8 @@ namespace UnityShaderParser.PreProcessor
         protected int lineOffset = 0;
         protected Dictionary<string, Macro> defines = new();
 
-        public List<HLSLToken> outputTokens = new(); // TODO
-        public List<string> outputPragmas = new();
+        protected List<HLSLToken> outputTokens = new(); // TODO
+        protected List<string> outputPragmas = new();
 
         protected void Add(HLSLToken token)
         {
@@ -52,11 +60,36 @@ namespace UnityShaderParser.PreProcessor
             this.includeResolver = includeResolver;
         }
 
-        public HLSLPreProcessor(List<HLSLToken> tokens, string basePath)
-            : base(tokens)
+        public static void PreProcess(List<HLSLToken> tokens, out List<HLSLToken> preProcessed, out List<string> pragmas, out List<string> diagnostics)
+            => PreProcess(tokens, PreProcessorMode.ExpandAll, Directory.GetCurrentDirectory(), new DefaultPreProcessorIncludeResolver(), out preProcessed, out pragmas, out diagnostics);
+
+        public static void PreProcess(List<HLSLToken> tokens, PreProcessorMode mode, out List<HLSLToken> preProcessed, out List<string> pragmas, out List<string> diagnostics)
+            => PreProcess(tokens, mode, Directory.GetCurrentDirectory(), new DefaultPreProcessorIncludeResolver(), out preProcessed, out pragmas, out diagnostics);
+
+        public static void PreProcess(List<HLSLToken> tokens, PreProcessorMode mode, string basePath, out List<HLSLToken> preProcessed, out List<string> pragmas, out List<string> diagnostics)
+            => PreProcess(tokens, mode, basePath, new DefaultPreProcessorIncludeResolver(), out preProcessed, out pragmas, out diagnostics);
+
+        public static void PreProcess(List<HLSLToken> tokens, PreProcessorMode mode, string basePath, IPreProcessorIncludeResolver includeResolver, out List<HLSLToken> preProcessed, out List<string> pragmas, out List<string> diagnostics)
         {
-            this.basePath = basePath;
-            this.includeResolver = new DefaultPreProcessorIncludeResolver();
+            HLSLPreProcessor preProcessor = new(tokens, basePath, includeResolver);
+            switch (mode)
+            {
+                case PreProcessorMode.ExpandAll:
+                    preProcessor.ExpandDirectives(true);
+                    break;
+                case PreProcessorMode.ExpandIncludesOnly:
+                    preProcessor.ExpandIncludesOnly();
+                    break;
+                case PreProcessorMode.ExpandAllExceptIncludes:
+                    preProcessor.ExpandDirectives(false);
+                    break;
+                case PreProcessorMode.StripDirectives:
+                    preProcessor.StripDirectives();
+                    break;
+            }
+            preProcessed = preProcessor.outputTokens;
+            pragmas = preProcessor.outputPragmas;
+            diagnostics = preProcessor.diagnostics;
         }
 
         private void ExpandInclude()
@@ -510,7 +543,7 @@ namespace UnityShaderParser.PreProcessor
             }
         }
 
-        public void ExpandMacros()
+        public void ExpandDirectives(bool expandIncludes = true)
         {
             while (!IsAtEnd())
             {
@@ -518,7 +551,17 @@ namespace UnityShaderParser.PreProcessor
                 switch (next.Kind)
                 {
                     case TokenKind.IncludeDirectiveKeyword:
-                        ExpandInclude();
+                        if (expandIncludes)
+                        {
+                            ExpandInclude();
+                        }
+                        else
+                        {
+                            // Skip the include
+                            Eat(TokenKind.IncludeDirectiveKeyword);
+                            var pathToken = Eat(TokenKind.SystemIncludeLiteralToken, TokenKind.StringLiteralToken);
+                            Eat(TokenKind.EndDirectiveToken);
+                        }
                         break;
 
                     case TokenKind.LineDirectiveKeyword:
@@ -618,6 +661,45 @@ namespace UnityShaderParser.PreProcessor
                     Add(Advance());
                 }
             }
+        }
+
+        public void StripDirectives(bool expandIncludes = true)
+        {
+            while (!IsAtEnd())
+            {
+                HLSLToken next = Peek();
+                switch (next.Kind)
+                {
+                    case TokenKind.IncludeDirectiveKeyword:
+                    case TokenKind.LineDirectiveKeyword:
+                    case TokenKind.DefineDirectiveKeyword:
+                    case TokenKind.UndefDirectiveKeyword:
+                    case TokenKind.ErrorDirectiveKeyword:
+                    case TokenKind.PragmaDirectiveKeyword:
+                    case TokenKind.IfdefDirectiveKeyword:
+                    case TokenKind.IfndefDirectiveKeyword:
+                    case TokenKind.IfDirectiveKeyword:
+                    case TokenKind.ElifDirectiveKeyword:
+                    case TokenKind.ElseDirectiveKeyword:
+                    case TokenKind.EndifDirectiveKeyword:
+                        while (!IsAtEnd() && !Match(TokenKind.EndDirectiveToken))
+                        {
+                            Advance();
+                        }
+                        if (Match(TokenKind.EndDirectiveToken))
+                        {
+                            Advance();
+                        }
+                        break;
+
+                    default:
+                        Add(Advance());
+                        break;
+                }
+            }
+
+            // C spec says we need to glue adjacent string literals
+            GlueStringLiteralsPass();
         }
     }
 }
