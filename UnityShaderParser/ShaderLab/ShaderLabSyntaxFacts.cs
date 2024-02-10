@@ -159,7 +159,7 @@
                 case "vertex": bindChannel = BindChannel.Vertex; return true;
                 case "normal": bindChannel = BindChannel.Normal; return true;
                 case "tangent": bindChannel = BindChannel.Tangent; return true;
-                case "texcoord0" or "texcoord": bindChannel = BindChannel.TexCoord0; return true;
+                case "texcoord0": case "texcoord": bindChannel = BindChannel.TexCoord0; return true;
                 case "texcoord1": bindChannel = BindChannel.TexCoord1; return true;
                 case "texcoord2": bindChannel = BindChannel.TexCoord2; return true;
                 case "texcoord3": bindChannel = BindChannel.TexCoord3; return true;

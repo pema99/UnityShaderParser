@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Collections.Generic;
+using System.Text;
 using UnityShaderParser.Common;
 
 namespace UnityShaderParser.HLSL
@@ -12,7 +13,7 @@ namespace UnityShaderParser.HLSL
 
         public static void Lex(string source, out List<HLSLToken> tokens, out List<string> diagnostics)
         {
-            HLSLLexer lexer = new(source);
+            HLSLLexer lexer = new HLSLLexer(source);
 
             lexer.Lex();
 
@@ -50,7 +51,11 @@ namespace UnityShaderParser.HLSL
                     Add(EatStringLiteral('"', '"'), TokenKind.StringLiteralToken);
                     break;
 
-                case ' ' or '\t' or '\r' or '\n' or '\\':
+                case ' ':
+                case '\t':
+                case '\r':
+                case '\n':
+                case '\\':
                     Advance(); // Only consume 1 (preprocessor might care about the newlines)
                     break;
 

@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Collections.Generic;
+using System.Text;
 using UnityShaderParser.Common;
 
 namespace UnityShaderParser.ShaderLab
@@ -12,7 +13,7 @@ namespace UnityShaderParser.ShaderLab
 
         public static void Lex(string source, out List<SLToken> tokens, out List<string> diagnostics)
         {
-            ShaderLabLexer lexer = new(source);
+            ShaderLabLexer lexer = new ShaderLabLexer(source);
 
             lexer.Lex();
 
@@ -47,7 +48,10 @@ namespace UnityShaderParser.ShaderLab
                     Add(EatStringLiteral('[', ']'), TokenKind.BracketedStringLiteralToken);
                     break;
 
-                case ' ' or '\t' or '\r' or '\n':
+                case ' ':
+                case '\t':
+                case '\r':
+                case '\n':
                     Advance();
                     break;
 
@@ -143,7 +147,7 @@ namespace UnityShaderParser.ShaderLab
 
         private string SkipProgramBody(string expectedEnd)
         {
-            StringBuilder builder = new();
+            StringBuilder builder = new StringBuilder();
             while (true)
             {
                 // If there is still space for the terminator
@@ -172,7 +176,7 @@ namespace UnityShaderParser.ShaderLab
 
         private void LexDimensionalTextureType()
         {
-            StringBuilder builder = new();
+            StringBuilder builder = new StringBuilder();
             builder.Append(Advance());
             while (char.IsLetter(Peek()))
             {

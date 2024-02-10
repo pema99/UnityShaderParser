@@ -1,4 +1,7 @@
-﻿using UnityShaderParser.Common;
+﻿using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using UnityShaderParser.Common;
 using UnityShaderParser.HLSL;
 
 namespace UnityShaderParser.PreProcessor
@@ -33,10 +36,10 @@ namespace UnityShaderParser.PreProcessor
         protected IPreProcessorIncludeResolver includeResolver;
 
         protected int lineOffset = 0;
-        protected Dictionary<string, Macro> defines = new();
+        protected Dictionary<string, Macro> defines = new Dictionary<string, Macro>();
 
-        protected List<HLSLToken> outputTokens = new(); // TODO
-        protected List<string> outputPragmas = new();
+        protected List<HLSLToken> outputTokens = new List<HLSLToken>(); // TODO
+        protected List<string> outputPragmas = new List<string>();
 
         protected void Add(HLSLToken token)
         {
@@ -71,7 +74,7 @@ namespace UnityShaderParser.PreProcessor
 
         public static void PreProcess(List<HLSLToken> tokens, PreProcessorMode mode, string basePath, IPreProcessorIncludeResolver includeResolver, out List<HLSLToken> preProcessed, out List<string> pragmas, out List<string> diagnostics)
         {
-            HLSLPreProcessor preProcessor = new(tokens, basePath, includeResolver);
+            HLSLPreProcessor preProcessor = new HLSLPreProcessor(tokens, basePath, includeResolver);
             switch (mode)
             {
                 case PreProcessorMode.ExpandAll:
@@ -108,7 +111,7 @@ namespace UnityShaderParser.PreProcessor
         {
             HLSLToken LocalPeek(int i) => i < tokens.Count ? tokens[i] : default;
 
-            List<HLSLToken> result = new();
+            List<HLSLToken> result = new List<HLSLToken>();
             for (int i = 0; i < tokens.Count; i++)
             {
                 var token = tokens[i];
@@ -178,7 +181,7 @@ namespace UnityShaderParser.PreProcessor
                     return true;
                 }
 
-                parameters.Add(new());
+                parameters.Add(new List<HLSLToken>());
 
                 // Parse until we have match parens, they might be nested
                 int numParens = 1;
@@ -196,7 +199,7 @@ namespace UnityShaderParser.PreProcessor
                             numParens--;
                             break;
                         case TokenKind.CommaToken when numParens == 1:
-                            parameters.Add(new());
+                            parameters.Add(new List<HLSLToken>());
                             break;
                         default:
                             parameters.Last().Add(next);
@@ -213,7 +216,7 @@ namespace UnityShaderParser.PreProcessor
         private List<HLSLToken> ApplyMacros()
         {
             // First, get the entire macro identifier
-            List<HLSLToken> expanded = new();
+            List<HLSLToken> expanded = new List<HLSLToken>();
             var identifierTok = Eat(TokenKind.IdentifierToken);
             expanded.Add(identifierTok);
             string identifier = identifierTok.Identifier ?? string.Empty;
@@ -247,7 +250,7 @@ namespace UnityShaderParser.PreProcessor
             // Glue identifiers if needed
             GlueIdentifiersIn(expanded);
             
-            HashSet<string> hideSet = new();
+            HashSet<string> hideSet = new HashSet<string>();
             
             // Loop until we can't apply macros anymore
             while (true)
@@ -262,7 +265,7 @@ namespace UnityShaderParser.PreProcessor
                     if (hideSet.Contains(macro.Key))
                         continue;
 
-                    List<HLSLToken> next = new();
+                    List<HLSLToken> next = new List<HLSLToken>();
 
                     for (int i = 0; i < expanded.Count; i++)
                     {
@@ -336,7 +339,7 @@ namespace UnityShaderParser.PreProcessor
 
         private List<HLSLToken> SkipUntilEndOfConditional()
         {
-            List<HLSLToken> skipped = new();
+            List<HLSLToken> skipped = new List<HLSLToken>();
             int depth = 0;
             while (true)
             {
@@ -431,7 +434,7 @@ namespace UnityShaderParser.PreProcessor
                         Error("Unexpected #elif directive - there is no conditional directive preceding it.");
                     }
                     // Get the expanded tokens for the condition expression
-                    List<HLSLToken> expandedConditionTokens = new();
+                    List<HLSLToken> expandedConditionTokens = new List<HLSLToken>();
                     while (!IsAtEnd() && !Match(TokenKind.EndDirectiveToken))
                     {
                         // If we find an identifier, eagerly expand (https://www.math.utah.edu/docs/info/cpp_1.html)
@@ -467,7 +470,7 @@ namespace UnityShaderParser.PreProcessor
         private void ExpandConditional()
         {
             int startPosition = position;
-            List<HLSLToken> takenTokens = new();
+            List<HLSLToken> takenTokens = new List<HLSLToken>();
             bool branchTaken = false;
 
             bool condEvaluation = EvaluateCondition(false);
@@ -512,7 +515,7 @@ namespace UnityShaderParser.PreProcessor
         private void GlueStringLiteralsPass()
         {
             position = 0;
-            tokens = new(outputTokens);
+            tokens = new List<HLSLToken>(outputTokens);
             outputTokens.Clear();
             while (!IsAtEnd())
             {
@@ -579,7 +582,7 @@ namespace UnityShaderParser.PreProcessor
                     case TokenKind.DefineDirectiveKeyword:
                         Eat(TokenKind.DefineDirectiveKeyword);
                         string from = ParseIdentifier();
-                        List<string> args = new();
+                        List<string> args = new List<string>();
                         bool functionLike = false;
                         if (Match(TokenKind.OpenFunctionLikeMacroParenToken))
                         {

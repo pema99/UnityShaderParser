@@ -1,4 +1,8 @@
-﻿namespace UnityShaderParser.Common
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace UnityShaderParser.Common
 {
     public abstract class BaseParser<T>
         where T : struct, Enum
@@ -9,20 +13,20 @@
         protected abstract T FloatLiteralTokenKind { get; }
         protected abstract T IdentifierTokenKind { get; }
 
-        protected List<Token<T>> tokens = new();
+        protected List<Token<T>> tokens = new List<Token<T>>();
         protected int position = 0;
         protected SourceSpan anchorSpan = default;
 
-        protected List<string> diagnostics = new();
+        protected List<string> diagnostics = new List<string>();
         public List<string> Diagnostics => diagnostics;
 
         public BaseParser(List<Token<T>> tokens)
         {
             // Need to copy since the parser might want to modify tokens in place
-            this.tokens = new(tokens);
+            this.tokens = new List<Token<T>>(tokens);
         }
 
-        private Stack<(int position, SourceSpan span, int diagnosticCount)> snapshots = new();
+        private Stack<(int position, SourceSpan span, int diagnosticCount)> snapshots = new Stack<(int position, SourceSpan span, int diagnosticCount)>();
 
         private void SnapshotState()
         {
@@ -74,7 +78,7 @@
                 if (diagnostics.Count > snapshots.Peek().diagnosticCount)
                 {
                     RestoreState();
-                    parsed = default!;
+                    parsed = default;
                     return false;
                 }
 
@@ -84,7 +88,7 @@
             catch
             {
                 RestoreState();
-                parsed = default!;
+                parsed = default;
                 return false;
             }
         }
@@ -205,9 +209,9 @@
         protected List<P> ParseSeparatedList0<P>(T end, T separator, Func<P> parser, bool allowTrailingSeparator = false)
         {
             if (Match(end))
-                return new();
+                return new List<P>();
 
-            List<P> result = new();
+            List<P> result = new List<P>();
 
             result.Add(parser());
             while (Match(separator))
@@ -235,7 +239,7 @@
 
         protected List<P> ParseSeparatedList1<P>(T seperator, Func<P> parser)
         {
-            List<P> result = new();
+            List<P> result = new List<P>();
 
             result.Add(parser());
             while (Match(seperator))
@@ -260,7 +264,7 @@
 
         protected List<P> ParseMany1<P>(T first, Func<P> parser)
         {
-            List<P> result = new();
+            List<P> result = new List<P>();
 
             result.Add(parser());
 
@@ -286,14 +290,14 @@
         protected List<P> ParseMany0<P>(T first, Func<P> parser)
         {
             if (!Match(first))
-                return new();
+                return new List<P>();
 
             return ParseMany1(first, parser);
         }
 
         protected List<P> ParseMany1<P>(Func<bool> first, Func<P> parser)
         {
-            List<P> result = new();
+            List<P> result = new List<P>();
 
             result.Add(parser());
 
@@ -319,19 +323,19 @@
         protected List<P> ParseMany0<P>(Func<bool> first, Func<P> parser)
         {
             if (!first())
-                return new();
+                return new List<P>();
 
             return ParseMany1(first, parser);
         }
 
-        protected P? ParseOptional<P>(T first, Func<P> parser)
+        protected P ParseOptional<P>(T first, Func<P> parser)
         {
             if (Match(first))
                 return parser();
             return default;
         }
 
-        protected P? ParseOptional<P>(Func<bool> first, Func<P> parser)
+        protected P ParseOptional<P>(Func<bool> first, Func<P> parser)
         {
             if (first())
                 return parser();

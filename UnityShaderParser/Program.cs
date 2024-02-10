@@ -1,4 +1,6 @@
-﻿using UnityShaderParser.ShaderLab;
+﻿using System;
+using System.IO;
+using UnityShaderParser.ShaderLab;
 
 public class Program
 {

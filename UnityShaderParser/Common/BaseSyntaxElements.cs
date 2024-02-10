@@ -1,4 +1,7 @@
-﻿namespace UnityShaderParser.Common
+﻿using System.Collections.Generic;
+using System.Linq;
+
+namespace UnityShaderParser.Common
 {
     // TODO: Filename
     public struct SourceSpan
@@ -13,7 +16,7 @@
         where TTokenKind : struct
     {
         public TTokenKind Kind;
-        public string? Identifier;
+        public string Identifier; // Optional
         public SourceSpan Span;
 
         public override string ToString()
@@ -31,7 +34,7 @@
         // Helpers
         protected static IEnumerable<TSelf> MergeChildren(params IEnumerable<TSelf>[] children)
             => children.SelectMany(x => x);
-        protected static IEnumerable<TSelf> OptionalChild(TSelf? child)
+        protected static IEnumerable<TSelf> OptionalChild(TSelf child)
             => child == null ? Enumerable.Empty<TSelf>() : new[] { child };
         protected static IEnumerable<TSelf> Child(TSelf child)
             => new[] { child };

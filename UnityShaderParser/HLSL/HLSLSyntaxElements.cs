@@ -1,4 +1,6 @@
-﻿using UnityShaderParser.Common;
+﻿using System.Collections.Generic;
+using System.Linq;
+using UnityShaderParser.Common;
 
 namespace UnityShaderParser.HLSL
 {
@@ -648,7 +650,7 @@ namespace UnityShaderParser.HLSL
         public TypeNode ReturnType { get; set; }
         public UserDefinedNamedTypeNode Name { get; set; }
         public List<FormalParameterNode> Parameters { get; set; }
-        public SemanticNode? Semantic { get; set; }
+        public SemanticNode Semantic { get; set; }
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             MergeChildren(Attributes, Child(ReturnType), Child(Name), Parameters, OptionalChild(Semantic));
@@ -673,7 +675,7 @@ namespace UnityShaderParser.HLSL
         public List<ArrayRankNode> ArrayRanks { get; set; }
         public List<VariableDeclaratorQualifierNode> Qualifiers { get; set; }
         public List<VariableDeclarationStatementNode> Annotations { get; set; }
-        public InitializerNode? Initializer { get; set; }
+        public InitializerNode Initializer { get; set; } // Optional
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             MergeChildren(ArrayRanks, Qualifiers, Annotations, OptionalChild(Initializer));
@@ -683,7 +685,7 @@ namespace UnityShaderParser.HLSL
 
     public class ArrayRankNode : HLSLSyntaxNode
     {
-        public ExpressionNode? Dimension { get; set; }
+        public ExpressionNode Dimension { get; set; } // Optional
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             OptionalChild(Dimension);
@@ -763,7 +765,7 @@ namespace UnityShaderParser.HLSL
     public class ConstantBufferNode : HLSLSyntaxNode
     {
         public UserDefinedNamedTypeNode Name { get; set; }
-        public RegisterLocationNode? RegisterLocation { get; set; }
+        public RegisterLocationNode RegisterLocation { get; set; } // Optional
         public List<VariableDeclarationStatementNode> Declarations { get; set; }
         public bool IsTextureBuffer { get; set; }
 
@@ -803,7 +805,7 @@ namespace UnityShaderParser.HLSL
     {
         public RegisterKind Kind { get; set; }
         public int Location { get; set; }
-        public int? Space { get; set; }
+        public int? Space { get; set; } // Optional
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             Enumerable.Empty<HLSLSyntaxNode>();
@@ -814,7 +816,7 @@ namespace UnityShaderParser.HLSL
     public class PackoffsetNode : VariableDeclaratorQualifierNode
     {
         public int Location { get; set; }
-        public string? Swizzle { get; set; }
+        public string Swizzle { get; set; } // Optional
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             Enumerable.Empty<HLSLSyntaxNode>();
@@ -854,7 +856,7 @@ namespace UnityShaderParser.HLSL
 
     public class ReturnStatementNode : StatementNode
     {
-        public ExpressionNode? Expression { get; set; }
+        public ExpressionNode Expression { get; set; } // Optional
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren => 
             MergeChildren(base.GetChildren, OptionalChild(Expression));
@@ -884,11 +886,11 @@ namespace UnityShaderParser.HLSL
 
     public class ForStatementNode : StatementNode
     {
-        public VariableDeclarationStatementNode? Declaration { get; set; } // This is mutually exclusive with Initializer
-        public ExpressionNode? Initializer { get; set; }
+        public VariableDeclarationStatementNode Declaration { get; set; } // This is mutually exclusive with Initializer
+        public ExpressionNode Initializer { get; set; }
 
-        public ExpressionNode? Condition { get; set; }
-        public ExpressionNode? Increment { get; set; }
+        public ExpressionNode Condition { get; set; } // Optional
+        public ExpressionNode Increment { get; set; } // Optional
         public StatementNode Body { get; set; }
 
         public bool FirstIsDeclaration => Declaration != null;
@@ -926,7 +928,7 @@ namespace UnityShaderParser.HLSL
     {
         public ExpressionNode Condition { get; set; }
         public StatementNode Body { get; set; }
-        public StatementNode? ElseClause { get; set; }
+        public StatementNode ElseClause { get; set; } // Optional
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             MergeChildren(base.GetChildren, Child(Condition), Child(Body), OptionalChild(ElseClause));
@@ -1241,7 +1243,7 @@ namespace UnityShaderParser.HLSL
 
     public class StructTypeNode : UserDefinedTypeNode
     {
-        public UserDefinedNamedTypeNode? Name { get; set; }
+        public UserDefinedNamedTypeNode Name { get; set; }
         public List<UserDefinedNamedTypeNode> Inherits { get; set; }
         public List<VariableDeclarationStatementNode> Fields { get; set; }
         public List<FunctionNode> Methods { get; set; }
@@ -1303,7 +1305,7 @@ namespace UnityShaderParser.HLSL
     public class StatePropertyNode : StatementNode
     {
         public UserDefinedNamedTypeNode Name { get; set; }
-        public ArrayRankNode? ArrayRank { get; set; }
+        public ArrayRankNode ArrayRank { get; set; } // Optional
         public ExpressionNode Value { get; set; }
         public bool IsReference { get; set; }
 
@@ -1317,7 +1319,7 @@ namespace UnityShaderParser.HLSL
     public class TechniqueNode : HLSLSyntaxNode
     {
         public int Version { get; set; }
-        public UserDefinedNamedTypeNode? Name { get; set; }
+        public UserDefinedNamedTypeNode Name { get; set; } // Optional
         public List<VariableDeclarationStatementNode> Annotations { get; set; }
         public List<PassNode> Passes { get; set; }
 
@@ -1330,7 +1332,7 @@ namespace UnityShaderParser.HLSL
     // Old FX pipeline syntax
     public class PassNode : HLSLSyntaxNode
     {
-        public UserDefinedNamedTypeNode? Name { get; set; }
+        public UserDefinedNamedTypeNode Name { get; set; } // Optional
         public List<VariableDeclarationStatementNode> Annotations { get; set; }
         public List<StatementNode> Statements { get; set; }
 

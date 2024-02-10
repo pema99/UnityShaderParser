@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Collections.Generic;
+using System.Text;
 
 namespace UnityShaderParser.Common
 {
@@ -12,8 +13,8 @@ namespace UnityShaderParser.Common
         protected int anchorLine = 1;
         protected int anchorColumn = 1;
 
-        protected List<Token<T>> tokens = new();
-        protected List<string> diagnostics = new();
+        protected List<Token<T>> tokens = new List<Token<T>>();
+        protected List<string> diagnostics = new List<string>();
 
         public BaseLexer(string source)
         {
@@ -26,7 +27,7 @@ namespace UnityShaderParser.Common
         protected bool Match(char tok) => Peek() == tok;
         protected bool IsAtEnd(int offset = 0) => position + offset >= source.Length;
         protected void Add(string identifier, T kind) => tokens.Add(new Token<T> { Identifier = identifier, Kind = kind, Span = GetCurrentSpan() });
-        protected void Add(T kind) => tokens.Add(new() { Kind = kind, Span = GetCurrentSpan() });
+        protected void Add(T kind) => tokens.Add(new Token<T>() { Kind = kind, Span = GetCurrentSpan() });
         protected void Eat(char tok)
         {
             if (!Match(tok))
@@ -65,7 +66,7 @@ namespace UnityShaderParser.Common
 
         protected string EatStringLiteral(char start, char end)
         {
-            StringBuilder builder = new();
+            StringBuilder builder = new StringBuilder();
             Eat(start);
             while (Peek() != end)
             {
@@ -77,7 +78,7 @@ namespace UnityShaderParser.Common
 
         protected string EatIdentifier()
         {
-            StringBuilder builder = new();
+            StringBuilder builder = new StringBuilder();
             while (IsAlphaNumericOrUnderscore(Peek()))
             {
                 builder.Append(Advance());
@@ -87,7 +88,7 @@ namespace UnityShaderParser.Common
 
         protected string EatNumber(out bool isFloat)
         {
-            StringBuilder builder = new();
+            StringBuilder builder = new StringBuilder();
             if (Match('-'))
             {
                 builder.Append(Advance());
@@ -118,7 +119,7 @@ namespace UnityShaderParser.Common
 
         protected void SkipWhitespace(bool skipNewLines = false)
         {
-            while (Peek() is ' ' or '\t' or '\r' || (skipNewLines && Peek() == '\n'))
+            while (Peek() == ' ' || Peek() == '\t' || Peek() == '\r' || (skipNewLines && Peek() == '\n'))
             {
                 Advance();
             }

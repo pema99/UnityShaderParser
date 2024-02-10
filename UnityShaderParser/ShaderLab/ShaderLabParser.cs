@@ -1,4 +1,7 @@
-﻿using UnityShaderParser.Common;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using UnityShaderParser.Common;
 
 namespace UnityShaderParser.ShaderLab
 {
@@ -16,7 +19,7 @@ namespace UnityShaderParser.ShaderLab
 
         public static void Parse(List<SLToken> tokens, out ShaderNode rootNode, out List<string> diagnostics)
         {
-            ShaderLabParser parser = new(tokens);
+            ShaderLabParser parser = new ShaderLabParser(tokens);
 
             rootNode = parser.ParseShader();
             diagnostics = parser.diagnostics;
@@ -32,21 +35,21 @@ namespace UnityShaderParser.ShaderLab
 
             ParseIncludeBlocksIfPresent(includeBlocks);
 
-            List<ShaderPropertyNode> properties = new();
+            List<ShaderPropertyNode> properties = new List<ShaderPropertyNode>();
             if (Match(TokenKind.PropertiesKeyword))
             {
                 ParsePropertySection(properties);
             }
 
-            List<SubShaderNode> subshaders = new();
-            string? fallback = null;
+            List<SubShaderNode> subshaders = new List<SubShaderNode>();
+            string fallback = null;
             bool fallbackDisabledExplicitly = false;
-            string? customEditor = null;
-            Dictionary<string, string> dependencies = new();
+            string customEditor = null;
+            Dictionary<string, string> dependencies = new Dictionary<string, string>();
 
             // Keep track of commands inherited by categories as we parse.
             // We essentially pretend categories don't exist, since they are a niche feature.
-            Stack<List<ShaderLabCommandNode>> categoryCommands = new();
+            Stack<List<ShaderLabCommandNode>> categoryCommands = new Stack<List<ShaderLabCommandNode>>();
 
             while (!IsAtEnd())
             {
@@ -93,7 +96,7 @@ namespace UnityShaderParser.ShaderLab
                     case TokenKind.CategoryKeyword:
                         Advance();
                         Eat(TokenKind.OpenBraceToken);
-                        categoryCommands.Push(new());
+                        categoryCommands.Push(new List<ShaderLabCommandNode>());
                         break;
                     case TokenKind.CloseBraceToken when categoryCommands.Count > 0:
                         Advance();
@@ -165,7 +168,7 @@ namespace UnityShaderParser.ShaderLab
 
         private ShaderPropertyNode ParseProperty()
         {
-            List<string> attributes = new();
+            List<string> attributes = new List<string>();
             while (Match(TokenKind.BracketedStringLiteralToken))
             {
                 attributes.Add(ParseBracketedStringLiteral());
@@ -188,7 +191,7 @@ namespace UnityShaderParser.ShaderLab
                 case TokenKind.IntKeyword: kind = ShaderPropertyKind.Int; break;
                 case TokenKind.ColorKeyword: kind = ShaderPropertyKind.Color; break;
                 case TokenKind.VectorKeyword: kind = ShaderPropertyKind.Vector; break;
-                case TokenKind._2DKeyword or TokenKind.RectKeyword: kind = ShaderPropertyKind.Texture2D; break;
+                case TokenKind._2DKeyword: case TokenKind.RectKeyword: kind = ShaderPropertyKind.Texture2D; break;
                 case TokenKind._3DKeyword: kind = ShaderPropertyKind.Texture3D; break;
                 case TokenKind.CubeKeyword: kind = ShaderPropertyKind.TextureCube; break;
                 case TokenKind._2DArrayKeyword: kind = ShaderPropertyKind.Texture2DArray; break;
@@ -213,10 +216,11 @@ namespace UnityShaderParser.ShaderLab
 
             Eat(TokenKind.EqualsToken);
 
-            ShaderPropertyValueNode valueNode = new();
+            ShaderPropertyValueNode valueNode = new ShaderPropertyValueNode();
             switch (kind)
             {
-                case ShaderPropertyKind.Color or ShaderPropertyKind.Vector:
+                case ShaderPropertyKind.Color:
+                case ShaderPropertyKind.Vector:
                     Eat(TokenKind.OpenParenToken);
                     float x = ParseNumericLiteral();
                     Eat(TokenKind.CommaToken);
@@ -238,16 +242,23 @@ namespace UnityShaderParser.ShaderLab
                         valueNode = new ShaderPropertyValueVectorNode { HasWChannel = hasLastChannel, Vector = (x, y, z, w) };
                     break;
 
-                case ShaderPropertyKind.TextureCube or ShaderPropertyKind.Texture2D or ShaderPropertyKind.Texture3D or ShaderPropertyKind.TextureAny or
-                     ShaderPropertyKind.TextureCubeArray or ShaderPropertyKind.Texture2DArray or ShaderPropertyKind.Texture3DArray:
+                case ShaderPropertyKind.TextureCube:
+                case ShaderPropertyKind.Texture2D:
+                case ShaderPropertyKind.Texture3D:
+                case ShaderPropertyKind.TextureAny:
+                case ShaderPropertyKind.TextureCubeArray:
+                case ShaderPropertyKind.Texture2DArray:
+                case ShaderPropertyKind.Texture3DArray:
                     valueNode = new ShaderPropertyValueTextureNode { Kind = ShaderLabSyntaxFacts.ShaderPropertyTypeToTextureType(kind), TextureName = ParseStringLiteral() };
                     break;
 
-                case ShaderPropertyKind.Integer or ShaderPropertyKind.Int:
+                case ShaderPropertyKind.Integer:
+                case ShaderPropertyKind.Int:
                     valueNode = new ShaderPropertyValueIntegerNode { Number = ParseIntegerLiteral() };
                     break;
 
-                case ShaderPropertyKind.Float or ShaderPropertyKind.Range:
+                case ShaderPropertyKind.Float:
+                case ShaderPropertyKind.Range:
                     valueNode = new ShaderPropertyValueFloatNode { Number = ParseNumericLiteral() };
                     break;
 
@@ -279,10 +290,10 @@ namespace UnityShaderParser.ShaderLab
             Eat(TokenKind.SubShaderKeyword);
             Eat(TokenKind.OpenBraceToken);
 
-            List<ShaderPassNode> passes = new();
-            List<ShaderLabCommandNode> commands = new();
-            List<string> programBlocks = new();
-            List<string> includeBlocks = new();
+            List<ShaderPassNode> passes = new List<ShaderPassNode>();
+            List<ShaderLabCommandNode> commands = new List<ShaderLabCommandNode>();
+            List<string> programBlocks = new List<string>();
+            List<string> includeBlocks = new List<string>();
 
             while (!IsAtEnd())
             {
@@ -319,9 +330,9 @@ namespace UnityShaderParser.ShaderLab
             Eat(TokenKind.PassKeyword);
             Eat(TokenKind.OpenBraceToken);
 
-            List<ShaderLabCommandNode> commands = new();
-            List<string> programBlocks = new();
-            List<string> includeBlocks = new();
+            List<ShaderLabCommandNode> commands = new List<ShaderLabCommandNode>();
+            List<string> programBlocks = new List<string>();
+            List<string> includeBlocks = new List<string>();
 
             ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
 
@@ -346,12 +357,12 @@ namespace UnityShaderParser.ShaderLab
             Eat(TokenKind.GrabPassKeyword);
             Eat(TokenKind.OpenBraceToken);
 
-            List<ShaderLabCommandNode> commands = new();
-            List<string> includeBlocks = new();
+            List<ShaderLabCommandNode> commands = new List<ShaderLabCommandNode>();
+            List<string> includeBlocks = new List<string>();
 
             ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
 
-            string? name = null;
+            string name = null;
             if (Peek().Kind != TokenKind.CloseBraceToken)
             {
                 name = ParseStringLiteral();
@@ -436,7 +447,7 @@ namespace UnityShaderParser.ShaderLab
             Eat(TokenKind.TagsKeyword);
             Eat(TokenKind.OpenBraceToken);
 
-            Dictionary<string, string> tags = new();
+            Dictionary<string, string> tags = new Dictionary<string, string>();
             while (Peek().Kind != TokenKind.CloseBraceToken)
             {
                 string key = ParseStringLiteral();
@@ -483,7 +494,7 @@ namespace UnityShaderParser.ShaderLab
             var prop = ParsePropertyReferenceOr(() =>
             {
                 var kind = Eat(TokenKind.OnKeyword, TokenKind.OffKeyword, TokenKind.TrueKeyword, TokenKind.FalseKeyword).Kind;
-                return kind is TokenKind.OnKeyword or TokenKind.TrueKeyword;
+                return kind == TokenKind.OnKeyword || kind == TokenKind.TrueKeyword;
             });
             return new T { Enabled = prop };
         }
@@ -495,7 +506,7 @@ namespace UnityShaderParser.ShaderLab
             {
                 var kind = Eat(TokenKind.OffKeyword, TokenKind.FrontKeyword, TokenKind.BackKeyword, TokenKind.FalseKeyword).Kind;
                 CullMode mode = default;
-                if (kind is TokenKind.OffKeyword or TokenKind.FalseKeyword)
+                if (kind == TokenKind.OffKeyword || kind == TokenKind.FalseKeyword)
                     mode = CullMode.Off;
                 else if (kind == TokenKind.FrontKeyword)
                     mode = CullMode.Front;
@@ -513,7 +524,7 @@ namespace UnityShaderParser.ShaderLab
             return new ShaderLabCommandZTestNode { Mode = prop };
         }
 
-        private static readonly Dictionary<TokenKind, BlendFactor> blendFactors = new()
+        private static readonly Dictionary<TokenKind, BlendFactor> blendFactors = new Dictionary<TokenKind, BlendFactor>()
         {
             { TokenKind.OneKeyword, BlendFactor.One },
             { TokenKind.ZeroKeyword, BlendFactor.Zero },
@@ -583,7 +594,7 @@ namespace UnityShaderParser.ShaderLab
             var mask = ParsePropertyReferenceOr(() =>
             {
                 SLToken next = Peek();
-                if (next.Kind is TokenKind.FloatLiteralToken or TokenKind.IntegerLiteralToken)
+                if (next.Kind == TokenKind.FloatLiteralToken || next.Kind == TokenKind.IntegerLiteralToken)
                 {
                     string result = ParseNumericLiteral().ToString();
                     if (result != "0")
@@ -593,7 +604,7 @@ namespace UnityShaderParser.ShaderLab
                 else
                 {
                     string result = ParseIdentifier();
-                    if (!result.ToLower().All(x => x is 'r' or 'g' or 'b' or 'a'))
+                    if (!result.ToLower().All(x => x == 'r' || x == 'g' || x == 'b' || x == 'a'))
                         Error("a valid mask containing only the letter 'r', 'g', 'b', 'a'", next);
                     return result;
                 }
@@ -677,7 +688,7 @@ namespace UnityShaderParser.ShaderLab
             Eat(TokenKind.BindChannelsKeyword);
             Eat(TokenKind.OpenBraceToken);
 
-            Dictionary<BindChannel, BindChannel> bindings = new();
+            Dictionary<BindChannel, BindChannel> bindings = new Dictionary<BindChannel, BindChannel>();
             while (Peek().Kind != TokenKind.CloseBraceToken)
             {
                 Eat(TokenKind.BindKeyword);
@@ -714,7 +725,7 @@ namespace UnityShaderParser.ShaderLab
             return new ShaderLabCommandColorNode { Color = prop, HasAlphaChannel = hasAlphaChannel };
         }
 
-        private static readonly Dictionary<TokenKind, BlendOp> blendOps = new()
+        private static readonly Dictionary<TokenKind, BlendOp> blendOps = new Dictionary<TokenKind, BlendOp>()
         {
             { TokenKind.AddKeyword, BlendOp.Add },
             { TokenKind.SubKeyword, BlendOp.Sub },
@@ -760,7 +771,7 @@ namespace UnityShaderParser.ShaderLab
             return new ShaderLabCommandBlendOpNode { BlendOp = op };
         }
 
-        private static readonly Dictionary<TokenKind, FixedFunctionMaterialProperty> fixedFunctionsMatProps = new()
+        private static readonly Dictionary<TokenKind, FixedFunctionMaterialProperty> fixedFunctionsMatProps = new Dictionary<TokenKind, FixedFunctionMaterialProperty>()
         {
             { TokenKind.DiffuseKeyword, FixedFunctionMaterialProperty.Diffuse },
             { TokenKind.SpecularKeyword, FixedFunctionMaterialProperty.Specular },
@@ -775,7 +786,7 @@ namespace UnityShaderParser.ShaderLab
             Eat(TokenKind.MaterialKeyword);
             Eat(TokenKind.OpenBraceToken);
 
-            Dictionary<FixedFunctionMaterialProperty, PropertyReferenceOr<(float, float, float, float)>> props = new();
+            var props = new Dictionary<FixedFunctionMaterialProperty, PropertyReferenceOr<(float, float, float, float)>>();
             while (!Match(TokenKind.CloseBraceToken))
             {
                 var prop = fixedFunctionsMatProps.GetValueOrDefault(Eat(fixedFunctionsMatPropsKeys).Kind);
@@ -798,7 +809,7 @@ namespace UnityShaderParser.ShaderLab
             string name = ParseBracketedStringLiteral();
             Eat(TokenKind.OpenBraceToken);
 
-            List<SLToken> tokens = new();
+            List<SLToken> tokens = new List<SLToken>();
             while (!Match(TokenKind.CloseBraceToken))
             {
                 tokens.Add(Advance());

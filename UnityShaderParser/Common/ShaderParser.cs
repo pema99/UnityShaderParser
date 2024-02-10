@@ -1,4 +1,6 @@
-﻿using UnityShaderParser.HLSL;
+﻿using System.Collections.Generic;
+using System.Linq;
+using UnityShaderParser.HLSL;
 using UnityShaderParser.ShaderLab;
 
 namespace UnityShaderParser.Common

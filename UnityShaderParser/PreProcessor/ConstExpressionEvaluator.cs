@@ -1,4 +1,5 @@
 ﻿
+using System.Collections.Generic;
 using UnityShaderParser.Common;
 using UnityShaderParser.HLSL;
 
@@ -15,7 +16,7 @@ namespace UnityShaderParser.PreProcessor
 
             if (localParser.Diagnostics.Count > 0)
             {
-                diagnostics = new() { "Failed to evaluated const expression in preprocessor directive." };
+                diagnostics = new List<string>() { "Failed to evaluated const expression in preprocessor directive." };
                 return false;
             }
 
@@ -25,7 +26,7 @@ namespace UnityShaderParser.PreProcessor
             return result;
         }
 
-        private List<string> diagnostics = new();
+        private List<string> diagnostics = new List<string>();
 
         private static bool ToBool(long i) => i != 0;
         private static long ToNum(bool i) => i ? 1 : 0;
