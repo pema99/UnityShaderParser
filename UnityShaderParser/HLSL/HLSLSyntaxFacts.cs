@@ -1272,6 +1272,23 @@ namespace UnityShaderParser.HLSL
             }
         }
 
+        public static ScalarType MakeNormed(ScalarType type, TokenKind norm)
+        {
+            if (type == ScalarType.Float)
+            {
+                if (norm == TokenKind.UNormKeyword)
+                    return ScalarType.UNormFloat;
+                else if (norm == TokenKind.SNormKeyword)
+                    return ScalarType.SNormFloat;
+                else
+                    return type;
+            }
+            else
+            {
+                return type;
+            }
+        }
+
         public static bool TryConvertToOperator(TokenKind kind, out OperatorKind op)
         {
             switch (kind)

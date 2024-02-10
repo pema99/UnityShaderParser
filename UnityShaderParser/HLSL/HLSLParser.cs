@@ -956,6 +956,7 @@ namespace UnityShaderParser.HLSL
             if (typeToken.Kind == TokenKind.UNormKeyword || typeToken.Kind == TokenKind.SNormKeyword)
             {
                 var type = ParseNumericType();
+                type.Kind = HLSLSyntaxFacts.MakeNormed(type.Kind, typeToken.Kind);
                 return type;
             }
 

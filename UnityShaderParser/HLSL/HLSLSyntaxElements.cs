@@ -475,7 +475,9 @@ namespace UnityShaderParser.HLSL
         Min12Int,
         Min16Uint,
         Min12Uint,
-        String
+        String,
+        UNormFloat,
+        SNormFloat,
     }
 
     public enum LiteralKind
