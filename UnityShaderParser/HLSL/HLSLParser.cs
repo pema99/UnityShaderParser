@@ -120,6 +120,10 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.TechniqueKeyword:
                     return ParseTechnique();
 
+                case TokenKind.SemiToken:
+                    Advance();
+                    return new EmptyStatementNode();
+
                 default:
                     if (IsNextPossiblyFunctionDeclaration())
                     {
@@ -946,6 +950,12 @@ namespace UnityShaderParser.HLSL
             {
                 var type = ParseNumericType();
                 type.Kind = HLSLSyntaxFacts.MakeUnsigned(type.Kind);
+                return type;
+            }
+
+            if (typeToken.Kind == TokenKind.UNormKeyword || typeToken.Kind == TokenKind.SNormKeyword)
+            {
+                var type = ParseNumericType();
                 return type;
             }
 
