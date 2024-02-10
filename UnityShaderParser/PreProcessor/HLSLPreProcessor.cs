@@ -57,17 +57,40 @@ namespace UnityShaderParser.PreProcessor
             }
         }
 
-        // TODO: Pre-defines
-        public HLSLPreProcessor(List<HLSLToken> tokens, bool throwExceptionOnError, string basePath, IPreProcessorIncludeResolver includeResolver)
+        public HLSLPreProcessor(List<HLSLToken> tokens, bool throwExceptionOnError, string basePath, IPreProcessorIncludeResolver includeResolver, Dictionary<string, string> defines)
             : base(tokens, throwExceptionOnError)
         {
             this.basePath = basePath;
             this.includeResolver = includeResolver;
+
+            foreach (var kvp in defines)
+            {
+                var localTokens = HLSLLexer.Lex(kvp.Value, false, out var localLexerDiags);
+                if (localLexerDiags.Count > 0)
+                {
+                    Error($"Invalid define '{kvp.Key}' passed.");
+                }
+                this.defines.Add(kvp.Key, new Macro
+                {
+                    FunctionLike = false,
+                    Name = kvp.Key,
+                    Parameters = new List<string>(),
+                    Tokens = localTokens
+                });
+            }
         }
 
-        public static List<HLSLToken> PreProcess(List<HLSLToken> tokens, bool throwExceptionOnError, PreProcessorMode mode, string basePath, IPreProcessorIncludeResolver includeResolver, out List<string> pragmas, out List<Diagnostic> diagnostics)
+        public static List<HLSLToken> PreProcess(
+            List<HLSLToken> tokens,
+            bool throwExceptionOnError,
+            PreProcessorMode mode,
+            string basePath,
+            IPreProcessorIncludeResolver includeResolver,
+            Dictionary<string, string> defines,
+            out List<string> pragmas,
+            out List<Diagnostic> diagnostics)
         {
-            HLSLPreProcessor preProcessor = new HLSLPreProcessor(tokens, throwExceptionOnError, basePath, includeResolver);
+            HLSLPreProcessor preProcessor = new HLSLPreProcessor(tokens, throwExceptionOnError, basePath, includeResolver, defines);
             switch (mode)
             {
                 case PreProcessorMode.ExpandAll:
@@ -130,18 +153,18 @@ namespace UnityShaderParser.PreProcessor
             for (int i = 0; i < tokens.Count; i++)
             {
                 var token = tokens[i];
-                if (token.Kind == TokenKind.IdentifierToken && LocalPeek(i + 1).Kind == TokenKind.HashHashToken)
+                if (HLSLSyntaxFacts.TryConvertIdentifierOrKeywordToString(token, out string gluedIdentifier) && LocalPeek(i + 1).Kind == TokenKind.HashHashToken)
                 {
-                    string gluedIdentifier = token.Identifier ?? string.Empty;
                     SourceSpan startSpan = token.Span;
                     SourceSpan endSpan = token.Span;
 
                     i++; // identifier
-                    while (LocalPeek(i).Kind == TokenKind.HashHashToken && LocalPeek(i + 1).Kind == TokenKind.IdentifierToken)
+                    while (LocalPeek(i).Kind == TokenKind.HashHashToken &&
+                        HLSLSyntaxFacts.TryConvertIdentifierOrKeywordToString(LocalPeek(i + 1), out string nextIdentifier))
                     {
                         i++; // ##
                         var nextToken = LocalPeek(i++); // identifier
-                        gluedIdentifier += nextToken.Identifier ?? string.Empty;
+                        gluedIdentifier += nextIdentifier;
                         endSpan = nextToken.Span;
                     }
 
@@ -168,7 +191,7 @@ namespace UnityShaderParser.PreProcessor
 
                     var replacedToken = new HLSLToken
                     {
-                        Identifier = defines.ContainsKey(identifier.Identifier ?? string.Empty) ? "1" : "0",
+                        Identifier = defines.ContainsKey(HLSLSyntaxFacts.IdentifierOrKeywordToString(identifier)) ? "1" : "0",
                         Kind = TokenKind.IntegerLiteralToken,
                         Span = new SourceSpan { Start = startSpan.Start, End = endSpan.End },
                     };

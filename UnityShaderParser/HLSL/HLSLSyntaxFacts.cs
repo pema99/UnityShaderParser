@@ -1720,6 +1720,23 @@ namespace UnityShaderParser.HLSL
             }
         }
 
+        public static bool TryConvertIdentifierOrKeywordToString(Token<TokenKind> token, out string result)
+        {
+            if (token.Identifier != null)
+            {
+                result = token.Identifier;
+                return true;
+            }
+
+            if (TryConvertKeywordToString(token.Kind, out result))
+            {
+                return true;
+            }
+
+            result = string.Empty;
+            return false;
+        }
+
         public static string IdentifierOrKeywordToString(Token<TokenKind> token)
         {
             if (token.Identifier != null)

@@ -125,7 +125,7 @@ namespace UnityShaderParser.Common
                     break;
                 }
             }
-            if (Match('f') || Match('F') || Match('h') || Match('H'))
+            if (Match('f') || Match('F') || Match('h') || Match('H') || Match('u') || Match('U'))
             {
                 builder.Append(Advance());
             }
