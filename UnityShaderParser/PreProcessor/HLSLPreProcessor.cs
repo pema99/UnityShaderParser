@@ -17,6 +17,14 @@ namespace UnityShaderParser.PreProcessor
         DoNothing,
     }
 
+    internal struct Macro
+    {
+        public bool FunctionLike;
+        public string Name;
+        public List<string> Parameters;
+        public List<HLSLToken> Tokens;
+    }
+
     // TODO: defined()
     public class HLSLPreProcessor : BaseParser<TokenKind>
     {
@@ -26,19 +34,11 @@ namespace UnityShaderParser.PreProcessor
         protected override TokenKind IdentifierTokenKind => TokenKind.IdentifierToken;
         protected override ParserStage Stage => ParserStage.HLSLPreProcessing;
 
-        protected struct Macro
-        {
-            public bool FunctionLike;
-            public string Name;
-            public List<string> Parameters;
-            public List<HLSLToken> Tokens;
-        }
-
         protected string basePath;
         protected IPreProcessorIncludeResolver includeResolver;
 
         protected int lineOffset = 0;
-        protected Dictionary<string, Macro> defines = new Dictionary<string, Macro>();
+        internal Dictionary<string, Macro> defines = new Dictionary<string, Macro>();
 
         protected List<HLSLToken> outputTokens = new List<HLSLToken>(); // TODO
         protected List<string> outputPragmas = new List<string>();
@@ -91,6 +91,24 @@ namespace UnityShaderParser.PreProcessor
             return preProcessor.outputTokens;
         }
 
+        private new string ParseIdentifier()
+        {
+            if (Match(TokenKind.IdentifierToken))
+            {
+                return base.ParseIdentifier();
+            }
+            else
+            {
+                var identifierToken = Advance();
+                if (HLSLSyntaxFacts.TryConvertKeywordToString(identifierToken.Kind, out string result))
+                {
+                    return result;
+                }
+                Error("a valid identifier", identifierToken);
+                return string.Empty;
+            }
+        }
+
         private void ExpandInclude()
         {
             Eat(TokenKind.IncludeDirectiveKeyword);
@@ -132,6 +150,7 @@ namespace UnityShaderParser.PreProcessor
                         Kind = TokenKind.IdentifierToken,
                         Span = new SourceSpan { Start = startSpan.Start, End = endSpan.End },
                     };
+                    i--; // For loop continues
 
                     result.Add(gluedToken);
                 }
@@ -434,9 +453,33 @@ namespace UnityShaderParser.PreProcessor
                     while (!IsAtEnd() && !Match(TokenKind.EndDirectiveToken))
                     {
                         // If we find an identifier, eagerly expand (https://www.math.utah.edu/docs/info/cpp_1.html)
-                        if (Match(TokenKind.IdentifierToken))
+                        var next = Peek();
+                        if (next.Kind == TokenKind.IdentifierToken)
                         {
-                            expandedConditionTokens.AddRange(ApplyMacros());
+                            // Special case for defined function
+                            if (next.Identifier == "defined")
+                            {
+                                var definedKeyword = Advance();
+                                bool hasParen = Match(TokenKind.OpenParenToken);
+                                if (hasParen) Eat(TokenKind.OpenParenToken);
+                                var identifierToken = Eat(TokenKind.IdentifierToken);
+                                var lastToken = identifierToken;
+                                if (hasParen) lastToken = Eat(TokenKind.CloseParenToken);
+
+                                SourceSpan span = new SourceSpan
+                                {
+                                    Start = definedKeyword.Span.Start,
+                                    End = lastToken.Span.End,
+                                };
+                                if (defines.ContainsKey(identifierToken.Identifier))
+                                    expandedConditionTokens.Add(new HLSLToken { Identifier = "1", Kind = TokenKind.IntegerLiteralToken, Span = span });
+                                else
+                                    expandedConditionTokens.Add(new HLSLToken { Identifier = "0", Kind = TokenKind.IntegerLiteralToken, Span = span });
+                            }
+                            else
+                            {
+                                expandedConditionTokens.AddRange(ApplyMacros());
+                            }
                         }
                         else
                         {

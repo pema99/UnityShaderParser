@@ -14,15 +14,38 @@ namespace UnityShaderParser.PreProcessor
 
     public sealed class DefaultPreProcessorIncludeResolver : IPreProcessorIncludeResolver
     {
+        private List<string> includePaths = new List<string>();
+
+        public DefaultPreProcessorIncludeResolver() { }
+
+        public DefaultPreProcessorIncludeResolver(List<string> includePaths)
+        {
+            this.includePaths = includePaths;
+        }
+
         public string ReadFile(string basePath, string filePath)
         {
             string path = string.IsNullOrEmpty(basePath)
                 ? filePath
                 : Path.Combine(basePath, filePath);
 
+            // Try include paths instead
             if (!File.Exists(path))
             {
-                // Attempt current directory instead
+                foreach (string includePath in includePaths)
+                {
+                    string combinedPath = Path.Combine(includePath, filePath);
+                    if (File.Exists(combinedPath))
+                        return File.ReadAllText(combinedPath);
+                    combinedPath = Path.Combine(basePath, includePath, filePath);
+                    if (File.Exists(combinedPath))
+                        return File.ReadAllText(combinedPath);
+                }
+            }
+
+            // Still not found, so try current directory instead
+            if (!File.Exists(path))
+            {
                 string lastFolder = Path.GetFileName(basePath);
                 if (!string.IsNullOrEmpty(lastFolder) && filePath.StartsWith(lastFolder))
                 {

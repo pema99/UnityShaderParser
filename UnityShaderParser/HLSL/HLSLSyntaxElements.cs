@@ -1001,12 +1001,19 @@ namespace UnityShaderParser.HLSL
 
     public abstract class ExpressionNode : HLSLSyntaxNode { }
 
-    public abstract class NamedExpressionNode : ExpressionNode { }
+    public abstract class NamedExpressionNode : ExpressionNode
+    {
+        public abstract string GetName();
+        public abstract string GetUnqualifiedName();
+    }
 
     public class QualifiedIdentifierExpressionNode : NamedExpressionNode
     {
         public IdentifierExpressionNode Left { get; set; }
         public NamedExpressionNode Right { get; set; }
+
+        public override string GetName() => $"{Left.GetName()}::{Right.GetName()}";
+        public override string GetUnqualifiedName() => Right.GetUnqualifiedName();
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             MergeChildren(Child(Left), Child(Right));
@@ -1017,6 +1024,9 @@ namespace UnityShaderParser.HLSL
     public class IdentifierExpressionNode : NamedExpressionNode
     {
         public string Name { get; set; }
+
+        public override string GetName() => Name;
+        public override string GetUnqualifiedName() => Name;
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             Enumerable.Empty<HLSLSyntaxNode>();
@@ -1206,13 +1216,20 @@ namespace UnityShaderParser.HLSL
 
     public abstract class TypeNode : HLSLSyntaxNode { }
     public abstract class UserDefinedTypeNode : TypeNode { }
-    public abstract class UserDefinedNamedTypeNode : UserDefinedTypeNode { }
+    public abstract class UserDefinedNamedTypeNode : UserDefinedTypeNode
+    {
+        public abstract string GetName();
+        public abstract string GetUnqualifiedName();
+    }
     public abstract class PredefinedTypeNode : TypeNode { }
 
     public class QualifiedNamedTypeNode : UserDefinedNamedTypeNode
     {
         public NamedTypeNode Left { get; set; }
         public UserDefinedNamedTypeNode Right { get; set; }
+
+        public override string GetName() => $"{Left.GetName()}::{Right.GetName()}";
+        public override string GetUnqualifiedName() => Right.GetUnqualifiedName();
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             MergeChildren(Child(Left), Child(Right));
@@ -1223,6 +1240,9 @@ namespace UnityShaderParser.HLSL
     public class NamedTypeNode : UserDefinedNamedTypeNode
     {
         public string Name { get; set; }
+
+        public override string GetName() => Name;
+        public override string GetUnqualifiedName() => Name;
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             Enumerable.Empty<HLSLSyntaxNode>();

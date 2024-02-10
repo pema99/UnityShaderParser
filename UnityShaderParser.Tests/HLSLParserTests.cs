@@ -1,6 +1,7 @@
 ﻿using NUnit.Framework;
 using System.IO;
 using System.Linq;
+using UnityShaderParser.Common;
 using UnityShaderParser.PreProcessor;
 
 namespace UnityShaderParser.HLSL.Tests
@@ -97,6 +98,22 @@ namespace UnityShaderParser.HLSL.Tests
             Assert.IsEmpty(preProcessorDiags, $"Expected no preprocessing errors, got: {preProcessorDiags.FirstOrDefault()}");
 
             HLSLPreProcessor.PreProcess(tokens, false, PreProcessorMode.StripDirectives, Directory.GetParent(path)?.FullName!, new DefaultPreProcessorIncludeResolver(), out pragmas, out preProcessorDiags);
+            Assert.IsEmpty(preProcessorDiags, $"Expected no preprocessing errors, got: {preProcessorDiags.FirstOrDefault()}");
+        }
+
+        [Test]
+        public void IdentifierConcatenationInMacro()
+        {
+            string source = @"
+                #define TRANSFORM_TEX(tex,name) (tex.xy * name##_ST.xy + name##_ST.zw)
+                TRANSFORM_TEX(v.texcoord, _MainTex);
+            ";
+
+            // Lex
+            var tokens = HLSLLexer.Lex(source, false, out var lexerDiags);
+            Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
+
+            tokens = HLSLPreProcessor.PreProcess(tokens, false, PreProcessorMode.ExpandAll, "", new DefaultPreProcessorIncludeResolver(), out var pragmas, out var preProcessorDiags);
             Assert.IsEmpty(preProcessorDiags, $"Expected no preprocessing errors, got: {preProcessorDiags.FirstOrDefault()}");
         }
     }

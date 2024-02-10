@@ -109,7 +109,7 @@ namespace UnityShaderParser.Common
             while (true)
             {
                 char c = Peek();
-                if (char.IsDigit(c) || c == '.' || c == 'f' || c == 'F')
+                if (char.IsDigit(c) || c == '.')
                 {
                     builder.Append(Advance());
                 }
@@ -125,8 +125,16 @@ namespace UnityShaderParser.Common
                     break;
                 }
             }
+            if (Match('f') || Match('F') || Match('h') || Match('H'))
+            {
+                builder.Append(Advance());
+            }
             string number = builder.ToString();
-            isFloat = number.Contains('.') || number.Contains('f') || number.Contains('F');
+            isFloat = number.Contains('.') ||
+                number.EndsWith('f') ||
+                number.EndsWith('F') ||
+                number.EndsWith('h') ||
+                number.EndsWith('H');
             return number;
         }
 

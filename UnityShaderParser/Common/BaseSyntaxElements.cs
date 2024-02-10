@@ -17,6 +17,11 @@ namespace UnityShaderParser.Common
         public (int Line, int Column) Location;
         public ParserStage Stage;
         public string Text;
+
+        public override string ToString()
+        {
+            return $"Error during {Stage}, line {Location.Line}, col {Location.Column}: {Text}";
+        }
     }
 
     // TODO: Filename

@@ -489,20 +489,21 @@ namespace UnityShaderParser.HLSL
                     {
                         var kind = ParseNumericType();
                         var ctorArgs = ParseParameterList();
-                        return new NumericConstructorCallExpressionNode { Kind = kind, Arguments = ctorArgs };
+                        higher = new NumericConstructorCallExpressionNode { Kind = kind, Arguments = ctorArgs };
                     }
-
                     // Special case for function style C-casts
-                    if (Match(HLSLSyntaxFacts.IsSingleArityNumericConstructor))
+                    else if (Match(HLSLSyntaxFacts.IsSingleArityNumericConstructor))
                     {
                         var kind = ParseNumericType();
                         Eat(TokenKind.OpenParenToken);
                         var castFrom = ParseExpression();
                         Eat(TokenKind.CloseParenToken);
-                        return new CastExpressionNode { Kind = kind, Expression = castFrom, ArrayRanks = new List<ArrayRankNode>() };
+                        higher = new CastExpressionNode { Kind = kind, Expression = castFrom, ArrayRanks = new List<ArrayRankNode>() };
                     }
-
-                    higher = ParseTerminalExpression();
+                    else
+                    {
+                        higher = ParseTerminalExpression();
+                    }
                     break;
             }
 
