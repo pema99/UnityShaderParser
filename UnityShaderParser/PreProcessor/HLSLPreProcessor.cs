@@ -121,7 +121,8 @@ namespace UnityShaderParser.PreProcessor
             tokens.InsertRange(position, tokensToAdd);
         }
 
-        private void GlueIdentifiersIn(List<HLSLToken> tokens)
+        // Glues tokens together with ## and evaluates defined(x) between each expansion
+        private void ReplaceBetweenExpansions(List<HLSLToken> tokens)
         {
             HLSLToken LocalPeek(int i) => i < tokens.Count ? tokens[i] : default;
 
@@ -153,6 +154,27 @@ namespace UnityShaderParser.PreProcessor
                     i--; // For loop continues
 
                     result.Add(gluedToken);
+                }
+                else if (token.Kind == TokenKind.IdentifierToken && token.Identifier == "defined")
+                {
+                    SourceSpan startSpan = token.Span;
+
+                    i++; // defined
+                    bool hasParen = LocalPeek(i).Kind == TokenKind.OpenParenToken;
+                    if (hasParen) i++;
+                    HLSLToken identifier = LocalPeek(i++);
+                    SourceSpan endSpan = identifier.Span;
+                    if (hasParen) endSpan = LocalPeek(i++).Span;
+
+                    var replacedToken = new HLSLToken
+                    {
+                        Identifier = defines.ContainsKey(identifier.Identifier ?? string.Empty) ? "1" : "0",
+                        Kind = TokenKind.IntegerLiteralToken,
+                        Span = new SourceSpan { Start = startSpan.Start, End = endSpan.End },
+                    };
+                    i--; // For loop continues
+
+                    result.Add(replacedToken);
                 }
                 else
                 {
@@ -237,7 +259,7 @@ namespace UnityShaderParser.PreProcessor
             string identifier = identifierTok.Identifier ?? string.Empty;
 
             // Check if it is a functionlike macro
-            bool isFunctionLike = defines.ContainsKey(identifier) && defines[identifier].FunctionLike;
+            bool isFunctionLike = (defines.ContainsKey(identifier) && defines[identifier].FunctionLike) || identifier == "defined";
             if (isFunctionLike)
             {
                 // If so, eat arguments if they are available
@@ -262,8 +284,7 @@ namespace UnityShaderParser.PreProcessor
                 }
             }
 
-            // Glue identifiers if needed
-            GlueIdentifiersIn(expanded);
+            ReplaceBetweenExpansions(expanded);
             
             HashSet<string> hideSet = new HashSet<string>();
             
@@ -336,8 +357,7 @@ namespace UnityShaderParser.PreProcessor
                         }
                     }
 
-                    // Glue identifiers between each expansion
-                    GlueIdentifiersIn(next);
+                    ReplaceBetweenExpansions(next);
 
                     expanded = next;
                 }
@@ -456,30 +476,7 @@ namespace UnityShaderParser.PreProcessor
                         var next = Peek();
                         if (next.Kind == TokenKind.IdentifierToken)
                         {
-                            // Special case for defined function
-                            if (next.Identifier == "defined")
-                            {
-                                var definedKeyword = Advance();
-                                bool hasParen = Match(TokenKind.OpenParenToken);
-                                if (hasParen) Eat(TokenKind.OpenParenToken);
-                                var identifierToken = Eat(TokenKind.IdentifierToken);
-                                var lastToken = identifierToken;
-                                if (hasParen) lastToken = Eat(TokenKind.CloseParenToken);
-
-                                SourceSpan span = new SourceSpan
-                                {
-                                    Start = definedKeyword.Span.Start,
-                                    End = lastToken.Span.End,
-                                };
-                                if (defines.ContainsKey(identifierToken.Identifier))
-                                    expandedConditionTokens.Add(new HLSLToken { Identifier = "1", Kind = TokenKind.IntegerLiteralToken, Span = span });
-                                else
-                                    expandedConditionTokens.Add(new HLSLToken { Identifier = "0", Kind = TokenKind.IntegerLiteralToken, Span = span });
-                            }
-                            else
-                            {
-                                expandedConditionTokens.AddRange(ApplyMacros());
-                            }
+                            expandedConditionTokens.AddRange(ApplyMacros());
                         }
                         else
                         {
