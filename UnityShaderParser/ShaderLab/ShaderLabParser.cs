@@ -2,15 +2,30 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityShaderParser.Common;
+using UnityShaderParser.HLSL;
 
 namespace UnityShaderParser.ShaderLab
 {
     using SLToken = Token<TokenKind>;
 
+    public class ShaderLabParserConfig : HLSLParserConfig
+    {
+        public bool ParseEmbeddedHLSL { get; set; }
+
+        public ShaderLabParserConfig()
+            : base()
+        {
+            ParseEmbeddedHLSL = true;
+        }
+    }
+
     public class ShaderLabParser : BaseParser<TokenKind>
     {
-        public ShaderLabParser(List<SLToken> tokens)
-            : base(tokens) { }
+        public ShaderLabParser(List<SLToken> tokens, bool throwExceptionOnError, bool parseEmbeddedHLSL)
+            : base(tokens, throwExceptionOnError)
+        {
+            this.parseEmbeddedHLSL = parseEmbeddedHLSL;
+        }
 
         protected override TokenKind StringLiteralTokenKind => TokenKind.StringLiteralToken;
         protected override TokenKind IntegerLiteralTokenKind => TokenKind.IntegerLiteralToken;
@@ -18,12 +33,14 @@ namespace UnityShaderParser.ShaderLab
         protected override TokenKind IdentifierTokenKind => TokenKind.IdentifierToken;
         protected override ParserStage Stage => ParserStage.ShaderLabParsing;
 
-        public static void Parse(List<SLToken> tokens, out ShaderNode rootNode, out List<Diagnostic> diagnostics)
-        {
-            ShaderLabParser parser = new ShaderLabParser(tokens);
+        protected bool parseEmbeddedHLSL = true;
 
-            rootNode = parser.ParseShader();
+        public static ShaderNode Parse(List<SLToken> tokens, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
+        {
+            ShaderLabParser parser = new ShaderLabParser(tokens, config.ThrowExceptionOnError, config.ParseEmbeddedHLSL);
+            var result = parser.ParseShader();
             diagnostics = parser.diagnostics;
+            return result;
         }
 
         private ShaderNode ParseShader()

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace UnityShaderParser.Common
@@ -8,6 +9,7 @@ namespace UnityShaderParser.Common
     {
         protected abstract ParserStage Stage { get; }
 
+        protected bool throwExceptionOnError = false;
         protected string source = string.Empty;
         protected int position = 0;
         protected int line = 1;
@@ -18,9 +20,10 @@ namespace UnityShaderParser.Common
         protected List<Token<T>> tokens = new List<Token<T>>();
         protected List<Diagnostic> diagnostics = new List<Diagnostic>();
 
-        public BaseLexer(string source)
+        public BaseLexer(string source, bool throwExceptionOnError)
         {
             this.source = source;
+            this.throwExceptionOnError = throwExceptionOnError;
         }
 
         protected char Peek() => IsAtEnd() ? '\0' : source[position];
@@ -52,6 +55,10 @@ namespace UnityShaderParser.Common
         }
         protected void Error(string err)
         {
+            if (throwExceptionOnError)
+            {
+                throw new Exception($"Error at line {line}, column {column} during {Stage}: {err}");
+            }
             diagnostics.Add(new Diagnostic { Location = (line, column), Stage = this.Stage, Text = err });
         }
 

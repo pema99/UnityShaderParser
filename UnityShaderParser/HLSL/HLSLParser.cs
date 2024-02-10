@@ -1,16 +1,34 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityShaderParser.Common;
+using UnityShaderParser.PreProcessor;
 
 namespace UnityShaderParser.HLSL
 {
     using HLSLToken = Token<TokenKind>;
 
+    public class HLSLParserConfig
+    {
+        public PreProcessorMode PreProcessorMode { get; set; }
+        public string BasePath { get; set; }
+        public IPreProcessorIncludeResolver IncludeResolver { get; set; }
+        public bool ThrowExceptionOnError { get; set; }
+
+        public HLSLParserConfig()
+        {
+            PreProcessorMode = PreProcessorMode.ExpandAll;
+            BasePath = Directory.GetCurrentDirectory();
+            IncludeResolver = new DefaultPreProcessorIncludeResolver();
+            ThrowExceptionOnError = false;
+        }
+    }
+
     public class HLSLParser : BaseParser<TokenKind>
     {
-        public HLSLParser(List<HLSLToken> tokens)
-            : base(tokens) { }
+        public HLSLParser(List<HLSLToken> tokens, bool throwExceptionOnError)
+            : base(tokens, throwExceptionOnError) { }
 
         protected override TokenKind StringLiteralTokenKind => TokenKind.StringLiteralToken;
         protected override TokenKind IntegerLiteralTokenKind => TokenKind.IntegerLiteralToken;
@@ -18,32 +36,53 @@ namespace UnityShaderParser.HLSL
         protected override TokenKind IdentifierTokenKind => TokenKind.IdentifierToken;
         protected override ParserStage Stage => ParserStage.HLSLParsing;
 
-        public static void ParseTopLevelDeclarations(List<HLSLToken> tokens, out List<HLSLSyntaxNode> rootNodes, out List<Diagnostic> diagnostics)
+        private void RunPreProcessor(HLSLParserConfig config, out List<string> pragmas)
         {
-            HLSLParser parser = new HLSLParser(tokens);
-            rootNodes = parser.ParseTopLevelDeclarations();
-            diagnostics = parser.diagnostics;
+            tokens = HLSLPreProcessor.PreProcess(
+                tokens,
+                config.ThrowExceptionOnError,
+                config.PreProcessorMode,
+                config.BasePath,
+                config.IncludeResolver,
+                out pragmas,
+                out var ppDiags);
+            diagnostics.AddRange(ppDiags);
         }
 
-        public static void ParseTopLevelDeclaration(List<HLSLToken> tokens, out HLSLSyntaxNode rootNode, out List<Diagnostic> diagnostics)
+        public static List<HLSLSyntaxNode> ParseTopLevelDeclarations(List<HLSLToken> tokens, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
         {
-            HLSLParser parser = new HLSLParser(tokens);
-            rootNode = parser.ParseTopLevelDeclaration();
+            HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError);
+            parser.RunPreProcessor(config, out pragmas);
+            var result = parser.ParseTopLevelDeclarations();
             diagnostics = parser.diagnostics;
+            return result;
         }
 
-        public static void ParseStatement(List<HLSLToken> tokens, out StatementNode statement, out List<Diagnostic> diagnostics)
+        public static HLSLSyntaxNode ParseTopLevelDeclaration(List<HLSLToken> tokens, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
         {
-            HLSLParser parser = new HLSLParser(tokens);
-            statement = parser.ParseStatement();
+            HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError);
+            parser.RunPreProcessor(config, out pragmas);
+            var result = parser.ParseTopLevelDeclaration();
             diagnostics = parser.diagnostics;
+            return result;
         }
 
-        public static void ParseExpression(List<HLSLToken> tokens, out ExpressionNode statement, out List<Diagnostic> diagnostics)
+        public static StatementNode ParseStatement(List<HLSLToken> tokens, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
         {
-            HLSLParser parser = new HLSLParser(tokens);
-            statement = parser.ParseExpression();
+            HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError);
+            parser.RunPreProcessor(config, out pragmas);
+            var result = parser.ParseStatement();
             diagnostics = parser.diagnostics;
+            return result;
+        }
+
+        public static ExpressionNode ParseExpression(List<HLSLToken> tokens, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
+        {
+            HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError);
+            parser.RunPreProcessor(config, out pragmas);
+            var result = parser.ParseExpression();
+            diagnostics = parser.diagnostics;
+            return result;
         }
 
         internal List<HLSLSyntaxNode> ParseTopLevelDeclarations()

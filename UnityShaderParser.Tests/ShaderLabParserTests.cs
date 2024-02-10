@@ -18,10 +18,15 @@ namespace UnityShaderParser.ShaderLab.Tests
         {
             string source = File.ReadAllText(path);
 
-            ShaderLabLexer.Lex(source, out var tokens, out var lexerDiags);
+            var tokens = ShaderLabLexer.Lex(source, false, out var lexerDiags);
             Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
 
-            ShaderLabParser.Parse(tokens, out ShaderNode shader, out var parserDiags);
+            var config = new ShaderLabParserConfig
+            {
+                ParseEmbeddedHLSL = false,
+                ThrowExceptionOnError = false,
+            };
+            ShaderLabParser.Parse(tokens, config, out var parserDiags);
             Assert.IsEmpty(parserDiags, $"Expected no parser errors, got: {parserDiags.FirstOrDefault()}");
         }
     }

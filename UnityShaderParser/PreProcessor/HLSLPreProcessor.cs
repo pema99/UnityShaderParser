@@ -58,25 +58,16 @@ namespace UnityShaderParser.PreProcessor
         }
 
         // TODO: Pre-defines
-        public HLSLPreProcessor(List<HLSLToken> tokens, string basePath, IPreProcessorIncludeResolver includeResolver)
-            : base(tokens)
+        public HLSLPreProcessor(List<HLSLToken> tokens, bool throwExceptionOnError, string basePath, IPreProcessorIncludeResolver includeResolver)
+            : base(tokens, throwExceptionOnError)
         {
             this.basePath = basePath;
             this.includeResolver = includeResolver;
         }
 
-        public static void PreProcess(List<HLSLToken> tokens, out List<HLSLToken> preProcessed, out List<string> pragmas, out List<Diagnostic> diagnostics)
-            => PreProcess(tokens, PreProcessorMode.ExpandAll, Directory.GetCurrentDirectory(), new DefaultPreProcessorIncludeResolver(), out preProcessed, out pragmas, out diagnostics);
-
-        public static void PreProcess(List<HLSLToken> tokens, PreProcessorMode mode, out List<HLSLToken> preProcessed, out List<string> pragmas, out List<Diagnostic> diagnostics)
-            => PreProcess(tokens, mode, Directory.GetCurrentDirectory(), new DefaultPreProcessorIncludeResolver(), out preProcessed, out pragmas, out diagnostics);
-
-        public static void PreProcess(List<HLSLToken> tokens, PreProcessorMode mode, string basePath, out List<HLSLToken> preProcessed, out List<string> pragmas, out List<Diagnostic> diagnostics)
-            => PreProcess(tokens, mode, basePath, new DefaultPreProcessorIncludeResolver(), out preProcessed, out pragmas, out diagnostics);
-
-        public static void PreProcess(List<HLSLToken> tokens, PreProcessorMode mode, string basePath, IPreProcessorIncludeResolver includeResolver, out List<HLSLToken> preProcessed, out List<string> pragmas, out List<Diagnostic> diagnostics)
+        public static List<HLSLToken> PreProcess(List<HLSLToken> tokens, bool throwExceptionOnError, PreProcessorMode mode, string basePath, IPreProcessorIncludeResolver includeResolver, out List<string> pragmas, out List<Diagnostic> diagnostics)
         {
-            HLSLPreProcessor preProcessor = new HLSLPreProcessor(tokens, basePath, includeResolver);
+            HLSLPreProcessor preProcessor = new HLSLPreProcessor(tokens, throwExceptionOnError, basePath, includeResolver);
             switch (mode)
             {
                 case PreProcessorMode.ExpandAll:
@@ -95,9 +86,9 @@ namespace UnityShaderParser.PreProcessor
                     preProcessor.outputTokens = tokens;
                     break;
             }
-            preProcessed = preProcessor.outputTokens;
             pragmas = preProcessor.outputPragmas;
             diagnostics = preProcessor.diagnostics;
+            return preProcessor.outputTokens;
         }
 
         private void ExpandInclude()
@@ -107,7 +98,7 @@ namespace UnityShaderParser.PreProcessor
             Eat(TokenKind.EndDirectiveToken);
             string filePath = pathToken.Identifier ?? string.Empty;
             string source = includeResolver.ReadFile(basePath, filePath);
-            HLSLLexer.Lex(source, out var tokensToAdd, out var diagnosticsToAdd);
+            var tokensToAdd = HLSLLexer.Lex(source, throwExceptionOnError, out var diagnosticsToAdd);
             diagnostics.AddRange(diagnosticsToAdd);
             tokens.InsertRange(position, tokensToAdd);
         }
@@ -397,7 +388,7 @@ namespace UnityShaderParser.PreProcessor
 
         private bool EvaluateConstExpr(List<HLSLToken> exprTokens)
         {
-            bool result = ConstExpressionEvaluator.EvaluateConstExprTokens(exprTokens, out var evalDiags);
+            bool result = ConstExpressionEvaluator.EvaluateConstExprTokens(exprTokens, throwExceptionOnError, out var evalDiags);
             if (evalDiags.Count > 0)
             {
                 foreach (var diag in evalDiags)

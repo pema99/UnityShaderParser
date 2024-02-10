@@ -23,7 +23,7 @@ namespace UnityShaderParser.HLSL.Tests
             string source = File.ReadAllText(path);
 
             // Lex
-            HLSLLexer.Lex(source, out var tokens, out var lexerDiags);
+            var tokens = HLSLLexer.Lex(source, false, out var lexerDiags);
             Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
         }
 
@@ -39,11 +39,16 @@ namespace UnityShaderParser.HLSL.Tests
             string source = File.ReadAllText(path);
 
             // Lex
-            HLSLLexer.Lex(source, out var tokens, out var lexerDiags);
+            var tokens = HLSLLexer.Lex(source, false, out var lexerDiags);
             Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
 
             // Parse
-            HLSLParser.ParseTopLevelDeclarations(tokens, out var nodes, out var parserDiags);
+            var config = new HLSLParserConfig
+            {
+                PreProcessorMode = PreProcessorMode.DoNothing,
+                ThrowExceptionOnError = false,
+            };
+            HLSLParser.ParseTopLevelDeclarations(tokens, config, out var parserDiags, out _);
             Assert.IsEmpty(parserDiags, $"Expected no parser errors, got: {parserDiags.FirstOrDefault()}");
         }
 
@@ -59,15 +64,18 @@ namespace UnityShaderParser.HLSL.Tests
             string source = File.ReadAllText(path);
 
             // Lex
-            HLSLLexer.Lex(source, out var tokens, out var lexerDiags);
+            var tokens = HLSLLexer.Lex(source, false, out var lexerDiags);
             Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
 
-            // Expand
-            HLSLPreProcessor.PreProcess(tokens, PreProcessorMode.ExpandAll, Directory.GetParent(path)?.FullName!, out var preProcessedTokens, out var pragmas, out var preProcessorDiags);
-            Assert.IsEmpty(preProcessorDiags, $"Expected no preprocessing errors, got: {preProcessorDiags.FirstOrDefault()}");
-
-            // Parse
-            HLSLParser.ParseTopLevelDeclarations(preProcessedTokens, out var nodes, out var parserDiags);
+            // Expand and parse
+            var config = new HLSLParserConfig
+            {
+                PreProcessorMode = PreProcessorMode.ExpandAll,
+                ThrowExceptionOnError = false,
+                BasePath = Directory.GetParent(path)?.FullName,
+                IncludeResolver = new DefaultPreProcessorIncludeResolver(),
+            };
+            var nodes = HLSLParser.ParseTopLevelDeclarations(tokens, config, out var parserDiags, out _);
             Assert.IsEmpty(parserDiags, $"Expected no parser errors, got: {parserDiags.FirstOrDefault()}");
         }
 
@@ -78,17 +86,17 @@ namespace UnityShaderParser.HLSL.Tests
             string source = File.ReadAllText(path);
 
             // Lex
-            HLSLLexer.Lex(source, out var tokens, out var lexerDiags);
+            var tokens = HLSLLexer.Lex(source, false, out var lexerDiags);
             Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
 
             // Expand with different strategies
-            HLSLPreProcessor.PreProcess(tokens, PreProcessorMode.ExpandAllExceptIncludes, Directory.GetParent(path)?.FullName!, out var preProcessedTokens, out var pragmas, out var preProcessorDiags);
+            HLSLPreProcessor.PreProcess(tokens, false, PreProcessorMode.ExpandAllExceptIncludes, Directory.GetParent(path)?.FullName!, new DefaultPreProcessorIncludeResolver(), out var pragmas, out var preProcessorDiags);
             Assert.IsEmpty(preProcessorDiags, $"Expected no preprocessing errors, got: {preProcessorDiags.FirstOrDefault()}");
 
-            HLSLPreProcessor.PreProcess(tokens, PreProcessorMode.ExpandIncludesOnly, Directory.GetParent(path)?.FullName!, out preProcessedTokens, out pragmas, out preProcessorDiags);
+            HLSLPreProcessor.PreProcess(tokens, false, PreProcessorMode.ExpandIncludesOnly, Directory.GetParent(path)?.FullName!, new DefaultPreProcessorIncludeResolver(), out pragmas, out preProcessorDiags);
             Assert.IsEmpty(preProcessorDiags, $"Expected no preprocessing errors, got: {preProcessorDiags.FirstOrDefault()}");
 
-            HLSLPreProcessor.PreProcess(tokens, PreProcessorMode.StripDirectives, Directory.GetParent(path)?.FullName!, out preProcessedTokens, out pragmas, out preProcessorDiags);
+            HLSLPreProcessor.PreProcess(tokens, false, PreProcessorMode.StripDirectives, Directory.GetParent(path)?.FullName!, new DefaultPreProcessorIncludeResolver(), out pragmas, out preProcessorDiags);
             Assert.IsEmpty(preProcessorDiags, $"Expected no preprocessing errors, got: {preProcessorDiags.FirstOrDefault()}");
         }
     }

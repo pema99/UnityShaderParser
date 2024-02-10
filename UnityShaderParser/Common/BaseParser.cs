@@ -17,14 +17,16 @@ namespace UnityShaderParser.Common
         protected List<Token<T>> tokens = new List<Token<T>>();
         protected int position = 0;
         protected SourceSpan anchorSpan = default;
+        protected bool throwExceptionOnError = false;
 
         protected List<Diagnostic> diagnostics = new List<Diagnostic>();
         public List<Diagnostic> Diagnostics => diagnostics;
 
-        public BaseParser(List<Token<T>> tokens)
+        public BaseParser(List<Token<T>> tokens, bool throwExceptionOnError)
         {
             // Need to copy since the parser might want to modify tokens in place
             this.tokens = new List<Token<T>>(tokens);
+            this.throwExceptionOnError = throwExceptionOnError;
         }
 
         private Stack<(int position, SourceSpan span, int diagnosticCount)> snapshots = new Stack<(int position, SourceSpan span, int diagnosticCount)>();
@@ -140,6 +142,10 @@ namespace UnityShaderParser.Common
 
         protected void Error(string msg)
         {
+            if (throwExceptionOnError)
+            {
+                throw new Exception($"Error at line {anchorSpan.Start.Line}, column {anchorSpan.Start.Column} during {Stage}: {msg}");
+            }
             diagnostics.Add(new Diagnostic { Location = anchorSpan.Start, Stage = this.Stage, Text = msg });
         }
 

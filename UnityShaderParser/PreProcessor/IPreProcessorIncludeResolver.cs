@@ -12,7 +12,7 @@ namespace UnityShaderParser.PreProcessor
         string ReadFile(string basePath, string filePath);
     }
 
-    internal sealed class DefaultPreProcessorIncludeResolver : IPreProcessorIncludeResolver
+    public sealed class DefaultPreProcessorIncludeResolver : IPreProcessorIncludeResolver
     {
         public string ReadFile(string basePath, string filePath)
         {
