@@ -3,6 +3,22 @@ using System.Linq;
 
 namespace UnityShaderParser.Common
 {
+    public enum ParserStage
+    {
+        HLSLLexing,
+        HLSLPreProcessing,
+        HLSLParsing,
+        ShaderLabLexing,
+        ShaderLabParsing,
+    }
+
+    public struct Diagnostic
+    {
+        public (int Line, int Column) Location;
+        public ParserStage Stage;
+        public string Text;
+    }
+
     // TODO: Filename
     public struct SourceSpan
     {

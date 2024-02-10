@@ -8,10 +8,12 @@ namespace UnityShaderParser.HLSL
 
     public class HLSLLexer : BaseLexer<TokenKind>
     {
+        protected override ParserStage Stage => ParserStage.HLSLLexing;
+
         public HLSLLexer(string source)
             : base(source) { }
 
-        public static void Lex(string source, out List<HLSLToken> tokens, out List<string> diagnostics)
+        public static void Lex(string source, out List<HLSLToken> tokens, out List<Diagnostic> diagnostics)
         {
             HLSLLexer lexer = new HLSLLexer(source);
 
@@ -33,7 +35,7 @@ namespace UnityShaderParser.HLSL
                     Advance(1);
                     string hexNum = EatIdentifier().Substring(1);
                     if (!int.TryParse(hexNum, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out int hexVal))
-                        diagnostics.Add($"Invalid hex literal 0x{hexNum}");
+                        Error($"Invalid hex literal 0x{hexNum}");
                     Add(hexVal.ToString(), TokenKind.IntegerLiteralToken);
                     break;
 
@@ -76,7 +78,7 @@ namespace UnityShaderParser.HLSL
                         Advance();
                         if (IsAtEnd())
                         {
-                            diagnostics.Add($"Error at line {line} column {column}: Unterminated comment.");
+                            Error($"Unterminated comment.");
                             break;
                         }
                     }
@@ -150,7 +152,7 @@ namespace UnityShaderParser.HLSL
 
                 case char c:
                     Advance();
-                    diagnostics.Add($"Error at line {line} column {column}: Unexpected token '{c}'.");
+                    Error($"Unexpected token '{c}'.");
                     break;
             }
         }

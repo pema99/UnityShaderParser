@@ -8,10 +8,12 @@ namespace UnityShaderParser.ShaderLab
 
     public class ShaderLabLexer : BaseLexer<TokenKind>
     {
+        protected override ParserStage Stage => ParserStage.ShaderLabLexing;
+
         public ShaderLabLexer(string source)
             : base(source) { }
 
-        public static void Lex(string source, out List<SLToken> tokens, out List<string> diagnostics)
+        public static void Lex(string source, out List<SLToken> tokens, out List<Diagnostic> diagnostics)
         {
             ShaderLabLexer lexer = new ShaderLabLexer(source);
 
@@ -72,7 +74,7 @@ namespace UnityShaderParser.ShaderLab
                         Advance();
                         if (IsAtEnd())
                         {
-                            diagnostics.Add($"Error at line {line} column {column}: Unterminated comment.");
+                            Error($"Unterminated comment.");
                             break;
                         }
                     }
@@ -140,7 +142,7 @@ namespace UnityShaderParser.ShaderLab
 
                 case char c:
                     Advance();
-                    diagnostics.Add($"Error at line {line} column {column}: Unexpected token '{c}'.");
+                    Error($"Unexpected token '{c}'.");
                     break;
             }
         }
@@ -166,7 +168,7 @@ namespace UnityShaderParser.ShaderLab
                 // No space for terminator, error
                 else
                 {
-                    diagnostics.Add($"Error at line {line} column {column}: Unterminated program block.");
+                    Error($"Unterminated program block.");
                     break;
                 }
             }

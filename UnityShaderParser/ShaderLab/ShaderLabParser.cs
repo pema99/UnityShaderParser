@@ -16,8 +16,9 @@ namespace UnityShaderParser.ShaderLab
         protected override TokenKind IntegerLiteralTokenKind => TokenKind.IntegerLiteralToken;
         protected override TokenKind FloatLiteralTokenKind => TokenKind.FloatLiteralToken;
         protected override TokenKind IdentifierTokenKind => TokenKind.IdentifierToken;
+        protected override ParserStage Stage => ParserStage.ShaderLabParsing;
 
-        public static void Parse(List<SLToken> tokens, out ShaderNode rootNode, out List<string> diagnostics)
+        public static void Parse(List<SLToken> tokens, out ShaderNode rootNode, out List<Diagnostic> diagnostics)
         {
             ShaderLabParser parser = new ShaderLabParser(tokens);
 

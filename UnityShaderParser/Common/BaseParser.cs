@@ -12,13 +12,14 @@ namespace UnityShaderParser.Common
         protected abstract T IntegerLiteralTokenKind { get; }
         protected abstract T FloatLiteralTokenKind { get; }
         protected abstract T IdentifierTokenKind { get; }
+        protected abstract ParserStage Stage { get; }
 
         protected List<Token<T>> tokens = new List<Token<T>>();
         protected int position = 0;
         protected SourceSpan anchorSpan = default;
 
-        protected List<string> diagnostics = new List<string>();
-        public List<string> Diagnostics => diagnostics;
+        protected List<Diagnostic> diagnostics = new List<Diagnostic>();
+        public List<Diagnostic> Diagnostics => diagnostics;
 
         public BaseParser(List<Token<T>> tokens)
         {
@@ -139,7 +140,7 @@ namespace UnityShaderParser.Common
 
         protected void Error(string msg)
         {
-            diagnostics.Add($"Error at line {anchorSpan.Start.Line} column {anchorSpan.Start.Column}: {msg}");
+            diagnostics.Add(new Diagnostic { Location = anchorSpan.Start, Stage = this.Stage, Text = msg });
         }
 
         protected void Error(string msg, SourceSpan span)

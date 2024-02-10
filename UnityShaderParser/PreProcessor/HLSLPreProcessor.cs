@@ -14,6 +14,7 @@ namespace UnityShaderParser.PreProcessor
         ExpandIncludesOnly,
         ExpandAllExceptIncludes,
         StripDirectives,
+        DoNothing,
     }
 
     // TODO: defined()
@@ -23,6 +24,7 @@ namespace UnityShaderParser.PreProcessor
         protected override TokenKind IntegerLiteralTokenKind => TokenKind.IntegerLiteralToken;
         protected override TokenKind FloatLiteralTokenKind => TokenKind.FloatLiteralToken;
         protected override TokenKind IdentifierTokenKind => TokenKind.IdentifierToken;
+        protected override ParserStage Stage => ParserStage.HLSLPreProcessing;
 
         protected struct Macro
         {
@@ -63,16 +65,16 @@ namespace UnityShaderParser.PreProcessor
             this.includeResolver = includeResolver;
         }
 
-        public static void PreProcess(List<HLSLToken> tokens, out List<HLSLToken> preProcessed, out List<string> pragmas, out List<string> diagnostics)
+        public static void PreProcess(List<HLSLToken> tokens, out List<HLSLToken> preProcessed, out List<string> pragmas, out List<Diagnostic> diagnostics)
             => PreProcess(tokens, PreProcessorMode.ExpandAll, Directory.GetCurrentDirectory(), new DefaultPreProcessorIncludeResolver(), out preProcessed, out pragmas, out diagnostics);
 
-        public static void PreProcess(List<HLSLToken> tokens, PreProcessorMode mode, out List<HLSLToken> preProcessed, out List<string> pragmas, out List<string> diagnostics)
+        public static void PreProcess(List<HLSLToken> tokens, PreProcessorMode mode, out List<HLSLToken> preProcessed, out List<string> pragmas, out List<Diagnostic> diagnostics)
             => PreProcess(tokens, mode, Directory.GetCurrentDirectory(), new DefaultPreProcessorIncludeResolver(), out preProcessed, out pragmas, out diagnostics);
 
-        public static void PreProcess(List<HLSLToken> tokens, PreProcessorMode mode, string basePath, out List<HLSLToken> preProcessed, out List<string> pragmas, out List<string> diagnostics)
+        public static void PreProcess(List<HLSLToken> tokens, PreProcessorMode mode, string basePath, out List<HLSLToken> preProcessed, out List<string> pragmas, out List<Diagnostic> diagnostics)
             => PreProcess(tokens, mode, basePath, new DefaultPreProcessorIncludeResolver(), out preProcessed, out pragmas, out diagnostics);
 
-        public static void PreProcess(List<HLSLToken> tokens, PreProcessorMode mode, string basePath, IPreProcessorIncludeResolver includeResolver, out List<HLSLToken> preProcessed, out List<string> pragmas, out List<string> diagnostics)
+        public static void PreProcess(List<HLSLToken> tokens, PreProcessorMode mode, string basePath, IPreProcessorIncludeResolver includeResolver, out List<HLSLToken> preProcessed, out List<string> pragmas, out List<Diagnostic> diagnostics)
         {
             HLSLPreProcessor preProcessor = new HLSLPreProcessor(tokens, basePath, includeResolver);
             switch (mode)
@@ -88,6 +90,9 @@ namespace UnityShaderParser.PreProcessor
                     break;
                 case PreProcessorMode.StripDirectives:
                     preProcessor.StripDirectives();
+                    break;
+                case PreProcessorMode.DoNothing:
+                    preProcessor.outputTokens = tokens;
                     break;
             }
             preProcessed = preProcessor.outputTokens;
@@ -395,7 +400,7 @@ namespace UnityShaderParser.PreProcessor
             bool result = ConstExpressionEvaluator.EvaluateConstExprTokens(exprTokens, out var evalDiags);
             if (evalDiags.Count > 0)
             {
-                foreach (string diag in evalDiags)
+                foreach (var diag in evalDiags)
                 {
                     Error(diag);
                 }
@@ -615,7 +620,7 @@ namespace UnityShaderParser.PreProcessor
                             .Select(x => HLSLSyntaxFacts.TokenToString(x));
                         Eat(TokenKind.EndDirectiveToken);
                         string error = string.Join(" ", errorToks);
-                        diagnostics.Add(error);
+                        Error(error);
                         break;
 
                     case TokenKind.PragmaDirectiveKeyword:

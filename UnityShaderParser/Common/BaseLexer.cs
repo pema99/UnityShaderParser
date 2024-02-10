@@ -6,6 +6,8 @@ namespace UnityShaderParser.Common
     public abstract class BaseLexer<T>
         where T : struct
     {
+        protected abstract ParserStage Stage { get; }
+
         protected string source = string.Empty;
         protected int position = 0;
         protected int line = 1;
@@ -14,7 +16,7 @@ namespace UnityShaderParser.Common
         protected int anchorColumn = 1;
 
         protected List<Token<T>> tokens = new List<Token<T>>();
-        protected List<string> diagnostics = new List<string>();
+        protected List<Diagnostic> diagnostics = new List<Diagnostic>();
 
         public BaseLexer(string source)
         {
@@ -31,7 +33,7 @@ namespace UnityShaderParser.Common
         protected void Eat(char tok)
         {
             if (!Match(tok))
-                diagnostics.Add($"Error at line {line} column {column}: Expected token '{tok}', got '{Peek()}'.");
+                Error($"Expected token '{tok}', got '{Peek()}'.");
             Advance();
         }
         protected char Advance(int amount = 1)
@@ -47,6 +49,10 @@ namespace UnityShaderParser.Common
             char result = source[position];
             position += amount;
             return result;
+        }
+        protected void Error(string err)
+        {
+            diagnostics.Add(new Diagnostic { Location = (line, column), Stage = this.Stage, Text = err });
         }
 
         protected void StartCurrentSpan()

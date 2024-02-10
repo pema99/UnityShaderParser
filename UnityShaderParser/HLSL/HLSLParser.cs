@@ -16,29 +16,30 @@ namespace UnityShaderParser.HLSL
         protected override TokenKind IntegerLiteralTokenKind => TokenKind.IntegerLiteralToken;
         protected override TokenKind FloatLiteralTokenKind => TokenKind.FloatLiteralToken;
         protected override TokenKind IdentifierTokenKind => TokenKind.IdentifierToken;
+        protected override ParserStage Stage => ParserStage.HLSLParsing;
 
-        public static void ParseTopLevelDeclarations(List<HLSLToken> tokens, out List<HLSLSyntaxNode> rootNodes, out List<string> diagnostics)
+        public static void ParseTopLevelDeclarations(List<HLSLToken> tokens, out List<HLSLSyntaxNode> rootNodes, out List<Diagnostic> diagnostics)
         {
             HLSLParser parser = new HLSLParser(tokens);
             rootNodes = parser.ParseTopLevelDeclarations();
             diagnostics = parser.diagnostics;
         }
 
-        public static void ParseTopLevelDeclaration(List<HLSLToken> tokens, out HLSLSyntaxNode rootNode, out List<string> diagnostics)
+        public static void ParseTopLevelDeclaration(List<HLSLToken> tokens, out HLSLSyntaxNode rootNode, out List<Diagnostic> diagnostics)
         {
             HLSLParser parser = new HLSLParser(tokens);
             rootNode = parser.ParseTopLevelDeclaration();
             diagnostics = parser.diagnostics;
         }
 
-        public static void ParseStatement(List<HLSLToken> tokens, out StatementNode statement, out List<string> diagnostics)
+        public static void ParseStatement(List<HLSLToken> tokens, out StatementNode statement, out List<Diagnostic> diagnostics)
         {
             HLSLParser parser = new HLSLParser(tokens);
             statement = parser.ParseStatement();
             diagnostics = parser.diagnostics;
         }
 
-        public static void ParseExpression(List<HLSLToken> tokens, out ExpressionNode statement, out List<string> diagnostics)
+        public static void ParseExpression(List<HLSLToken> tokens, out ExpressionNode statement, out List<Diagnostic> diagnostics)
         {
             HLSLParser parser = new HLSLParser(tokens);
             statement = parser.ParseExpression();

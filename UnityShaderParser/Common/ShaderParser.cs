@@ -1,13 +1,27 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using UnityShaderParser.HLSL;
+using UnityShaderParser.PreProcessor;
 using UnityShaderParser.ShaderLab;
 
 namespace UnityShaderParser.Common
 {
+    public class HLSLParserConfig
+    {
+        public PreProcessorMode PreProcessorMode { get; set; }
+        public string BasePath { get; set; }
+        public IPreProcessorIncludeResolver IncludeResolver { get; set; }
+
+    }
+
+    public class ShaderLabParserConfig : HLSLParserConfig
+    {
+        public bool ParseEmbeddedHLSL { get; set; }
+    }
+
     public static class ShaderParser
     {
-        public static ShaderNode ParseUnityShader(string source, out List<string> diagnostics)
+        public static ShaderNode ParseUnityShader(string source, out List<Diagnostic> diagnostics)
         {
             ShaderLabLexer.Lex(source, out var tokens, out var lexerDiags);
             ShaderLabParser.Parse(tokens, out var rootNode, out var parserDiags);
@@ -18,7 +32,7 @@ namespace UnityShaderParser.Common
         public static ShaderNode ParseUnityShader(string source)
             => ParseUnityShader(source, out _);
 
-        public static List<HLSLSyntaxNode> ParseTopLevelDeclarations(string source, out List<string> diagnostics)
+        public static List<HLSLSyntaxNode> ParseTopLevelDeclarations(string source, out List<Diagnostic> diagnostics)
         {
             HLSLLexer.Lex(source, out var tokens, out var lexerDiags);
             HLSLParser.ParseTopLevelDeclarations(tokens, out var decls, out var parserDiags);
@@ -29,7 +43,7 @@ namespace UnityShaderParser.Common
         public static List<HLSLSyntaxNode> ParseTopLevelDeclarations(string source)
             => ParseTopLevelDeclarations(source, out _);
 
-        public static HLSLSyntaxNode ParseTopLevelDeclaration(string source, out List<string> diagnostics)
+        public static HLSLSyntaxNode ParseTopLevelDeclaration(string source, out List<Diagnostic> diagnostics)
         {
             HLSLLexer.Lex(source, out var tokens, out var lexerDiags);
             HLSLParser.ParseTopLevelDeclaration(tokens, out var decl, out var parserDiags);
@@ -40,7 +54,7 @@ namespace UnityShaderParser.Common
         public static HLSLSyntaxNode ParseTopLevelDeclaration(string source)
             => ParseTopLevelDeclaration(source, out _);
 
-        public static StatementNode ParseStatement(string source, out List<string> diagnostics)
+        public static StatementNode ParseStatement(string source, out List<Diagnostic> diagnostics)
         {
             HLSLLexer.Lex(source, out var tokens, out var lexerDiags);
             HLSLParser.ParseStatement(tokens, out var stmt, out var parserDiags);
@@ -51,7 +65,7 @@ namespace UnityShaderParser.Common
         public static HLSLSyntaxNode ParseStatement(string source)
             => ParseStatement(source, out _);
 
-        public static ExpressionNode ParseExpression(string source, out List<string> diagnostics)
+        public static ExpressionNode ParseExpression(string source, out List<Diagnostic> diagnostics)
         {
             HLSLLexer.Lex(source, out var tokens, out var lexerDiags);
             HLSLParser.ParseExpression(tokens, out var expr, out var parserDiags);

@@ -28,6 +28,11 @@ namespace UnityShaderParser.PreProcessor
 
         private List<string> diagnostics = new List<string>();
 
+        private void Error(string err)
+        {
+            diagnostics.Add(err);
+        }
+
         private static bool ToBool(long i) => i != 0;
         private static long ToNum(bool i) => i ? 1 : 0;
 
@@ -43,7 +48,7 @@ namespace UnityShaderParser.PreProcessor
                         case LiteralKind.Character:
                             return char.Parse(literalExpr.Lexeme);
                         default:
-                            diagnostics.Add($"Literals of type '{literalExpr.Kind}' are not supported in constant expressions.");
+                            Error($"Literals of type '{literalExpr.Kind}' are not supported in constant expressions.");
                             return 0;
                     }
                 case BinaryExpressionNode binExpr:
@@ -70,7 +75,7 @@ namespace UnityShaderParser.PreProcessor
                         case OperatorKind.Div: return left / right;
                         case OperatorKind.Mod: return left % right;
                         default:
-                            diagnostics.Add($"Binary operators of type '{binExpr.Operator}' are not supported in constant expressions.");
+                            Error($"Binary operators of type '{binExpr.Operator}' are not supported in constant expressions.");
                             return 0;
                     }
                 case PrefixUnaryExpressionNode unExpr:
@@ -80,11 +85,11 @@ namespace UnityShaderParser.PreProcessor
                         case OperatorKind.Not: return ToNum(!ToBool(unary));
                         case OperatorKind.BitFlip: return ~unary;
                         default:
-                            diagnostics.Add($"Unary operators of type '{unExpr.Operator}' are not supported in constant expressions.");
+                            Error($"Unary operators of type '{unExpr.Operator}' are not supported in constant expressions.");
                             return 0;
                     }
                 default:
-                    diagnostics.Add($"Illegal expression type '{node.GetType().Name}' found in constant expression.");
+                    Error($"Illegal expression type '{node.GetType().Name}' found in constant expression.");
                     return 0;
             }
         }
