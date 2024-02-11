@@ -723,7 +723,7 @@ namespace UnityShaderParser.HLSL
             // This is a declaration - making a type and an instance
             else
             {
-                List<VariableDeclaratorNode> variables = ParseSeparatedList1(TokenKind.CommaToken, ParseVariableDeclarator);
+                List<VariableDeclaratorNode> variables = ParseSeparatedList1(TokenKind.CommaToken, () => ParseVariableDeclarator());
                 Eat(TokenKind.SemiToken);
                 return new VariableDeclarationStatementNode
                 {
@@ -1001,7 +1001,7 @@ namespace UnityShaderParser.HLSL
             List<AttributeNode> attributes = ParseMany0(TokenKind.OpenBracketToken, ParseAttribute);
             var modifiers = ParseParameterModifiers();
             TypeNode type = ParseType();
-            VariableDeclaratorNode declarator = ParseVariableDeclarator();
+            VariableDeclaratorNode declarator = ParseVariableDeclarator(false);
 
             return new FormalParameterNode
             {
@@ -1024,7 +1024,7 @@ namespace UnityShaderParser.HLSL
             return new ArrayRankNode { Dimension = expr };
         }
 
-        private VariableDeclaratorNode ParseVariableDeclarator()
+        private VariableDeclaratorNode ParseVariableDeclarator(bool allowCompoundInitializer = true)
         {
             string identifier = ParseIdentifier();
 
@@ -1047,7 +1047,7 @@ namespace UnityShaderParser.HLSL
             InitializerNode initializer = null;
             if (Match(TokenKind.EqualsToken))
             {
-                initializer = ParseValueInitializer();
+                initializer = ParseValueInitializer(allowCompoundInitializer);
             }
             else if (Match(TokenKind.OpenBraceToken))
             {
@@ -1064,10 +1064,10 @@ namespace UnityShaderParser.HLSL
             };
         }
 
-        private ValueInitializerNode ParseValueInitializer()
+        private ValueInitializerNode ParseValueInitializer(bool allowCompoundInitializer = true)
         {
             Eat(TokenKind.EqualsToken);
-            var expr = ParseExpression();
+            var expr = ParseExpression(allowCompoundInitializer ? 0 : (int)PrecedenceLevel.Compound + 1);
             return new ValueInitializerNode { Expression = expr };
         }
 
@@ -1320,7 +1320,7 @@ namespace UnityShaderParser.HLSL
         {
             var modifiers = ParseDeclarationModifiers();
             TypeNode kind = ParseType();
-            List<VariableDeclaratorNode> variables = ParseSeparatedList1(TokenKind.CommaToken, ParseVariableDeclarator);
+            List<VariableDeclaratorNode> variables = ParseSeparatedList1(TokenKind.CommaToken, () => ParseVariableDeclarator());
             Eat(TokenKind.SemiToken);
 
             return new VariableDeclarationStatementNode
