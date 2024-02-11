@@ -25,7 +25,6 @@ namespace UnityShaderParser.PreProcessor
         public List<HLSLToken> Tokens;
     }
 
-    // TODO: defined()
     public class HLSLPreProcessor : BaseParser<TokenKind>
     {
         protected override TokenKind StringLiteralTokenKind => TokenKind.StringLiteralToken;
@@ -40,7 +39,7 @@ namespace UnityShaderParser.PreProcessor
         protected int lineOffset = 0;
         internal Dictionary<string, Macro> defines = new Dictionary<string, Macro>();
 
-        protected List<HLSLToken> outputTokens = new List<HLSLToken>(); // TODO
+        protected List<HLSLToken> outputTokens = new List<HLSLToken>();
         protected List<string> outputPragmas = new List<string>();
 
         protected void Add(HLSLToken token)
@@ -307,8 +306,9 @@ namespace UnityShaderParser.PreProcessor
                 }
             }
 
+            // Optimization: Only do this if necessary
             bool hasGlueTokenOrDefined = expanded.Any(x => x.Kind == TokenKind.HashHashToken || x.Identifier == "defined");
-            if (hasGlueTokenOrDefined) // Optimization: Only do this if necessary
+            if (hasGlueTokenOrDefined)
             {
                 ReplaceBetweenExpansions(expanded);
             }
@@ -318,82 +318,78 @@ namespace UnityShaderParser.PreProcessor
             // Loop until we can't apply macros anymore
             while (true)
             {
-                // Take note of hideset count so we know if anything was applied
-                int hideSetSize = hideSet.Count;
+                List<HLSLToken> next = new List<HLSLToken>();
+                HashSet<string> nextHideSet = new HashSet<string>();
 
-                // Try to apply each macro
-                foreach (var macro in defines)
+                // Go over each token and try to apply, adding to the hideset as we go
+                bool anyThingApplied = false;
+                for (int i = 0; i < expanded.Count; i++)
                 {
-                    // ... unless it was already applied
-                    if (hideSet.Contains(macro.Key))
-                        continue;
+                    HLSLToken token = expanded[i];
 
-                    List<HLSLToken> next = new List<HLSLToken>();
-
-                    for (int i = 0; i < expanded.Count; i++)
+                    string lexeme = HLSLSyntaxFacts.IdentifierOrKeywordToString(token);
+                    // If the macro matches
+                    if (!hideSet.Contains(lexeme) && defines.TryGetValue(lexeme, out Macro macro))
                     {
-                        HLSLToken token = expanded[i];
-
-                        string lexeme = HLSLSyntaxFacts.IdentifierOrKeywordToString(token);
-                        // If the macro matches
-                        if (macro.Key == lexeme)
+                        // Add it to the hideset
+                        if (!nextHideSet.Contains(lexeme))
                         {
-                            // Add it to the hideset
-                            if (!hideSet.Contains(macro.Key))
+                            nextHideSet.Add(lexeme);
+                        }
+
+                        anyThingApplied = true;
+
+                        // We need to replace tokens.
+                        // First, check if we have a functionlike macro
+                        if (macro.FunctionLike)
+                        {
+                            // Try to parase parameters. If they aren't there, it's just an identifier.
+                            if (!TryParseFunctionLikeMacroInvocationParameters(expanded, ref i, out var parameters))
+                                next.Add(token);
+
+                            if (parameters.Count != macro.Parameters.Count)
+                                Error($"Incorrect number of arguments passed to macro '{macro.Name}', expected {macro.Parameters.Count}, got {parameters.Count}.");
+
+                            // If they are there, substitute them
+                            foreach (var macroToken in macro.Tokens)
                             {
-                                hideSet.Add(macro.Key);
-                            }
-
-                            // We need to replace tokens.
-                            // First, check if we have a functionlike macro
-                            if (macro.Value.FunctionLike)
-                            {
-                                // Try to parase parameters. If they aren't there, it's just an identifier.
-                                if (!TryParseFunctionLikeMacroInvocationParameters(expanded, ref i, out var parameters))
-                                    next.Add(token);
-
-                                if (parameters.Count != macro.Value.Parameters.Count)
-                                    Error($"Incorrect number of arguments passed to macro '{macro.Value.Name}', expected {macro.Value.Parameters.Count}, got {parameters.Count}.");
-
-                                // If they are there, substitute them
-                                foreach (var macroToken in macro.Value.Tokens)
+                                string macroTokenLexeme = HLSLSyntaxFacts.IdentifierOrKeywordToString(macroToken);
+                                int paramIndex = macro.Parameters.IndexOf(macroTokenLexeme);
+                                if (paramIndex >= 0 && paramIndex < parameters.Count)
                                 {
-                                    string macroTokenLexeme = HLSLSyntaxFacts.IdentifierOrKeywordToString(macroToken);
-                                    int paramIndex = macro.Value.Parameters.IndexOf(macroTokenLexeme);
-                                    if (paramIndex >= 0 && paramIndex < parameters.Count)
-                                    {
-                                        var parameter = parameters[paramIndex];
-                                        next.AddRange(parameter);
-                                    }
-                                    else
-                                    {
-                                        next.Add(macroToken);
-                                    }
+                                    var parameter = parameters[paramIndex];
+                                    next.AddRange(parameter);
+                                }
+                                else
+                                {
+                                    next.Add(macroToken);
                                 }
                             }
-                            // If not, we can just substitute tokens directly
-                            else
-                            {
-                                next.AddRange(macro.Value.Tokens);
-                            }
                         }
-                        // Otherwise just pass the token through
+                        // If not, we can just substitute tokens directly
                         else
                         {
-                            next.Add(token);
+                            next.AddRange(macro.Tokens);
                         }
                     }
-
-                    if (hideSet.Count > hideSetSize) // Optimization, check if anything changed - this is costly
+                    // Otherwise just pass the token through
+                    else
                     {
-                        ReplaceBetweenExpansions(next);
+                        next.Add(token);
                     }
-
-                    expanded = next;
                 }
 
+                // Optimization: Check if anything changed - costly to replace
+                if (anyThingApplied)
+                {
+                    ReplaceBetweenExpansions(next);
+                }
+
+                hideSet = nextHideSet;
+                expanded = next;
+
                 // If nothing was applied, stop
-                if (hideSet.Count == hideSetSize)
+                if (!anyThingApplied)
                 {
                     break;
                 }
