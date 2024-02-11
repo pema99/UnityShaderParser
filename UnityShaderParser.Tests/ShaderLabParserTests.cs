@@ -12,6 +12,7 @@ namespace UnityShaderParser.ShaderLab.Tests
         {
             return Directory.EnumerateFiles(Directory.GetCurrentDirectory(), "*.shader", SearchOption.AllDirectories)
                 .Select(path => Path.GetRelativePath(Directory.GetCurrentDirectory(), path))
+                .Where(path => !File.ReadAllText(path).Contains("GLSLPROGRAM")) // Filter out GLSL
                 .ToArray();
         }
 
@@ -36,8 +37,6 @@ namespace UnityShaderParser.ShaderLab.Tests
         public void ParseUnityShaderAndEmbeddedHLSL(string path)
         {
             string source = File.ReadAllText(path);
-            if (source.Contains("GLSLPROGRAM"))
-                Assert.Ignore("GLSL parsing not supported");
 
             var tokens = ShaderLabLexer.Lex(source, false, out var lexerDiags);
             Assert.IsEmpty(lexerDiags, lexerDiags.FirstOrDefault().ToString());
