@@ -307,7 +307,11 @@ namespace UnityShaderParser.PreProcessor
                 }
             }
 
-            ReplaceBetweenExpansions(expanded);
+            bool hasGlueTokenOrDefined = expanded.Any(x => x.Kind == TokenKind.HashHashToken || x.Identifier == "defined");
+            if (hasGlueTokenOrDefined) // Optimization: Only do this if necessary
+            {
+                ReplaceBetweenExpansions(expanded);
+            }
             
             HashSet<string> hideSet = new HashSet<string>();
             
@@ -380,7 +384,10 @@ namespace UnityShaderParser.PreProcessor
                         }
                     }
 
-                    ReplaceBetweenExpansions(next);
+                    if (hideSet.Count > hideSetSize) // Optimization, check if anything changed - this is costly
+                    {
+                        ReplaceBetweenExpansions(next);
+                    }
 
                     expanded = next;
                 }
