@@ -1,7 +1,7 @@
 ﻿using UnityShaderParser.PreProcessor;
 using UnityShaderParser.ShaderLab;
 
-string path = "D:\\Projects\\UnityShaderParser\\UnityShaderParser\\UnityShaderParser.Tests\\TestShaders\\UnityBuiltinShaders\\DefaultResourcesExtra\\AutodeskInteractive.shader";
+string path = "D:\\Projects\\UnityShaderParser\\UnityShaderParser\\UnityShaderParser.Tests\\TestShaders\\PoiyomiToon\\Poiyomi Early Outline.shader";
 string source = File.ReadAllText(path);
 
 var tokens = ShaderLabLexer.Lex(source, false, out var lexerDiags);
