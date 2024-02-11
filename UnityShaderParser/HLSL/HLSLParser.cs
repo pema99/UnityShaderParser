@@ -40,6 +40,12 @@ namespace UnityShaderParser.HLSL
 
         private void RunPreProcessor(HLSLParserConfig config, out List<string> pragmas)
         {
+            if (config.PreProcessorMode == PreProcessorMode.DoNothing)
+            {
+                pragmas = new List<string>();
+                return;
+            }
+
             tokens = HLSLPreProcessor.PreProcess(
                 tokens,
                 config.ThrowExceptionOnError,
