@@ -18,5 +18,10 @@ var config = new ShaderLabParserConfig
         { "SHADER_API_D3D11", "1" }
     },
 };
+ShaderLabParser.Parse(tokens, config, out _);
+
+var sw = System.Diagnostics.Stopwatch.StartNew();
 var parsed = ShaderLabParser.Parse(tokens, config, out var parserDiags);
+sw.Stop();
+Console.WriteLine(sw.ElapsedMilliseconds);
 ;

@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using UnityShaderParser.Common;
 using UnityShaderParser.HLSL;
 
@@ -12,11 +14,13 @@ namespace UnityShaderParser.ShaderLab
     public class ShaderLabParserConfig : HLSLParserConfig
     {
         public bool ParseEmbeddedHLSL { get; set; }
+        public bool ParallelCodeBlockParsing { get; set; }
 
         public ShaderLabParserConfig()
             : base()
         {
             ParseEmbeddedHLSL = true;
+            ParallelCodeBlockParsing = true;
         }
     }
 
@@ -36,6 +40,7 @@ namespace UnityShaderParser.ShaderLab
 
         protected ShaderLabParserConfig config = default;
         protected Stack<List<string>> currentIncludeBlocks = new Stack<List<string>>();
+        protected List<HLSLParseRequest> parseRequests = new List<HLSLParseRequest>();
 
         public static ShaderNode Parse(List<SLToken> tokens, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
         {
@@ -54,6 +59,29 @@ namespace UnityShaderParser.ShaderLab
             }
             sb.Append(program);
             return sb.ToString();
+        }
+        protected struct HLSLParseRequest
+        {
+            // Input
+            public string FullCode;
+
+            // Output
+            public List<string> Pragmas;
+            public List<HLSLSyntaxNode> TopLevelDeclarations;
+
+            public HLSLParseRequest(in HLSLBlock block)
+            {
+                FullCode = block.FullCode;
+                Pragmas = block.Pragmas;
+                TopLevelDeclarations = block.TopLevelDeclarations;
+            }
+
+            public void Execute(HLSLParserConfig config, List<Diagnostic> outDiagnostics)
+            {
+                TopLevelDeclarations.AddRange(ShaderParser.ParseTopLevelDeclarations(FullCode, config, out var diagnostics, out var pragmas));
+                outDiagnostics.AddRange(diagnostics);
+                Pragmas.AddRange(pragmas);
+            }
         }
         protected HLSLBlock ParseOrSkipEmbeddedHLSL(string program)
         {
@@ -98,28 +126,30 @@ namespace UnityShaderParser.ShaderLab
                 fullCode = $"#include \"UnityShaderVariables.cginc\"\n{fullCode}";
             }
 
+            var block = new HLSLBlock
+            {
+                CodeWithoutIncludes = program,
+                FullCode = fullCode,
+                Pragmas = new List<string>(),
+                TopLevelDeclarations = new List<HLSLSyntaxNode>(),
+            };
             if (!config.ParseEmbeddedHLSL)
             {
-                return new HLSLBlock
-                {
-                    CodeWithoutIncludes = program,
-                    FullCode = fullCode,
-                    Pragmas = new List<string>(),
-                    TopLevelDeclarations = new List<HLSLSyntaxNode>(),
-                };
+                return block;
             }
 
             // TODO: Proper line numbers
             // TODO: Don't redo the parsing work every time - it's slow x)
-            var decls = ShaderParser.ParseTopLevelDeclarations(fullCode, config, out var parserDiags, out var pragmas);
-            diagnostics.AddRange(parserDiags);
-            return new HLSLBlock
+            var request = new HLSLParseRequest(in block);
+            if (config.ParallelCodeBlockParsing)
             {
-                CodeWithoutIncludes = program,
-                FullCode = fullCode,
-                Pragmas = pragmas,
-                TopLevelDeclarations = decls,
-            };
+                parseRequests.Add(request);
+            }
+            else
+            {
+                request.Execute(config, diagnostics);
+            }
+            return block;
         }
         protected void PushIncludes() => currentIncludeBlocks.Push(new List<string>());
         protected void PopIncludes() => currentIncludeBlocks.Pop();
@@ -221,6 +251,18 @@ namespace UnityShaderParser.ShaderLab
             Eat(TokenKind.CloseBraceToken);
 
             PopIncludes();
+
+            // Fulfill all the deferred parsing requests in parallel
+            if (config.ParallelCodeBlockParsing)
+            {
+                List<Diagnostic>[] perThreadDiagnostics = new List<Diagnostic>[parseRequests.Count];
+                Parallel.For(0, parseRequests.Count, i =>
+                {
+                    perThreadDiagnostics[i] = new List<Diagnostic>();
+                    parseRequests[i].Execute(config, perThreadDiagnostics[i]);
+                });
+                diagnostics.AddRange(perThreadDiagnostics.SelectMany(x => x));
+            }
 
             return new ShaderNode
             {
