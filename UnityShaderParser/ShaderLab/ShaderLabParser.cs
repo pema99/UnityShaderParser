@@ -48,17 +48,56 @@ namespace UnityShaderParser.ShaderLab
         protected string PrependCurrentIncludes(string program)
         {
             StringBuilder sb = new StringBuilder();
-            if (currentIncludeBlocks.Count == 0)
+            for (int i = 0; i < currentIncludeBlocks.Count; i++)
             {
-                sb.Append(currentIncludeBlocks.Peek());
+                sb.Append(string.Join("\n", currentIncludeBlocks.ElementAt(currentIncludeBlocks.Count - 1 - i)));
             }
             sb.Append(program);
             return sb.ToString();
         }
         protected HLSLBlock ParseOrSkipEmbeddedHLSL(string program)
         {
+            // Prepend include blocks
             string fullCode = PrependCurrentIncludes(program);
-            fullCode = $"#ifndef HLSL_SUPPORT_INCLUDED\n#include \"HLSLSupport.cginc\"\n#endif\n{fullCode}"; // HLSLSupport.cginc should always be included
+
+            // Try to figure out if we have surface shader.
+            // Surface shaders have some additional implicit includes.
+            string[] lines = fullCode.Split('\n');
+            bool isSurfaceShader = false;
+            foreach (string line in lines)
+            {
+                if (line.TrimStart().StartsWith("#pragma"))
+                {
+                    string[] args = line.TrimStart().Split(' ');
+                    if (args.Length > 0)
+                    {
+                        if (args[1] == "surface")
+                        {
+                            isSurfaceShader = true;
+                            break;
+                        }
+                        else if (args[1] == "vertex" || args[1] == "fragment")
+                        {
+                            isSurfaceShader = false;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Surface shaders have special includes :(
+            if (isSurfaceShader)
+            {
+                fullCode = $"#include \"UnityCG.cginc\"\n{fullCode}";
+                // Surface shader compiler has some secret INTERNAL_DATA macro
+                fullCode = $"#ifndef INTERNAL_DATA\n#define INTERNAL_DATA\n#endif\n{fullCode}";
+            }
+            // UnityShaderVariables.cginc should always be included otherwise
+            else
+            {
+                fullCode = $"#include \"UnityShaderVariables.cginc\"\n{fullCode}";
+            }
+
             if (!config.ParseEmbeddedHLSL)
             {
                 return new HLSLBlock
@@ -69,7 +108,9 @@ namespace UnityShaderParser.ShaderLab
                     TopLevelDeclarations = new List<HLSLSyntaxNode>(),
                 };
             }
+
             // TODO: Proper line numbers
+            // TODO: Don't redo the parsing work every time - it's slow x)
             var decls = ShaderParser.ParseTopLevelDeclarations(fullCode, config, out var parserDiags, out var pragmas);
             diagnostics.AddRange(parserDiags);
             return new HLSLBlock

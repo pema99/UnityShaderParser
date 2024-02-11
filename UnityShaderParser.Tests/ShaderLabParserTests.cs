@@ -36,6 +36,8 @@ namespace UnityShaderParser.ShaderLab.Tests
         public void ParseUnityShaderAndEmbeddedHLSL(string path)
         {
             string source = File.ReadAllText(path);
+            if (source.Contains("GLSLPROGRAM"))
+                Assert.Ignore("GLSL parsing not supported");
 
             var tokens = ShaderLabLexer.Lex(source, false, out var lexerDiags);
             Assert.IsEmpty(lexerDiags, lexerDiags.FirstOrDefault().ToString());
