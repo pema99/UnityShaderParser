@@ -45,7 +45,7 @@ namespace UnityShaderParser.Common
             if (Identifier == null)
                 return Kind.ToString() ?? string.Empty;
             else
-                return $"{Kind}: {Identifier}";
+                return $"{Kind}({Identifier})";
         }
     }
 

@@ -224,8 +224,8 @@ namespace UnityShaderParser.ShaderLab
 
         public override string ToString()
         {
-            if (Value != null) return Value.ToString() ?? string.Empty;
-            else if (Property != null) return Property;
+            if (Property != null) return Property;
+            else if (Value != null) return Value.ToString();
             else return string.Empty;
         }
     }
