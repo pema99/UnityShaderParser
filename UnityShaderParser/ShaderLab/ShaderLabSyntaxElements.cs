@@ -647,6 +647,7 @@ namespace UnityShaderParser.ShaderLab
     public class ShaderLabCommandBlendOpNode : ShaderLabCommandNode
     {
         public PropertyReferenceOr<BlendOp> BlendOp { get; set; }
+        public PropertyReferenceOr<BlendOp>? BlendOpAlpha { get; set; }
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandBlendOpNode(this);
     }

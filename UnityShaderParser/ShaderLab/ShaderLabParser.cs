@@ -888,7 +888,13 @@ namespace UnityShaderParser.ShaderLab
         {
             Eat(TokenKind.BlendOpKeyword);
             var op = ParsePropertyReferenceOr(() => blendOps.GetValueOrDefault(Eat(blendOpsKeys).Kind));
-            return new ShaderLabCommandBlendOpNode { BlendOp = op };
+            PropertyReferenceOr<BlendOp>? alphaOp = null;
+            if (Match(TokenKind.CommaToken))
+            {
+                Eat(TokenKind.CommaToken);
+                alphaOp = ParsePropertyReferenceOr(() => blendOps.GetValueOrDefault(Eat(blendOpsKeys).Kind));
+            }
+            return new ShaderLabCommandBlendOpNode { BlendOp = op, BlendOpAlpha = alphaOp };
         }
 
         private static readonly Dictionary<TokenKind, FixedFunctionMaterialProperty> fixedFunctionsMatProps = new Dictionary<TokenKind, FixedFunctionMaterialProperty>()
