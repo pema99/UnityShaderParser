@@ -14,9 +14,9 @@ var config = new ShaderLabParserConfig
     IncludeResolver = new DefaultPreProcessorIncludeResolver(new List<string> { cgIncludesPath }),
     BasePath = Directory.GetParent(path)?.FullName,
     Defines = new Dictionary<string, string>()
-                {
-                    { "SHADER_API_D3D11", "1" }
-                },
+    {
+        { "SHADER_API_D3D11", "1" }
+    },
 };
 var parsed = ShaderLabParser.Parse(tokens, config, out var parserDiags);
 ;
