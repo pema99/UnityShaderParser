@@ -7,6 +7,149 @@ namespace UnityShaderParser.Common
     public abstract class BaseParser<T>
         where T : struct, Enum
     {
+        protected abstract class BaseTokenStream
+        {
+            public abstract bool IsAtEnd(int offsetFromCurrent);
+            public abstract Token<T> GetAt(int offsetFromCurrent);
+            public abstract void Advance(int offsetFromCurrent);
+            public abstract List<Token<T>> ToList();
+            public abstract void BeginChangeCheck();
+            public abstract bool EndChangeCheck();
+        }
+
+        protected sealed class ListTokenStream : BaseTokenStream
+        {
+            public List<Token<T>> InnerList = new List<Token<T>>();
+            public int Index = 0;
+            private int LastIndex = 0;
+
+            public ListTokenStream(List<Token<T>> list) { InnerList = new List<Token<T>>(list); }
+
+            public override bool IsAtEnd(int offsetFromCurrent) => Index + offsetFromCurrent >= InnerList.Count;
+            public override void Advance(int offsetFromCurrent) => Index += offsetFromCurrent;
+            public override Token<T> GetAt(int offsetFromCurrent) => InnerList[Index + offsetFromCurrent];
+            public override List<Token<T>> ToList() => InnerList;
+            public override void BeginChangeCheck() => LastIndex = Index;
+            public override bool EndChangeCheck() => Index > LastIndex;
+        }
+
+        protected sealed class LinkedListTokenStream : BaseTokenStream
+        {
+            public class Node
+            {
+                public Token<T> Value;
+                public Node Next;
+                public Node Prev;
+            }
+            public Node FirstNode;
+            public Node CurrentNode;
+            public Node ChangeCheckNode;
+
+            public LinkedListTokenStream(List<Token<T>> list)
+            {
+                if (list.Count == 0)
+                    return;
+
+                FirstNode = new Node
+                {
+                    Value = list[0]
+                };
+                CurrentNode = FirstNode;
+
+                var currNode = FirstNode;
+                for (int i = 1; i < list.Count; i++)
+                {
+                    var newNode = new Node
+                    {
+                        Value = list[i],
+                    };
+                    currNode.Next = newNode;
+                    newNode.Prev = currNode;
+                    currNode = newNode;
+                }
+            }
+
+            public override bool IsAtEnd(int offsetFromCurrent)
+            {
+                if (offsetFromCurrent > 0)
+                    throw new Exception("Don't use random access with a linked list.");
+
+                return CurrentNode == null;
+            }
+
+            public override void Advance(int offsetFromCurrent)
+            {
+                if (offsetFromCurrent > 1)
+                    throw new Exception("Don't use random access with a linked list.");
+
+                if (CurrentNode != null)
+                {
+                    CurrentNode = CurrentNode.Next;
+                }
+            }
+
+            public override Token<T> GetAt(int offsetFromCurrent)
+            {
+                if (offsetFromCurrent > 0)
+                    throw new Exception("Don't use random access with a linked list.");
+
+                return CurrentNode.Value;
+            }
+
+            // vvvv <-- Range to replace
+            // x---y
+            // inclusiveStart = x, afterEnd = y
+            public void Replace(Node inclusiveStart, Node afterEnd, List<Token<T>> replacement)
+            {
+                var currNode = inclusiveStart.Prev;
+                bool isReplacingFromStart = currNode == null;
+                if (isReplacingFromStart)
+                {
+                    // Create a sentinel
+                    currNode = new Node();
+                }
+                var firstNode = currNode;
+                foreach (var tok in replacement)
+                {
+                    currNode.Next = new Node { Value = tok };
+                    currNode.Next.Prev = currNode;
+                    currNode = currNode.Next;
+                }
+                currNode.Next = afterEnd;
+                if (currNode.Next != null)
+                {
+                    currNode.Next.Prev = currNode;
+                }
+                if (isReplacingFromStart)
+                {
+                    FirstNode = firstNode.Next;
+                }
+                CurrentNode = firstNode.Next;
+            }
+
+            public override List<Token<T>> ToList()
+            {
+                List<Token<T>> result = new List<Token<T>>();
+                var currNode = FirstNode;
+                while (currNode != null)
+                {
+                    result.Add(currNode.Value);
+                    currNode = currNode.Next;
+                }
+                return result;
+            }
+
+            public override void BeginChangeCheck()
+            {
+                ChangeCheckNode = CurrentNode;
+            }
+
+            public override bool EndChangeCheck()
+            {
+                return ChangeCheckNode != CurrentNode;
+            }
+        }
+
         // Require token kinds
         protected abstract T StringLiteralTokenKind { get; }
         protected abstract T IntegerLiteralTokenKind { get; }
@@ -14,8 +157,7 @@ namespace UnityShaderParser.Common
         protected abstract T IdentifierTokenKind { get; }
         protected abstract ParserStage Stage { get; }
 
-        protected List<Token<T>> tokens = new List<Token<T>>();
-        protected int position = 0;
+        protected BaseTokenStream tokens;
         protected SourceSpan anchorSpan = default;
         protected bool throwExceptionOnError = false;
 
@@ -24,8 +166,13 @@ namespace UnityShaderParser.Common
 
         public BaseParser(List<Token<T>> tokens, bool throwExceptionOnError)
         {
-            // Need to copy since the parser might want to modify tokens in place
-            this.tokens = new List<Token<T>>(tokens);
+            this.tokens = new ListTokenStream(tokens);
+            this.throwExceptionOnError = throwExceptionOnError;
+        }
+
+        protected BaseParser(BaseTokenStream stream, bool throwExceptionOnError)
+        {
+            this.tokens = stream;
             this.throwExceptionOnError = throwExceptionOnError;
         }
 
@@ -33,16 +180,33 @@ namespace UnityShaderParser.Common
 
         private void SnapshotState()
         {
-            snapshots.Push((position, anchorSpan, diagnostics.Count));
+            if (tokens is ListTokenStream stream)
+            {
+                snapshots.Push((stream.Index, anchorSpan, diagnostics.Count));
+            }
+            else
+            {
+                throw new Exception("Don't use snapshots with a linked list.");
+            }
         }
 
         private void RestoreState()
         {
-            var snapshot = snapshots.Pop();
-            position = snapshot.position;
-            anchorSpan = snapshot.span;
-            diagnostics.RemoveRange(snapshot.diagnosticCount, diagnostics.Count - snapshot.diagnosticCount);
+            if (tokens is ListTokenStream stream)
+            {
+                var snapshot = snapshots.Pop();
+                stream.Index = snapshot.position;
+                anchorSpan = snapshot.span;
+                diagnostics.RemoveRange(snapshot.diagnosticCount, diagnostics.Count - snapshot.diagnosticCount);
+            }
+            else
+            {
+                throw new Exception("Don't use snapshots with a linked list.");
+            }
         }
+
+        protected void BeginChangeCheck() => tokens.BeginChangeCheck();
+        protected bool EndChangeCheck() => tokens.EndChangeCheck();
 
         protected bool Speculate(Func<bool> parser)
         {
@@ -96,13 +260,13 @@ namespace UnityShaderParser.Common
             }
         }
 
-        protected Token<T> Peek() => IsAtEnd() ? default : tokens[position];
-        protected Token<T> LookAhead(int offset = 1) => IsAtEnd(offset) ? default : tokens[position + offset];
+        protected Token<T> Peek() => IsAtEnd() ? default : tokens.GetAt(0);
+        protected Token<T> LookAhead(int offset = 1) => IsAtEnd(offset) ? default : tokens.GetAt(offset);
         protected bool Match(Func<Token<T>, bool> predicate) => predicate(Peek());
         protected bool Match(Func<T, bool> predicate) => predicate(Peek().Kind);
         protected bool Match(T kind) => Match(tok => EqualityComparer<T>.Default.Equals(tok.Kind, kind));
         protected bool Match(params T[] alternatives) => Match(tok => alternatives.Contains(tok.Kind));
-        protected bool IsAtEnd(int offset = 0) => position + offset >= tokens.Count;
+        protected bool IsAtEnd(int offset = 0) => tokens.IsAtEnd(offset);
         protected Token<T> Eat(Func<Token<T>, bool> predicate)
         {
             if (!Match(predicate))
@@ -134,9 +298,9 @@ namespace UnityShaderParser.Common
         {
             if (IsAtEnd(amount - 1))
                 return default;
-            Token<T> result = tokens[position];
-            position += amount;
-            anchorSpan = Peek().Span;
+            Token<T> result = tokens.GetAt(0);
+            tokens.Advance(amount);
+            anchorSpan = tokens.IsAtEnd(0) ? default : tokens.GetAt(0).Span;
             return result;
         }
 
@@ -223,7 +387,7 @@ namespace UnityShaderParser.Common
             result.Add(parser());
             while (Match(separator))
             {
-                int lastPosition = position;
+                BeginChangeCheck();
 
                 Advance();
                 if (!allowTrailingSeparator || !Match(end))
@@ -231,7 +395,7 @@ namespace UnityShaderParser.Common
                     result.Add(parser());
                 }
 
-                if (lastPosition == position)
+                if (!EndChangeCheck())
                 {
 #if DEBUG
                     throw new Exception($"Parser got stuck parsing {Peek()}. Please file a bug report.");
@@ -251,12 +415,12 @@ namespace UnityShaderParser.Common
             result.Add(parser());
             while (Match(seperator))
             {
-                int lastPosition = position;
+                BeginChangeCheck();
 
                 Eat(seperator);
                 result.Add(parser());
 
-                if (lastPosition == position)
+                if (!EndChangeCheck())
                 {
 #if DEBUG
                     throw new Exception($"Parser got stuck parsing {Peek()}. Please file a bug report.");
@@ -277,11 +441,11 @@ namespace UnityShaderParser.Common
 
             while (Match(first))
             {
-                int lastPosition = position;
+                BeginChangeCheck();
 
                 result.Add(parser());
 
-                if (lastPosition == position)
+                if (!EndChangeCheck())
                 {
 #if DEBUG
                     throw new Exception($"Parser got stuck parsing {Peek()}. Please file a bug report.");
@@ -310,11 +474,11 @@ namespace UnityShaderParser.Common
 
             while (first())
             {
-                int lastPosition = position;
+                BeginChangeCheck();
 
                 result.Add(parser());
 
-                if (lastPosition == position)
+                if (!EndChangeCheck())
                 {
 #if DEBUG
                     throw new Exception($"Parser got stuck parsing {Peek()}. Please file a bug report.");

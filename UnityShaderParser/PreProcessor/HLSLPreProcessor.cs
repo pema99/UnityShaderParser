@@ -55,9 +55,10 @@ namespace UnityShaderParser.PreProcessor
                 Add(token);
             }
         }
+        protected LinkedListTokenStream TokenStream => (LinkedListTokenStream)tokens;
 
         public HLSLPreProcessor(List<HLSLToken> tokens, bool throwExceptionOnError, string basePath, IPreProcessorIncludeResolver includeResolver, Dictionary<string, string> defines)
-            : base(tokens, throwExceptionOnError)
+            : base(new LinkedListTokenStream(tokens), throwExceptionOnError)
         {
             this.basePath = basePath;
             this.includeResolver = includeResolver;
@@ -133,6 +134,8 @@ namespace UnityShaderParser.PreProcessor
 
         private void ExpandInclude()
         {
+            var startNode = TokenStream.CurrentNode;
+
             Eat(TokenKind.IncludeDirectiveKeyword);
             var pathToken = Eat(TokenKind.SystemIncludeLiteralToken, TokenKind.StringLiteralToken);
             Eat(TokenKind.EndDirectiveToken);
@@ -140,7 +143,9 @@ namespace UnityShaderParser.PreProcessor
             string source = includeResolver.ReadFile(basePath, filePath);
             var tokensToAdd = HLSLLexer.Lex(source, throwExceptionOnError, out var diagnosticsToAdd);
             diagnostics.AddRange(diagnosticsToAdd);
-            tokens.InsertRange(position, tokensToAdd);
+
+            var endNode = TokenStream.CurrentNode;
+            TokenStream.Replace(startNode, endNode, tokensToAdd);
         }
 
         // Glues tokens together with ## and evaluates defined(x) between each expansion
@@ -531,7 +536,8 @@ namespace UnityShaderParser.PreProcessor
 
         private void ExpandConditional()
         {
-            int startPosition = position;
+            var startNode = TokenStream.CurrentNode;
+
             List<HLSLToken> takenTokens = new List<HLSLToken>();
             bool branchTaken = false;
 
@@ -568,16 +574,13 @@ namespace UnityShaderParser.PreProcessor
 
             // Substitution. First take away the tokens we just evaluated, then insert the substitution,
             // and rewind to the start of it
-            int numTokensInDirective = position - startPosition;
-            position = startPosition;
-            tokens.RemoveRange(position, numTokensInDirective);
-            tokens.InsertRange(position, takenTokens);
+            var endNode = TokenStream.CurrentNode;
+            TokenStream.Replace(startNode, endNode, takenTokens);
         }
 
         private void GlueStringLiteralsPass()
         {
-            position = 0;
-            tokens = new List<HLSLToken>(outputTokens);
+            tokens = new LinkedListTokenStream(outputTokens);
             outputTokens.Clear();
             while (!IsAtEnd())
             {

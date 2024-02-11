@@ -46,15 +46,15 @@ namespace UnityShaderParser.HLSL
                 return;
             }
 
-            tokens = HLSLPreProcessor.PreProcess(
-                tokens,
+            tokens = new ListTokenStream(HLSLPreProcessor.PreProcess(
+                tokens.ToList(),
                 config.ThrowExceptionOnError,
                 config.PreProcessorMode,
                 config.BasePath,
                 config.IncludeResolver,
                 config.Defines,
                 out pragmas,
-                out var ppDiags);
+                out var ppDiags));
             diagnostics.AddRange(ppDiags);
         }
 

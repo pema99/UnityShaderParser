@@ -513,12 +513,12 @@ namespace UnityShaderParser.ShaderLab
         {
             while (true)
             {
-                int lastPosition = position;
+                BeginChangeCheck();
 
                 ParseCommandsIfPresent(outCommands);
                 ParseIncludeBlocksIfPresent(outIncludeBlocks);
 
-                if (lastPosition == position)
+                if (!EndChangeCheck())
                     break;
             }
         }
