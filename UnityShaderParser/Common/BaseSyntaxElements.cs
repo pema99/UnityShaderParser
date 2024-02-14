@@ -84,7 +84,5 @@ namespace UnityShaderParser.Common
         public List<TSelf> Children => GetChildren.ToList();
         public TSelf Parent => parent;
         public abstract SourceSpan Span { get; }
-
-        // TODO: Store parent by making ctor's which the relevant parent on their child
     }
 }
