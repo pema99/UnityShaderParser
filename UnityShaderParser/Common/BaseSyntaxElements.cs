@@ -31,12 +31,21 @@ namespace UnityShaderParser.Common
         public (int Line, int Column) End;
 
         public override string ToString() => $"({Start.Line}:{Start.Column} - {End.Line}:{End.Column})";
+
+        public static SourceSpan Union(SourceSpan start, SourceSpan end)
+        {
+            return new SourceSpan
+            {
+                Start = start.Start,
+                End = end.End,
+            };
+        }
     }
 
-    public struct Token<TTokenKind>
-        where TTokenKind : struct
+    public struct Token<T>
+        where T : struct
     {
-        public TTokenKind Kind;
+        public T Kind;
         public string Identifier; // Optional
         public SourceSpan Span;
 
@@ -64,6 +73,7 @@ namespace UnityShaderParser.Common
         // Public API
         public List<TSelf> Children => GetChildren.ToList();
 
+        public abstract SourceSpan Span { get; }
         // TODO: Store parent by making ctor's which the relevant parent on their child
         // TODO: Feed in span data
     }

@@ -139,6 +139,7 @@ namespace UnityShaderParser.Common
             anchorSpan = Peek().Span;
             return result;
         }
+        protected Token<T> Previous() => LookAhead(-1);
 
         protected void Error(string msg)
         {

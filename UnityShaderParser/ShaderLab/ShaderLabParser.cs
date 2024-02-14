@@ -133,7 +133,7 @@ namespace UnityShaderParser.ShaderLab
         {
             PushIncludes();
 
-            Eat(TokenKind.ShaderKeyword);
+            var keywordTok = Eat(TokenKind.ShaderKeyword);
             string name = Eat(TokenKind.StringLiteralToken).Identifier ?? string.Empty;
             Eat(TokenKind.OpenBraceToken);
 
@@ -218,11 +218,11 @@ namespace UnityShaderParser.ShaderLab
 
             ParseIncludeBlocksIfPresent(includeBlocks);
 
-            Eat(TokenKind.CloseBraceToken);
+            var closeTok = Eat(TokenKind.CloseBraceToken);
 
             PopIncludes();
 
-            return new ShaderNode
+            return new ShaderNode(keywordTok, closeTok)
             {
                 Name = name,
                 Properties = properties,
@@ -277,6 +277,7 @@ namespace UnityShaderParser.ShaderLab
 
         private ShaderPropertyNode ParseProperty()
         {
+            var firstTok = Peek();
             List<string> attributes = new List<string>();
             while (Match(TokenKind.BracketedStringLiteralToken))
             {
@@ -325,7 +326,8 @@ namespace UnityShaderParser.ShaderLab
 
             Eat(TokenKind.EqualsToken);
 
-            ShaderPropertyValueNode valueNode = new ShaderPropertyValueNode();
+            var valueNodeFirstTok = Peek();
+            ShaderPropertyValueNode valueNode = new ShaderPropertyValueNode(valueNodeFirstTok, valueNodeFirstTok);
             switch (kind)
             {
                 case ShaderPropertyKind.Color:
@@ -344,11 +346,11 @@ namespace UnityShaderParser.ShaderLab
                         w = ParseNumericLiteral();
                         hasLastChannel = true;
                     }
-                    Eat(TokenKind.CloseParenToken);
+                    var closeTok = Eat(TokenKind.CloseParenToken);
                     if (kind == ShaderPropertyKind.Color)
-                        valueNode = new ShaderPropertyValueColorNode { HasAlphaChannel = hasLastChannel, Color = (x, y, z, w) };
+                        valueNode = new ShaderPropertyValueColorNode(valueNodeFirstTok, closeTok) { HasAlphaChannel = hasLastChannel, Color = (x, y, z, w) };
                     else
-                        valueNode = new ShaderPropertyValueVectorNode { HasWChannel = hasLastChannel, Vector = (x, y, z, w) };
+                        valueNode = new ShaderPropertyValueVectorNode(valueNodeFirstTok, closeTok) { HasWChannel = hasLastChannel, Vector = (x, y, z, w) };
                     break;
 
                 case ShaderPropertyKind.TextureCube:
@@ -358,17 +360,20 @@ namespace UnityShaderParser.ShaderLab
                 case ShaderPropertyKind.TextureCubeArray:
                 case ShaderPropertyKind.Texture2DArray:
                 case ShaderPropertyKind.Texture3DArray:
-                    valueNode = new ShaderPropertyValueTextureNode { Kind = ShaderLabSyntaxFacts.ShaderPropertyTypeToTextureType(kind), TextureName = ParseStringLiteral() };
+                    string texName = ParseStringLiteral();
+                    valueNode = new ShaderPropertyValueTextureNode(valueNodeFirstTok, Previous()) { Kind = ShaderLabSyntaxFacts.ShaderPropertyTypeToTextureType(kind), TextureName = texName };
                     break;
 
                 case ShaderPropertyKind.Integer:
                 case ShaderPropertyKind.Int:
-                    valueNode = new ShaderPropertyValueIntegerNode { Number = ParseIntegerLiteral() };
+                    int intVal = ParseIntegerLiteral();
+                    valueNode = new ShaderPropertyValueIntegerNode(valueNodeFirstTok, Previous()) { Number = intVal };
                     break;
 
                 case ShaderPropertyKind.Float:
                 case ShaderPropertyKind.Range:
-                    valueNode = new ShaderPropertyValueFloatNode { Number = ParseNumericLiteral() };
+                    float floatVal = ParseNumericLiteral();
+                    valueNode = new ShaderPropertyValueFloatNode(valueNodeFirstTok, Previous()) { Number = floatVal };
                     break;
 
                 default:
@@ -383,7 +388,7 @@ namespace UnityShaderParser.ShaderLab
                 Eat(TokenKind.CloseBraceToken);
             }
 
-            return new ShaderPropertyNode
+            return new ShaderPropertyNode(firstTok, Previous())
             {
                 Attributes = attributes,
                 Uniform = uniform,
@@ -398,7 +403,7 @@ namespace UnityShaderParser.ShaderLab
         {
             PushIncludes();
 
-            Eat(TokenKind.SubShaderKeyword);
+            var keywordTok = Eat(TokenKind.SubShaderKeyword);
             Eat(TokenKind.OpenBraceToken);
 
             List<ShaderPassNode> passes = new List<ShaderPassNode>();
@@ -427,11 +432,11 @@ namespace UnityShaderParser.ShaderLab
 
             ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
 
-            Eat(TokenKind.CloseBraceToken);
+            var closeTok = Eat(TokenKind.CloseBraceToken);
 
             PopIncludes();
 
-            return new SubShaderNode
+            return new SubShaderNode(keywordTok, closeTok)
             {
                 Passes = passes,
                 Commands = commands,
@@ -444,7 +449,7 @@ namespace UnityShaderParser.ShaderLab
         {
             PushIncludes();
 
-            Eat(TokenKind.PassKeyword);
+            var keywordTok = Eat(TokenKind.PassKeyword);
             Eat(TokenKind.OpenBraceToken);
 
             List<ShaderLabCommandNode> commands = new List<ShaderLabCommandNode>();
@@ -461,11 +466,11 @@ namespace UnityShaderParser.ShaderLab
                 SetIncludes(includeBlocks);
             }
 
-            Eat(TokenKind.CloseBraceToken);
+            var closeTok = Eat(TokenKind.CloseBraceToken);
 
             PopIncludes();
 
-            return new ShaderCodePassNode
+            return new ShaderCodePassNode(keywordTok, closeTok)
             {
                 ProgramBlocks = programBlocks,
                 Commands = commands,
@@ -475,7 +480,7 @@ namespace UnityShaderParser.ShaderLab
 
         private ShaderGrabPassNode ParseGrabPass()
         {
-            Eat(TokenKind.GrabPassKeyword);
+            var keywordTok = Eat(TokenKind.GrabPassKeyword);
             Eat(TokenKind.OpenBraceToken);
 
             List<ShaderLabCommandNode> commands = new List<ShaderLabCommandNode>();
@@ -490,9 +495,9 @@ namespace UnityShaderParser.ShaderLab
                 ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
             }
 
-            Eat(TokenKind.CloseBraceToken);
+            var closeTok = Eat(TokenKind.CloseBraceToken);
 
-            return new ShaderGrabPassNode
+            return new ShaderGrabPassNode(keywordTok, closeTok)
             {
                 TextureName = name,
                 Commands = commands,
@@ -502,10 +507,11 @@ namespace UnityShaderParser.ShaderLab
 
         private ShaderUsePassNode ParseUsePass()
         {
-            Eat(TokenKind.UsePassKeyword);
-            return new ShaderUsePassNode
+            var keywordTok = Eat(TokenKind.UsePassKeyword);
+            string name = ParseStringLiteral();
+            return new ShaderUsePassNode(keywordTok, Previous())
             {
-                PassName = ParseStringLiteral()
+                PassName = name
             };
         }
 
@@ -531,12 +537,12 @@ namespace UnityShaderParser.ShaderLab
                 SLToken next = Peek();
                 switch (next.Kind)
                 {
-                    case TokenKind.LightingKeyword: outCommands.Add(ParseBasicToggleCommand<ShaderLabCommandLightingNode>(next.Kind)); break;
-                    case TokenKind.SeparateSpecularKeyword: outCommands.Add(ParseBasicToggleCommand<ShaderLabCommandSeparateSpecularNode>(next.Kind)); break;
-                    case TokenKind.ZWriteKeyword: outCommands.Add(ParseBasicToggleCommand<ShaderLabCommandZWriteNode>(next.Kind)); break;
-                    case TokenKind.AlphaToMaskKeyword: outCommands.Add(ParseBasicToggleCommand<ShaderLabCommandAlphaToMaskNode>(next.Kind)); break;
-                    case TokenKind.ZClipKeyword: outCommands.Add(ParseBasicToggleCommand<ShaderLabCommandZClipNode>(next.Kind)); break;
-                    case TokenKind.ConservativeKeyword: outCommands.Add(ParseBasicToggleCommand<ShaderLabCommandConservativeNode>(next.Kind)); break;
+                    case TokenKind.LightingKeyword: outCommands.Add(ParseBasicToggleCommand(next.Kind, (a, b) => new ShaderLabCommandLightingNode(a, b))); break;
+                    case TokenKind.SeparateSpecularKeyword: outCommands.Add(ParseBasicToggleCommand(next.Kind, (a, b) => new ShaderLabCommandSeparateSpecularNode(a, b))); break;
+                    case TokenKind.ZWriteKeyword: outCommands.Add(ParseBasicToggleCommand(next.Kind, (a, b) => new ShaderLabCommandZWriteNode(a, b))); break;
+                    case TokenKind.AlphaToMaskKeyword: outCommands.Add(ParseBasicToggleCommand(next.Kind, (a, b) => new ShaderLabCommandAlphaToMaskNode(a, b))); break;
+                    case TokenKind.ZClipKeyword: outCommands.Add(ParseBasicToggleCommand(next.Kind, (a, b) => new ShaderLabCommandZClipNode(a, b))); break;
+                    case TokenKind.ConservativeKeyword: outCommands.Add(ParseBasicToggleCommand(next.Kind, (a, b) => new ShaderLabCommandConservativeNode(a, b))); break;
                     case TokenKind.TagsKeyword: outCommands.Add(ParseTagsCommand()); break;
                     case TokenKind.LodKeyword: outCommands.Add(ParseLodCommand()); break;
                     case TokenKind.CullKeyword: outCommands.Add(ParseCullCommand()); break;
@@ -562,9 +568,24 @@ namespace UnityShaderParser.ShaderLab
             }
         }
 
+        private T ParseBasicToggleCommand<T>(TokenKind keyword, Func<SLToken, SLToken, T> ctor)
+            where T : ShaderLabBasicToggleCommandNode
+        {
+            var firstTok = Eat(keyword);
+            var prop = ParsePropertyReferenceOr(() =>
+            {
+                var kind = Eat(TokenKind.OnKeyword, TokenKind.OffKeyword, TokenKind.TrueKeyword, TokenKind.FalseKeyword).Kind;
+                return kind == TokenKind.OnKeyword || kind == TokenKind.TrueKeyword;
+            });
+            var lastTok = Previous();
+            var result = ctor(firstTok, lastTok);
+            result.Enabled = prop;
+            return result;
+        }
+
         private ShaderLabCommandTagsNode ParseTagsCommand()
         {
-            Eat(TokenKind.TagsKeyword);
+            var keywordTok = Eat(TokenKind.TagsKeyword);
             Eat(TokenKind.OpenBraceToken);
 
             Dictionary<string, string> tags = new Dictionary<string, string>();
@@ -577,9 +598,9 @@ namespace UnityShaderParser.ShaderLab
                 tags.Add(key, val);
             }
 
-            Eat(TokenKind.CloseBraceToken);
+            var closeTok = Eat(TokenKind.CloseBraceToken);
 
-            return new ShaderLabCommandTagsNode
+            return new ShaderLabCommandTagsNode(keywordTok, closeTok)
             {
                 Tags = tags
             };
@@ -587,9 +608,9 @@ namespace UnityShaderParser.ShaderLab
 
         private ShaderLabCommandLodNode ParseLodCommand()
         {
-            Eat(TokenKind.LodKeyword);
+            var keywordTok = Eat(TokenKind.LodKeyword);
             int level = ParseIntegerLiteral();
-            return new ShaderLabCommandLodNode
+            return new ShaderLabCommandLodNode(keywordTok, Previous())
             {
                 LodLevel = level,
             };
@@ -607,21 +628,9 @@ namespace UnityShaderParser.ShaderLab
             }
         }
 
-        private T ParseBasicToggleCommand<T>(TokenKind keyword)
-            where T : ShaderLabBasicToggleCommandNode, new()
-        {
-            Eat(keyword);
-            var prop = ParsePropertyReferenceOr(() =>
-            {
-                var kind = Eat(TokenKind.OnKeyword, TokenKind.OffKeyword, TokenKind.TrueKeyword, TokenKind.FalseKeyword).Kind;
-                return kind == TokenKind.OnKeyword || kind == TokenKind.TrueKeyword;
-            });
-            return new T { Enabled = prop };
-        }
-
         private ShaderLabCommandCullNode ParseCullCommand()
         {
-            Eat(TokenKind.CullKeyword);
+            var keywordTok = Eat(TokenKind.CullKeyword);
             var prop = ParsePropertyReferenceOr(() =>
             {
                 var kind = Eat(TokenKind.OffKeyword, TokenKind.FrontKeyword, TokenKind.BackKeyword, TokenKind.FalseKeyword).Kind;
@@ -634,14 +643,14 @@ namespace UnityShaderParser.ShaderLab
                     mode = CullMode.Back;
                 return mode;
             });
-            return new ShaderLabCommandCullNode { Mode = prop };
+            return new ShaderLabCommandCullNode(keywordTok, Previous()) { Mode = prop };
         }
 
         private ShaderLabCommandZTestNode ParseZTestCommand()
         {
-            Eat(TokenKind.ZTestKeyword);
+            var keywordTok = Eat(TokenKind.ZTestKeyword);
             var prop = ParsePropertyReferenceOr(() => ParseEnum<ComparisonMode>("a valid comparison operator"));
-            return new ShaderLabCommandZTestNode { Mode = prop };
+            return new ShaderLabCommandZTestNode(keywordTok, Previous()) { Mode = prop };
         }
 
         private static readonly Dictionary<TokenKind, BlendFactor> blendFactors = new Dictionary<TokenKind, BlendFactor>()
@@ -662,7 +671,7 @@ namespace UnityShaderParser.ShaderLab
 
         private ShaderLabCommandBlendNode ParseBlendCommand()
         {
-            Eat(TokenKind.BlendKeyword);
+            var keywordTok = Eat(TokenKind.BlendKeyword);
 
             int renderTarget = 0;
             if (Match(TokenKind.FloatLiteralToken, TokenKind.IntegerLiteralToken))
@@ -672,8 +681,8 @@ namespace UnityShaderParser.ShaderLab
 
             if (Match(TokenKind.OffKeyword, TokenKind.FalseKeyword))
             {
-                Advance();
-                return new ShaderLabCommandBlendNode { RenderTarget = renderTarget, Enabled = false };
+                var offTok = Advance();
+                return new ShaderLabCommandBlendNode(keywordTok, offTok) { RenderTarget = renderTarget, Enabled = false };
             }
 
             var srcRGB = ParsePropertyReferenceOr(() => blendFactors.GetValueOrDefault(Eat(blendFactorsKeys).Kind));
@@ -688,7 +697,7 @@ namespace UnityShaderParser.ShaderLab
                 dstAlpha = ParsePropertyReferenceOr(() => blendFactors.GetValueOrDefault(Eat(blendFactorsKeys).Kind));
             }
 
-            return new ShaderLabCommandBlendNode
+            return new ShaderLabCommandBlendNode(keywordTok, Previous())
             {
                 RenderTarget = renderTarget,
                 Enabled = true,
@@ -701,16 +710,16 @@ namespace UnityShaderParser.ShaderLab
 
         private ShaderLabCommandOffsetNode ParseOffsetCommand()
         {
-            Eat(TokenKind.OffsetKeyword);
+            var keywordTok = Eat(TokenKind.OffsetKeyword);
             var factor = ParsePropertyReferenceOr(ParseNumericLiteral);
             Eat(TokenKind.CommaToken);
             var units = ParsePropertyReferenceOr(ParseNumericLiteral);
-            return new ShaderLabCommandOffsetNode { Factor = factor, Units = units };
+            return new ShaderLabCommandOffsetNode(keywordTok, Previous()) { Factor = factor, Units = units };
         }
 
         private ShaderLabCommandColorMaskNode ParseColorMaskCommand()
         {
-            Eat(TokenKind.ColorMaskKeyword);
+            var keywordTok = Eat(TokenKind.ColorMaskKeyword);
             var mask = ParsePropertyReferenceOr(() =>
             {
                 SLToken next = Peek();
@@ -734,19 +743,19 @@ namespace UnityShaderParser.ShaderLab
             {
                 renderTarget = ParseIntegerLiteral();
             }
-            return new ShaderLabCommandColorMaskNode { RenderTarget = renderTarget, Mask = mask };
+            return new ShaderLabCommandColorMaskNode(keywordTok, Previous()) { RenderTarget = renderTarget, Mask = mask };
         }
 
         private ShaderLabCommandAlphaTestNode ParseAlphaTestCommand()
         {
-            Eat(TokenKind.AlphaTestKeyword);
+            var keywordTok = Eat(TokenKind.AlphaTestKeyword);
             var prop = ParsePropertyReferenceOr(() => ParseEnum<ComparisonMode>("a valid comparison operator"));
             PropertyReferenceOr<float>? alpha = null;
             if (Match(TokenKind.FloatLiteralToken, TokenKind.IntegerLiteralToken, TokenKind.BracketedStringLiteralToken))
             {
                 alpha = ParsePropertyReferenceOr(ParseNumericLiteral);
             }
-            return new ShaderLabCommandAlphaTestNode { Mode = prop, AlphaValue = alpha };
+            return new ShaderLabCommandAlphaTestNode(keywordTok, Previous()) { Mode = prop, AlphaValue = alpha };
         }
 
         private void ParseColor(out (float r, float g, float b, float a) color, out bool hasAlphaChannel)
@@ -771,7 +780,7 @@ namespace UnityShaderParser.ShaderLab
 
         private ShaderLabCommandFogNode ParseFogCommand()
         {
-            Eat(TokenKind.FogKeyword);
+            var keywordTok = Eat(TokenKind.FogKeyword);
             Eat(TokenKind.OpenBraceToken);
 
             (float, float, float, float)? color = null;
@@ -792,20 +801,20 @@ namespace UnityShaderParser.ShaderLab
                 isEnabled = modeKind == TokenKind.GlobalKeyword;
             }
 
-            Eat(TokenKind.CloseBraceToken);
-            return new ShaderLabCommandFogNode { Enabled = isEnabled, Color = color };
+            var closeTok = Eat(TokenKind.CloseBraceToken);
+            return new ShaderLabCommandFogNode(keywordTok, closeTok) { Enabled = isEnabled, Color = color };
         }
 
         private ShaderLabCommandNameNode ParseNameCommand()
         {
-            Eat(TokenKind.NameKeyword);
+            var keywordTok = Eat(TokenKind.NameKeyword);
             string name = ParseStringLiteral();
-            return new ShaderLabCommandNameNode { Name = name };
+            return new ShaderLabCommandNameNode(keywordTok, Previous()) { Name = name };
         }
 
         private ShaderLabCommandBindChannelsNode ParseBindChannelsCommand()
         {
-            Eat(TokenKind.BindChannelsKeyword);
+            var keywordTok = Eat(TokenKind.BindChannelsKeyword);
             Eat(TokenKind.OpenBraceToken);
 
             Dictionary<BindChannel, BindChannel> bindings = new Dictionary<BindChannel, BindChannel>();
@@ -828,21 +837,21 @@ namespace UnityShaderParser.ShaderLab
                 }
             }
 
-            Eat(TokenKind.CloseBraceToken);
+            var closeTok = Eat(TokenKind.CloseBraceToken);
 
-            return new ShaderLabCommandBindChannelsNode { Bindings = bindings };
+            return new ShaderLabCommandBindChannelsNode(keywordTok, closeTok) { Bindings = bindings };
         }
 
         private ShaderLabCommandColorNode ParseColorCommand()
         {
-            Eat(TokenKind.ColorKeyword);
+            var keywordTok = Eat(TokenKind.ColorKeyword);
             bool hasAlphaChannel = false;
             var prop = ParsePropertyReferenceOr(() =>
             {
                 ParseColor(out var color, out hasAlphaChannel);
                 return color;
             });
-            return new ShaderLabCommandColorNode { Color = prop, HasAlphaChannel = hasAlphaChannel };
+            return new ShaderLabCommandColorNode(keywordTok, Previous()) { Color = prop, HasAlphaChannel = hasAlphaChannel };
         }
 
         private static readonly Dictionary<TokenKind, BlendOp> blendOps = new Dictionary<TokenKind, BlendOp>()
@@ -886,7 +895,7 @@ namespace UnityShaderParser.ShaderLab
         private static readonly TokenKind[] blendOpsKeys = blendOps.Keys.ToArray();
         private ShaderLabCommandBlendOpNode ParseBlendOpCommand()
         {
-            Eat(TokenKind.BlendOpKeyword);
+            var keywordTok = Eat(TokenKind.BlendOpKeyword);
             var op = ParsePropertyReferenceOr(() => blendOps.GetValueOrDefault(Eat(blendOpsKeys).Kind));
             PropertyReferenceOr<BlendOp>? alphaOp = null;
             if (Match(TokenKind.CommaToken))
@@ -894,7 +903,7 @@ namespace UnityShaderParser.ShaderLab
                 Eat(TokenKind.CommaToken);
                 alphaOp = ParsePropertyReferenceOr(() => blendOps.GetValueOrDefault(Eat(blendOpsKeys).Kind));
             }
-            return new ShaderLabCommandBlendOpNode { BlendOp = op, BlendOpAlpha = alphaOp };
+            return new ShaderLabCommandBlendOpNode(keywordTok, Previous()) { BlendOp = op, BlendOpAlpha = alphaOp };
         }
 
         private static readonly Dictionary<TokenKind, FixedFunctionMaterialProperty> fixedFunctionsMatProps = new Dictionary<TokenKind, FixedFunctionMaterialProperty>()
@@ -909,7 +918,7 @@ namespace UnityShaderParser.ShaderLab
 
         private ShaderLabCommandMaterialNode ParseMaterialCommand()
         {
-            Eat(TokenKind.MaterialKeyword);
+            var keywordTok = Eat(TokenKind.MaterialKeyword);
             Eat(TokenKind.OpenBraceToken);
 
             var props = new Dictionary<FixedFunctionMaterialProperty, PropertyReferenceOr<(float, float, float, float)>>();
@@ -924,14 +933,14 @@ namespace UnityShaderParser.ShaderLab
 
             }
 
-            Eat(TokenKind.CloseBraceToken);
+            var closeTok = Eat(TokenKind.CloseBraceToken);
 
-            return new ShaderLabCommandMaterialNode { Properties = props };
+            return new ShaderLabCommandMaterialNode(keywordTok, closeTok) { Properties = props };
         }
 
         private ShaderLabCommandSetTextureNode ParseSetTextureCommand()
         {
-            Eat(TokenKind.SetTextureKeyword);
+            var keywordTok = Eat(TokenKind.SetTextureKeyword);
             string name = ParseBracketedStringLiteral();
             Eat(TokenKind.OpenBraceToken);
 
@@ -941,38 +950,36 @@ namespace UnityShaderParser.ShaderLab
                 tokens.Add(Advance());
             }
 
-            Eat(TokenKind.CloseBraceToken);
+            var closeTok = Eat(TokenKind.CloseBraceToken);
 
-            return new ShaderLabCommandSetTextureNode { TextureName = name, Body = tokens };
+            return new ShaderLabCommandSetTextureNode(keywordTok, closeTok) { TextureName = name, Body = tokens };
         }
 
         private ShaderLabCommandColorMaterialNode ParseColorMaterialNode()
         {
-            Eat(TokenKind.ColorMaterialKeyword);
-            bool ambient = Eat(TokenKind.EmissionKeyword, TokenKind.AmbientAndDiffuseKeyword).Kind == TokenKind.AmbientAndDiffuseKeyword;
-            return new ShaderLabCommandColorMaterialNode { AmbientAndDiffuse = ambient };
+            var keywordTok = Eat(TokenKind.ColorMaterialKeyword);
+            var modeTok = Eat(TokenKind.EmissionKeyword, TokenKind.AmbientAndDiffuseKeyword);
+            bool ambient = modeTok.Kind == TokenKind.AmbientAndDiffuseKeyword;
+            return new ShaderLabCommandColorMaterialNode(keywordTok, modeTok) { AmbientAndDiffuse = ambient };
         }
 
         private ShaderLabCommandStencilNode ParseStencilNode()
         {
-            Eat(TokenKind.StencilKeyword);
+            var keywordTok = Eat(TokenKind.StencilKeyword);
             Eat(TokenKind.OpenBraceToken);
 
             // Set defaults
-            var result = new ShaderLabCommandStencilNode
-            {
-                Ref = new PropertyReferenceOr<byte> { Value = 0 },
-                ReadMask = new PropertyReferenceOr<byte> { Value = 255 },
-                WriteMask = new PropertyReferenceOr<byte> { Value = 255 },
-                ComparisonOperationBack = new PropertyReferenceOr<ComparisonMode> { Value = ComparisonMode.Always },
-                PassOperationBack = new PropertyReferenceOr<StencilOp> { Value = StencilOp.Keep },
-                FailOperationBack = new PropertyReferenceOr<StencilOp> { Value = StencilOp.Keep },
-                ZFailOperationBack = new PropertyReferenceOr<StencilOp> { Value = StencilOp.Keep },
-                ComparisonOperationFront = new PropertyReferenceOr<ComparisonMode> { Value = ComparisonMode.Always },
-                PassOperationFront = new PropertyReferenceOr<StencilOp> { Value = StencilOp.Keep },
-                FailOperationFront = new PropertyReferenceOr<StencilOp> { Value = StencilOp.Keep },
-                ZFailOperationFront = new PropertyReferenceOr<StencilOp> { Value = StencilOp.Keep },
-            };
+            var @ref = new PropertyReferenceOr<byte> { Value = 0 };
+            var readMask = new PropertyReferenceOr<byte> { Value = 255 };
+            var writeMask = new PropertyReferenceOr<byte> { Value = 255 };
+            var comparisonOperationBack = new PropertyReferenceOr<ComparisonMode> { Value = ComparisonMode.Always };
+            var passOperationBack = new PropertyReferenceOr<StencilOp> { Value = StencilOp.Keep };
+            var failOperationBack = new PropertyReferenceOr<StencilOp> { Value = StencilOp.Keep };
+            var zFailOperationBack = new PropertyReferenceOr<StencilOp> { Value = StencilOp.Keep };
+            var comparisonOperationFront = new PropertyReferenceOr<ComparisonMode> { Value = ComparisonMode.Always };
+            var passOperationFront = new PropertyReferenceOr<StencilOp> { Value = StencilOp.Keep };
+            var failOperationFront = new PropertyReferenceOr<StencilOp> { Value = StencilOp.Keep };
+            var zFailOperationFront = new PropertyReferenceOr<StencilOp> { Value = StencilOp.Keep };
 
             StencilOp ParseStencilOp() => ParseEnum<StencilOp>("a valid stencil operator");
             ComparisonMode ParseComparisonMode() => ParseEnum<ComparisonMode>("a valid stencil comparison operator");
@@ -982,21 +989,21 @@ namespace UnityShaderParser.ShaderLab
                 SLToken next = Advance();
                 switch (next.Kind)
                 {
-                    case TokenKind.RefKeyword: result.Ref = ParsePropertyReferenceOr(ParseByteLiteral); break;
-                    case TokenKind.ReadMaskKeyword: result.ReadMask = ParsePropertyReferenceOr(ParseByteLiteral); break;
-                    case TokenKind.WriteMaskKeyword: result.WriteMask = ParsePropertyReferenceOr(ParseByteLiteral); break;
-                    case TokenKind.CompKeyword: result.ComparisonOperationBack = result.ComparisonOperationFront = ParsePropertyReferenceOr(ParseComparisonMode); break;
-                    case TokenKind.PassKeyword: result.PassOperationBack = result.PassOperationFront = ParsePropertyReferenceOr(ParseStencilOp); break;
-                    case TokenKind.FailKeyword: result.FailOperationBack = result.FailOperationFront = ParsePropertyReferenceOr(ParseStencilOp); break;
-                    case TokenKind.ZFailKeyword: result.ZFailOperationBack = result.ZFailOperationFront = ParsePropertyReferenceOr(ParseStencilOp); break;
-                    case TokenKind.CompBackKeyword: result.ComparisonOperationBack = ParsePropertyReferenceOr(ParseComparisonMode); break;
-                    case TokenKind.PassBackKeyword: result.PassOperationBack = ParsePropertyReferenceOr(ParseStencilOp); break;
-                    case TokenKind.FailBackKeyword: result.FailOperationBack = ParsePropertyReferenceOr(ParseStencilOp); break;
-                    case TokenKind.ZFailBackKeyword: result.ZFailOperationBack = ParsePropertyReferenceOr(ParseStencilOp); break;
-                    case TokenKind.CompFrontKeyword: result.ComparisonOperationFront = ParsePropertyReferenceOr(ParseComparisonMode); break;
-                    case TokenKind.PassFrontKeyword: result.PassOperationFront = ParsePropertyReferenceOr(ParseStencilOp); break;
-                    case TokenKind.FailFrontKeyword: result.FailOperationFront = ParsePropertyReferenceOr(ParseStencilOp); break;
-                    case TokenKind.ZFailFrontKeyword: result.ZFailOperationFront = ParsePropertyReferenceOr(ParseStencilOp); break;
+                    case TokenKind.RefKeyword: @ref = ParsePropertyReferenceOr(ParseByteLiteral); break;
+                    case TokenKind.ReadMaskKeyword: readMask = ParsePropertyReferenceOr(ParseByteLiteral); break;
+                    case TokenKind.WriteMaskKeyword: writeMask = ParsePropertyReferenceOr(ParseByteLiteral); break;
+                    case TokenKind.CompKeyword: comparisonOperationBack = comparisonOperationFront = ParsePropertyReferenceOr(ParseComparisonMode); break;
+                    case TokenKind.PassKeyword: passOperationBack = passOperationFront = ParsePropertyReferenceOr(ParseStencilOp); break;
+                    case TokenKind.FailKeyword: failOperationBack = failOperationFront = ParsePropertyReferenceOr(ParseStencilOp); break;
+                    case TokenKind.ZFailKeyword: zFailOperationBack = zFailOperationFront = ParsePropertyReferenceOr(ParseStencilOp); break;
+                    case TokenKind.CompBackKeyword: comparisonOperationBack = ParsePropertyReferenceOr(ParseComparisonMode); break;
+                    case TokenKind.PassBackKeyword: passOperationBack = ParsePropertyReferenceOr(ParseStencilOp); break;
+                    case TokenKind.FailBackKeyword: failOperationBack = ParsePropertyReferenceOr(ParseStencilOp); break;
+                    case TokenKind.ZFailBackKeyword: zFailOperationBack = ParsePropertyReferenceOr(ParseStencilOp); break;
+                    case TokenKind.CompFrontKeyword: comparisonOperationFront = ParsePropertyReferenceOr(ParseComparisonMode); break;
+                    case TokenKind.PassFrontKeyword: passOperationFront = ParsePropertyReferenceOr(ParseStencilOp); break;
+                    case TokenKind.FailFrontKeyword: failOperationFront = ParsePropertyReferenceOr(ParseStencilOp); break;
+                    case TokenKind.ZFailFrontKeyword: zFailOperationFront = ParsePropertyReferenceOr(ParseStencilOp); break;
 
                     default:
                         Error("a valid stencil operation", next);
@@ -1004,9 +1011,22 @@ namespace UnityShaderParser.ShaderLab
                 }
             }
 
-            Eat(TokenKind.CloseBraceToken);
+            var closeTok = Eat(TokenKind.CloseBraceToken);
 
-            return result;
+            return new ShaderLabCommandStencilNode(keywordTok, closeTok)
+            {
+                Ref = @ref,
+                ReadMask = readMask,
+                WriteMask = writeMask ,
+                ComparisonOperationBack = comparisonOperationBack ,
+                PassOperationBack = passOperationBack ,
+                FailOperationBack = failOperationBack ,
+                ZFailOperationBack = zFailOperationBack ,
+                ComparisonOperationFront = comparisonOperationFront ,
+                PassOperationFront = passOperationFront ,
+                FailOperationFront = failOperationFront ,
+                ZFailOperationFront = zFailOperationFront ,
+            };
         }
     }
 }
