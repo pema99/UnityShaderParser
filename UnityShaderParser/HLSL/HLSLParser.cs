@@ -63,6 +63,10 @@ namespace UnityShaderParser.HLSL
             HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError);
             parser.RunPreProcessor(config, out pragmas);
             var result = parser.ParseTopLevelDeclarations();
+            foreach (var decl in result)
+            {
+                decl.ComputeParents();
+            }
             diagnostics = parser.diagnostics;
             return result;
         }
@@ -72,6 +76,7 @@ namespace UnityShaderParser.HLSL
             HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError);
             parser.RunPreProcessor(config, out pragmas);
             var result = parser.ParseTopLevelDeclaration();
+            result.ComputeParents();
             diagnostics = parser.diagnostics;
             return result;
         }
@@ -81,6 +86,7 @@ namespace UnityShaderParser.HLSL
             HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError);
             parser.RunPreProcessor(config, out pragmas);
             var result = parser.ParseStatement();
+            result.ComputeParents();
             diagnostics = parser.diagnostics;
             return result;
         }
@@ -90,11 +96,12 @@ namespace UnityShaderParser.HLSL
             HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError);
             parser.RunPreProcessor(config, out pragmas);
             var result = parser.ParseExpression();
+            result.ComputeParents();
             diagnostics = parser.diagnostics;
             return result;
         }
 
-        internal List<HLSLSyntaxNode> ParseTopLevelDeclarations()
+        private List<HLSLSyntaxNode> ParseTopLevelDeclarations()
         {
             List<HLSLSyntaxNode> result = new List<HLSLSyntaxNode>();
 
@@ -106,7 +113,7 @@ namespace UnityShaderParser.HLSL
             return result;
         }
 
-        internal HLSLSyntaxNode ParseTopLevelDeclaration()
+        private HLSLSyntaxNode ParseTopLevelDeclaration()
         {
             switch (Peek().Kind)
             {
@@ -131,7 +138,7 @@ namespace UnityShaderParser.HLSL
 
                 case TokenKind.SemiToken:
                     var semiTok = Advance();
-                    return new EmptyStatementNode(semiTok, semiTok);
+                    return new EmptyStatementNode(semiTok, semiTok) { Attributes = new List<AttributeNode>() };
 
                 default:
                     if (IsNextPossiblyFunctionDeclaration())
@@ -701,7 +708,7 @@ namespace UnityShaderParser.HLSL
             }
 
             // Otherwise, full function
-            BlockNode body = ParseBlock();
+            BlockNode body = ParseBlock(new List<AttributeNode>());
             return new FunctionDefinitionNode(firstTok, Previous())
             {
                 Attributes = attributes,
@@ -716,7 +723,7 @@ namespace UnityShaderParser.HLSL
 
         private StatementNode ParseStructDefinitionOrDeclaration(List<AttributeNode> attributes)
         {
-            var firstTok = Peek();
+            var firstTokSpan = attributes.FirstOrDefault()?.Span ?? Peek().Span;
             var modifiers = ParseDeclarationModifiers();
             StructTypeNode structType = ParseStructType();
 
@@ -728,8 +735,8 @@ namespace UnityShaderParser.HLSL
                     Error($"Struct definitions cannot have modifiers, found '{string.Join(", ", modifiers)}'.");
                 }
 
-                var semiTok = Eat(TokenKind.SemiToken);
-                return new StructDefinitionNode(firstTok, semiTok)
+                var semiTokSpan = Eat(TokenKind.SemiToken).Span;
+                return new StructDefinitionNode(SourceSpan.Union(firstTokSpan, semiTokSpan))
                 {
                     Attributes = attributes,
                     StructType = structType,
@@ -739,8 +746,8 @@ namespace UnityShaderParser.HLSL
             else
             {
                 List<VariableDeclaratorNode> variables = ParseSeparatedList1(TokenKind.CommaToken, () => ParseVariableDeclarator());
-                var semiTok = Eat(TokenKind.SemiToken);
-                return new VariableDeclarationStatementNode(firstTok, semiTok)
+                var semiTokSpan = Eat(TokenKind.SemiToken).Span;
+                return new VariableDeclarationStatementNode(SourceSpan.Union(firstTokSpan, semiTokSpan))
                 {
                     Modifiers = modifiers,
                     Kind = structType,
@@ -753,6 +760,7 @@ namespace UnityShaderParser.HLSL
         private InterfaceDefinitionNode ParseInterfaceDefinition(List<AttributeNode> attributes)
         {
             var keywordTok = Eat(TokenKind.InterfaceKeyword);
+            var keywordTokSpan = attributes.FirstOrDefault()?.Span ?? keywordTok.Span;
             var name = ParseUserDefinedNamedType();
 
             Eat(TokenKind.OpenBraceToken);
@@ -775,9 +783,9 @@ namespace UnityShaderParser.HLSL
             }
 
             Eat(TokenKind.CloseBraceToken);
-            var semiTok = Eat(TokenKind.SemiToken);
+            var semiTokSpan = Eat(TokenKind.SemiToken).Span;
 
-            return new InterfaceDefinitionNode(keywordTok, semiTok)
+            return new InterfaceDefinitionNode(SourceSpan.Union(keywordTokSpan, semiTokSpan))
             {
                 Attributes = attributes,
                 Name = name,
@@ -820,6 +828,7 @@ namespace UnityShaderParser.HLSL
         private TypedefNode ParseTypedef(List<AttributeNode> attributes)
         {
             var keywordTok = Eat(TokenKind.TypedefKeyword);
+            var keywordTokSpan = attributes.FirstOrDefault()?.Span ?? keywordTok.Span;
 
             bool isConst = false;
             if (Match(TokenKind.ConstKeyword))
@@ -832,9 +841,9 @@ namespace UnityShaderParser.HLSL
 
             var names = ParseSeparatedList1(TokenKind.CommaToken, ParseUserDefinedNamedType);
 
-            var semiTok = Eat(TokenKind.SemiToken);
+            var semiTokSpan = Eat(TokenKind.SemiToken).Span;
 
-            return new TypedefNode(keywordTok, semiTok)
+            return new TypedefNode(SourceSpan.Union(keywordTokSpan, semiTokSpan))
             {
                 Attributes = attributes,
                 FromType = type,
@@ -923,7 +932,7 @@ namespace UnityShaderParser.HLSL
             };
         }
 
-        private NumericTypeNode ParseNumericType(bool allowVoid = false/* List<Modifier> Modifiers */)
+        private NumericTypeNode ParseNumericType(bool allowVoid = false)
         {
             HLSLToken typeToken = Advance();
             if (HLSLSyntaxFacts.TryConvertToScalarType(typeToken.Kind, out ScalarType scalarType))
@@ -1214,14 +1223,16 @@ namespace UnityShaderParser.HLSL
             };
         }
 
-        private BlockNode ParseBlock()
+        private BlockNode ParseBlock(List<AttributeNode> attributes)
         {
             var openTok = Eat(TokenKind.OpenBraceToken);
+            var openTokSpan = attributes.FirstOrDefault()?.Span ?? openTok.Span;
             List<StatementNode> statements = ParseMany0(() => !Match(TokenKind.CloseBraceToken), ParseStatement);
-            var closeTok = Eat(TokenKind.CloseBraceToken);
+            var closeTokSpan = Eat(TokenKind.CloseBraceToken).Span;
 
-            return new BlockNode(openTok, closeTok)
+            return new BlockNode(SourceSpan.Union(openTokSpan, closeTokSpan))
             {
+                Attributes = attributes,
                 Statements = statements,
             };
         }
@@ -1241,7 +1252,7 @@ namespace UnityShaderParser.HLSL
             return false;
         }
 
-        internal StatementNode ParseStatement()
+        private StatementNode ParseStatement()
         {
             var firstTok = Peek();
             List<AttributeNode> attributes = ParseMany0(TokenKind.OpenBracketToken, ParseAttribute);
@@ -1251,10 +1262,10 @@ namespace UnityShaderParser.HLSL
             {
                 case TokenKind.SemiToken:
                     var emptySemiTok = Advance();
-                    return new EmptyStatementNode(firstTok, emptySemiTok) { };
+                    return new EmptyStatementNode(firstTok, emptySemiTok) { Attributes = attributes };
 
                 case TokenKind.OpenBraceToken:
-                    return ParseBlock();
+                    return ParseBlock(attributes);
 
                 case TokenKind.ReturnKeyword:
                     Advance();
@@ -1337,13 +1348,13 @@ namespace UnityShaderParser.HLSL
 
         private VariableDeclarationStatementNode ParseVariableDeclarationStatement(List<AttributeNode> attributes)
         {
-            var firstTok = Peek();
+            var firstTokSpan = attributes.FirstOrDefault()?.Span ?? Peek().Span;
             var modifiers = ParseDeclarationModifiers();
             TypeNode kind = ParseType();
             List<VariableDeclaratorNode> variables = ParseSeparatedList1(TokenKind.CommaToken, () => ParseVariableDeclarator());
-            var semiTok = Eat(TokenKind.SemiToken);
+            var semiTokSpan = Eat(TokenKind.SemiToken).Span;
 
-            return new VariableDeclarationStatementNode(firstTok, semiTok)
+            return new VariableDeclarationStatementNode(SourceSpan.Union(firstTokSpan, semiTokSpan))
             {
                 Modifiers = modifiers,
                 Kind = kind,
@@ -1355,6 +1366,7 @@ namespace UnityShaderParser.HLSL
         private ForStatementNode ParseForStatement(List<AttributeNode> attributes)
         {
             var keywordTok = Eat(TokenKind.ForKeyword);
+            var keywordTokSpan = attributes.FirstOrDefault()?.Span ?? keywordTok.Span;
             Eat(TokenKind.OpenParenToken);
 
             VariableDeclarationStatementNode decl = null;
@@ -1394,7 +1406,7 @@ namespace UnityShaderParser.HLSL
 
             var body = ParseStatement();
 
-            return new ForStatementNode(keywordTok, Previous())
+            return new ForStatementNode(SourceSpan.Union(keywordTokSpan, Previous().Span))
             {
                 Declaration = decl,
                 Condition = cond,
@@ -1407,6 +1419,7 @@ namespace UnityShaderParser.HLSL
         private WhileStatementNode ParseWhileStatement(List<AttributeNode> attributes)
         {
             var keywordTok = Eat(TokenKind.WhileKeyword);
+            var keywordTokSpan = attributes.FirstOrDefault()?.Span ?? keywordTok.Span;
             Eat(TokenKind.OpenParenToken);
 
             var cond = ParseExpression();
@@ -1415,7 +1428,7 @@ namespace UnityShaderParser.HLSL
 
             var body = ParseStatement();
 
-            return new WhileStatementNode(keywordTok, Previous())
+            return new WhileStatementNode(SourceSpan.Union(keywordTokSpan, Previous().Span))
             {
                 Attributes = attributes,
                 Condition = cond,
@@ -1426,6 +1439,7 @@ namespace UnityShaderParser.HLSL
         private DoWhileStatementNode ParseDoWhileStatement(List<AttributeNode> attributes)
         {
             var keywordTok = Eat(TokenKind.DoKeyword);
+            var keywordTokSpan = attributes.FirstOrDefault()?.Span ?? keywordTok.Span;
             var body = ParseStatement();
 
             Eat(TokenKind.WhileKeyword);
@@ -1435,7 +1449,7 @@ namespace UnityShaderParser.HLSL
 
             var closeTok = Eat(TokenKind.CloseParenToken);
 
-            return new DoWhileStatementNode(keywordTok, closeTok)
+            return new DoWhileStatementNode(SourceSpan.Union(keywordTokSpan, closeTok.Span))
             {
                 Attributes = attributes,
                 Body = body,
@@ -1446,6 +1460,7 @@ namespace UnityShaderParser.HLSL
         private IfStatementNode ParseIfStatement(List<AttributeNode> attributes)
         {
             var keywordTok = Eat(TokenKind.IfKeyword);
+            var keywordTokSpan = attributes.FirstOrDefault()?.Span ?? keywordTok.Span;
             Eat(TokenKind.OpenParenToken);
 
             var cond = ParseExpression();
@@ -1461,7 +1476,7 @@ namespace UnityShaderParser.HLSL
                 elseClause = ParseStatement();
             }
 
-            return new IfStatementNode(keywordTok, Previous())
+            return new IfStatementNode(SourceSpan.Union(keywordTokSpan, Previous().Span))
             {
                 Attributes = attributes,
                 Condition = cond,
@@ -1473,6 +1488,7 @@ namespace UnityShaderParser.HLSL
         private SwitchStatementNode ParseSwitchStatement(List<AttributeNode> attributes)
         {
             var keywordTok = Eat(TokenKind.SwitchKeyword);
+            var keywordTokSpan = attributes.FirstOrDefault()?.Span ?? keywordTok.Span;
             Eat(TokenKind.OpenParenToken);
             var expr = ParseExpression();
             Eat(TokenKind.CloseParenToken);
@@ -1506,9 +1522,9 @@ namespace UnityShaderParser.HLSL
                 switchClauses.Add(new SwitchClauseNode(clauseStartTok, Previous()) { Labels = switchLabels, Statements = statements });
             }
 
-            var closeTok = Eat(TokenKind.CloseBraceToken);
+            var closeTokSpan = Eat(TokenKind.CloseBraceToken).Span;
 
-            return new SwitchStatementNode(keywordTok, closeTok)
+            return new SwitchStatementNode(SourceSpan.Union(keywordTokSpan, closeTokSpan))
             {
                 Attributes = attributes,
                 Expression = expr,

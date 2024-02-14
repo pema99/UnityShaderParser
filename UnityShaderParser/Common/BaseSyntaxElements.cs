@@ -70,10 +70,21 @@ namespace UnityShaderParser.Common
             => new[] { child };
         protected abstract IEnumerable<TSelf> GetChildren { get; }
 
+        private TSelf parent;
+        internal void ComputeParents()
+        {
+            foreach (var child in GetChildren)
+            {
+                child.parent = (TSelf)this;
+                child.ComputeParents();
+            }
+        }
+
         // Public API
         public List<TSelf> Children => GetChildren.ToList();
-
+        public TSelf Parent => parent;
         public abstract SourceSpan Span { get; }
+
         // TODO: Store parent by making ctor's which the relevant parent on their child
     }
 }

@@ -35,6 +35,10 @@ void foo()
 
 	[foobar] [baz] typedef const float FLAAT, BLAAT, BLOM;
 
+	[boobaz] {
+		int a = 3;
+	}
+
 	do
 	{
 		typedef const float FLAAT, BLAAT, BLOM;

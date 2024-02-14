@@ -1583,7 +1583,7 @@ namespace UnityShaderParser.HLSL
         public List<PassNode> Passes { get; set; }
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
-            MergeChildren(Child(Name), Annotations, Passes);
+            MergeChildren(OptionalChild(Name), Annotations, Passes);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitTechniqueNode(this);
 
@@ -1599,7 +1599,7 @@ namespace UnityShaderParser.HLSL
         public List<StatementNode> Statements { get; set; }
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
-            MergeChildren(Child(Name), Annotations, Statements);
+            MergeChildren(OptionalChild(Name), Annotations, Statements);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitPassNode(this);
 

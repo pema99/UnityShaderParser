@@ -41,6 +41,7 @@ namespace UnityShaderParser.ShaderLab
         {
             ShaderLabParser parser = new ShaderLabParser(tokens, config);
             var result = parser.ParseShader();
+            result.ComputeParents();
             diagnostics = parser.diagnostics;
             return result;
         }
