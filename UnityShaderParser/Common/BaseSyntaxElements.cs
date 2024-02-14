@@ -75,6 +75,5 @@ namespace UnityShaderParser.Common
 
         public abstract SourceSpan Span { get; }
         // TODO: Store parent by making ctor's which the relevant parent on their child
-        // TODO: Feed in span data
     }
 }
