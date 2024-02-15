@@ -25,6 +25,15 @@ namespace UnityShaderParser.HLSL
             Defines = new Dictionary<string, string>();
             ThrowExceptionOnError = false;
         }
+
+        public HLSLParserConfig(HLSLParserConfig config)
+        {
+            PreProcessorMode = config.PreProcessorMode;
+            BasePath = config.BasePath;
+            IncludeResolver = config.IncludeResolver;
+            Defines = config.Defines;
+            ThrowExceptionOnError = config.ThrowExceptionOnError;
+        }
     }
 
     public class HLSLParser : BaseParser<TokenKind>

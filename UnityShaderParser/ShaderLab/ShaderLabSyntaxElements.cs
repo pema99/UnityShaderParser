@@ -375,12 +375,19 @@ namespace UnityShaderParser.ShaderLab
 
     #region Syntax Tree
     // Embedded HLSL
-    public struct HLSLBlock
+    public struct HLSLProgramBlock
     {
         public string FullCode;
         public string CodeWithoutIncludes;
+        public SourceLocation Location; // TODO
         public List<string> Pragmas;
         public List<HLSLSyntaxNode> TopLevelDeclarations;
+    }
+
+    public struct HLSLIncludeBlock
+    {
+        public string Code;
+        public SourceLocation Location;
     }
 
     public abstract class ShaderLabSyntaxNode : SyntaxNode<ShaderLabSyntaxNode>
@@ -414,7 +421,7 @@ namespace UnityShaderParser.ShaderLab
         public bool FallbackDisabledExplicitly { get; set; }
         public string CustomEditor { get; set; } // Optional
         public Dictionary<string, string> Dependencies { get; set; }
-        public List<string> IncludeBlocks { get; set; }
+        public List<HLSLIncludeBlock> IncludeBlocks { get; set; }
 
         protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => MergeChildren(Properties, SubShaders);
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderNode(this);
@@ -505,9 +512,9 @@ namespace UnityShaderParser.ShaderLab
     {
         public List<ShaderLabCommandNode> Commands { get; set; }
         public List<ShaderPassNode> Passes { get; set; }
-        public List<HLSLBlock> ProgramBlocks { get; set; }
-        public List<string> IncludeBlocks { get; set; }
-        public HLSLBlock? ProgramBlock => ProgramBlocks.Count > 0 ? (HLSLBlock?)ProgramBlocks[0] : null;
+        public List<HLSLProgramBlock> ProgramBlocks { get; set; }
+        public List<HLSLIncludeBlock> IncludeBlocks { get; set; }
+        public HLSLProgramBlock? ProgramBlock => ProgramBlocks.Count > 0 ? (HLSLProgramBlock?)ProgramBlocks[0] : null;
 
         protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => MergeChildren(Passes, Commands);
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitSubShaderNode(this);
@@ -528,9 +535,9 @@ namespace UnityShaderParser.ShaderLab
     public class ShaderCodePassNode : ShaderPassNode
     {
         public List<ShaderLabCommandNode> Commands { get; set; }
-        public List<HLSLBlock> ProgramBlocks { get; set; }
-        public List<string> IncludeBlocks { get; set; }
-        public HLSLBlock? ProgramBlock => ProgramBlocks.Count > 0 ? (HLSLBlock?)ProgramBlocks[0] : null;
+        public List<HLSLProgramBlock> ProgramBlocks { get; set; }
+        public List<HLSLIncludeBlock> IncludeBlocks { get; set; }
+        public HLSLProgramBlock? ProgramBlock => ProgramBlocks.Count > 0 ? (HLSLProgramBlock?)ProgramBlocks[0] : null;
 
         protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => Commands;
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderCodePassNode(this);
@@ -543,7 +550,7 @@ namespace UnityShaderParser.ShaderLab
     {
         public string TextureName { get; set; } // Optional
         public List<ShaderLabCommandNode> Commands { get; set; }
-        public List<string> IncludeBlocks { get; set; }
+        public List<HLSLIncludeBlock> IncludeBlocks { get; set; }
 
         public bool IsUnnamed => string.IsNullOrEmpty(TextureName);
         protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => Commands;

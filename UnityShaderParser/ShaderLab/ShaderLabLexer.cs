@@ -11,7 +11,7 @@ namespace UnityShaderParser.ShaderLab
         protected override ParserStage Stage => ParserStage.ShaderLabLexing;
 
         public ShaderLabLexer(string source, bool throwExceptionOnError)
-            : base(source, throwExceptionOnError) { }
+            : base(source, throwExceptionOnError, new SourceLocation(1, 1)) { }
 
         public static List<SLToken> Lex(string source, bool throwExceptionOnError, out List<Diagnostic> diagnostics)
         {

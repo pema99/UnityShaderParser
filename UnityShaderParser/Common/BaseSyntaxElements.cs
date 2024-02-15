@@ -12,9 +12,23 @@ namespace UnityShaderParser.Common
         ShaderLabParsing,
     }
 
+    public struct SourceLocation
+    {
+        public int Line;
+        public int Column;
+
+        public SourceLocation(int line, int column)
+        {
+            this.Line = line;
+            this.Column = column;
+        }
+
+        public override string ToString() => $"({Line}, {Column})";
+    }
+
     public struct Diagnostic
     {
-        public (int Line, int Column) Location;
+        public SourceLocation Location;
         public ParserStage Stage;
         public string Text;
 
@@ -27,8 +41,8 @@ namespace UnityShaderParser.Common
     // TODO: Filename
     public struct SourceSpan
     {
-        public (int Line, int Column) Start;
-        public (int Line, int Column) End;
+        public SourceLocation Start;
+        public SourceLocation End;
 
         public override string ToString() => $"({Start.Line}:{Start.Column} - {End.Line}:{End.Column})";
 

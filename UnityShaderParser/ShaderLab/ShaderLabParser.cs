@@ -8,6 +8,7 @@ using UnityShaderParser.HLSL;
 namespace UnityShaderParser.ShaderLab
 {
     using SLToken = Token<TokenKind>;
+    using HLSLToken = Token<HLSL.TokenKind>;
 
     public class ShaderLabParserConfig : HLSLParserConfig
     {
@@ -17,6 +18,12 @@ namespace UnityShaderParser.ShaderLab
             : base()
         {
             ParseEmbeddedHLSL = true;
+        }
+
+        public ShaderLabParserConfig(ShaderLabParserConfig config)
+            : base(config)
+        {
+            ParseEmbeddedHLSL = config.ParseEmbeddedHLSL;
         }
     }
 
@@ -35,7 +42,7 @@ namespace UnityShaderParser.ShaderLab
         protected override ParserStage Stage => ParserStage.ShaderLabParsing;
 
         protected ShaderLabParserConfig config = default;
-        protected Stack<List<string>> currentIncludeBlocks = new Stack<List<string>>();
+        protected Stack<List<HLSLIncludeBlock>> currentIncludeBlocks = new Stack<List<HLSLIncludeBlock>>();
 
         public static ShaderNode Parse(List<SLToken> tokens, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
         {
@@ -46,20 +53,46 @@ namespace UnityShaderParser.ShaderLab
             return result;
         }
 
-        protected string PrependCurrentIncludes(string program)
+        protected void ProcessCurrentIncludes(
+            SLToken programToken,
+            bool lexEmbeddedHLSL,
+            out string fullCode,
+            out List<HLSLToken> tokenStream)
         {
+            tokenStream = new List<HLSLToken>();
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < currentIncludeBlocks.Count; i++)
             {
-                sb.Append(string.Join("\n", currentIncludeBlocks.ElementAt(currentIncludeBlocks.Count - 1 - i)));
+                var includeBlockList = currentIncludeBlocks.ElementAt(currentIncludeBlocks.Count - 1 - i);
+                foreach (var includeBlock in includeBlockList)
+                {
+                    if (lexEmbeddedHLSL)
+                    {
+                        tokenStream.AddRange(HLSLLexer.Lex(includeBlock.Code, config.ThrowExceptionOnError, includeBlock.Location, out var includeLexerDiags));
+                        diagnostics.AddRange(includeLexerDiags);
+                    }
+                    sb.Append(includeBlock.Code);
+                }
             }
-            sb.Append(program);
-            return sb.ToString();
+            if (lexEmbeddedHLSL)
+            {
+                tokenStream.AddRange(HLSLLexer.Lex(programToken.Identifier, config.ThrowExceptionOnError, programToken.Span.Start, out var lexerDiags));
+                diagnostics.AddRange(lexerDiags);
+            }
+            sb.Append(programToken.Identifier);
+            fullCode = sb.ToString();
         }
-        protected HLSLBlock ParseOrSkipEmbeddedHLSL(string program)
+        protected HLSLProgramBlock ParseOrSkipEmbeddedHLSL()
         {
+            var programToken = Eat(TokenKind.ProgramBlock);
+            string program = programToken.Identifier;
+            
             // Prepend include blocks
-            string fullCode = PrependCurrentIncludes(program);
+            ProcessCurrentIncludes(
+                programToken,
+                config.ParseEmbeddedHLSL,
+                out string fullCode,
+                out var tokenStream);
 
             // Try to figure out if we have surface shader.
             // Surface shaders have some additional implicit includes.
@@ -86,22 +119,22 @@ namespace UnityShaderParser.ShaderLab
                 }
             }
 
-            // Surface shaders have special includes :(
+            // Add preamble
+            string preamble;
             if (isSurfaceShader)
             {
-                fullCode = $"#include \"UnityCG.cginc\"\n{fullCode}";
-                // Surface shader compiler has some secret INTERNAL_DATA macro
-                fullCode = $"#ifndef INTERNAL_DATA\n#define INTERNAL_DATA\n#endif\n{fullCode}";
+                // Surface shader compiler has some secret INTERNAL_DATA macro and special includes :(
+                preamble = $"#ifndef INTERNAL_DATA\n#define INTERNAL_DATA\n#endif\n#include \"UnityCG.cginc\"\n";
             }
-            // UnityShaderVariables.cginc should always be included otherwise
             else
             {
-                fullCode = $"#include \"UnityShaderVariables.cginc\"\n{fullCode}";
+                // UnityShaderVariables.cginc should always be included otherwise
+                preamble = $"#include \"UnityShaderVariables.cginc\"\n"; 
             }
-
+            fullCode = $"{preamble}{fullCode}";
             if (!config.ParseEmbeddedHLSL)
             {
-                return new HLSLBlock
+                return new HLSLProgramBlock
                 {
                     CodeWithoutIncludes = program,
                     FullCode = fullCode,
@@ -110,21 +143,26 @@ namespace UnityShaderParser.ShaderLab
                 };
             }
 
-            // TODO: Proper line numbers
+            // Lex preamble
+            var premableTokens = HLSLLexer.Lex(preamble, config.ThrowExceptionOnError, out var lexerDiags);
+            diagnostics.InsertRange(0, lexerDiags);
+            tokenStream.InsertRange(0, premableTokens);
+
             // TODO: Don't redo the parsing work every time - it's slow x)
-            var decls = ShaderParser.ParseTopLevelDeclarations(fullCode, config, out var parserDiags, out var pragmas);
+            var decls = HLSLParser.ParseTopLevelDeclarations(tokenStream, config, out var parserDiags, out var pragmas);
             diagnostics.AddRange(parserDiags);
-            return new HLSLBlock
+            return new HLSLProgramBlock
             {
                 CodeWithoutIncludes = program,
                 FullCode = fullCode,
+                Location = programToken.Span.Start,
                 Pragmas = pragmas,
                 TopLevelDeclarations = decls,
             };
         }
-        protected void PushIncludes() => currentIncludeBlocks.Push(new List<string>());
+        protected void PushIncludes() => currentIncludeBlocks.Push(new List<HLSLIncludeBlock>());
         protected void PopIncludes() => currentIncludeBlocks.Pop();
-        protected void SetIncludes(List<string> includes)
+        protected void SetIncludes(List<HLSLIncludeBlock> includes)
         {
             currentIncludeBlocks.Pop();
             currentIncludeBlocks.Push(includes);
@@ -138,7 +176,7 @@ namespace UnityShaderParser.ShaderLab
             string name = Eat(TokenKind.StringLiteralToken).Identifier ?? string.Empty;
             Eat(TokenKind.OpenBraceToken);
 
-            List<string> includeBlocks = new List<string>();
+            List<HLSLIncludeBlock> includeBlocks = new List<HLSLIncludeBlock>();
 
             ParseIncludeBlocksIfPresent(includeBlocks);
 
@@ -236,14 +274,14 @@ namespace UnityShaderParser.ShaderLab
             };
         }
 
-        private void ParseIncludeBlocksIfPresent(List<string> outIncludeBlocks)
+        private void ParseIncludeBlocksIfPresent(List<HLSLIncludeBlock> outIncludeBlocks)
         {
             while (true)
             {
                 SLToken next = Peek();
                 if (next.Kind == TokenKind.IncludeBlock && !string.IsNullOrEmpty(next.Identifier))
                 {
-                    outIncludeBlocks.Add(next.Identifier);
+                    outIncludeBlocks.Add(new HLSLIncludeBlock { Location = next.Span.Start, Code = next.Identifier });
                     Advance();
                 }
                 else
@@ -409,8 +447,8 @@ namespace UnityShaderParser.ShaderLab
 
             List<ShaderPassNode> passes = new List<ShaderPassNode>();
             List<ShaderLabCommandNode> commands = new List<ShaderLabCommandNode>();
-            List<HLSLBlock> programBlocks = new List<HLSLBlock>();
-            List<string> includeBlocks = new List<string>();
+            List<HLSLProgramBlock> programBlocks = new List<HLSLProgramBlock>();
+            List<HLSLIncludeBlock> includeBlocks = new List<HLSLIncludeBlock>();
 
             while (!IsAtEnd())
             {
@@ -423,7 +461,7 @@ namespace UnityShaderParser.ShaderLab
                     case TokenKind.PassKeyword: passes.Add(ParseCodePass()); break;
                     case TokenKind.GrabPassKeyword: passes.Add(ParseGrabPass()); break;
                     case TokenKind.UsePassKeyword: passes.Add(ParseUsePass()); break;
-                    case TokenKind.ProgramBlock: programBlocks.Add(ParseOrSkipEmbeddedHLSL(Eat(TokenKind.ProgramBlock).Identifier)); break;
+                    case TokenKind.ProgramBlock: programBlocks.Add(ParseOrSkipEmbeddedHLSL()); break;
                     default:
                         ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
                         SetIncludes(includeBlocks);
@@ -454,15 +492,15 @@ namespace UnityShaderParser.ShaderLab
             Eat(TokenKind.OpenBraceToken);
 
             List<ShaderLabCommandNode> commands = new List<ShaderLabCommandNode>();
-            List<HLSLBlock> programBlocks = new List<HLSLBlock>();
-            List<string> includeBlocks = new List<string>();
+            List<HLSLProgramBlock> programBlocks = new List<HLSLProgramBlock>();
+            List<HLSLIncludeBlock> includeBlocks = new List<HLSLIncludeBlock>();
 
             ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
             SetIncludes(includeBlocks);
 
             while (Match(TokenKind.ProgramBlock))
             {
-                programBlocks.Add(ParseOrSkipEmbeddedHLSL(Eat(TokenKind.ProgramBlock).Identifier));
+                programBlocks.Add(ParseOrSkipEmbeddedHLSL());
                 ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
                 SetIncludes(includeBlocks);
             }
@@ -485,7 +523,7 @@ namespace UnityShaderParser.ShaderLab
             Eat(TokenKind.OpenBraceToken);
 
             List<ShaderLabCommandNode> commands = new List<ShaderLabCommandNode>();
-            List<string> includeBlocks = new List<string>();
+            List<HLSLIncludeBlock> includeBlocks = new List<HLSLIncludeBlock>();
 
             ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
             string name = null;
@@ -516,7 +554,7 @@ namespace UnityShaderParser.ShaderLab
             };
         }
 
-        private void ParseCommandsAndIncludeBlocksIfPresent(List<ShaderLabCommandNode> outCommands, List<string> outIncludeBlocks)
+        private void ParseCommandsAndIncludeBlocksIfPresent(List<ShaderLabCommandNode> outCommands, List<HLSLIncludeBlock> outIncludeBlocks)
         {
             while (true)
             {

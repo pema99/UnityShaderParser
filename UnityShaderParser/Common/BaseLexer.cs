@@ -20,10 +20,12 @@ namespace UnityShaderParser.Common
         protected List<Token<T>> tokens = new List<Token<T>>();
         protected List<Diagnostic> diagnostics = new List<Diagnostic>();
 
-        public BaseLexer(string source, bool throwExceptionOnError)
+        public BaseLexer(string source, bool throwExceptionOnError, SourceLocation offset)
         {
             this.source = source;
             this.throwExceptionOnError = throwExceptionOnError;
+            this.line = offset.Line;
+            this.column = offset.Column;
         }
 
         protected char Peek() => IsAtEnd() ? '\0' : source[position];
@@ -59,7 +61,7 @@ namespace UnityShaderParser.Common
             {
                 throw new Exception($"Error at line {line}, column {column} during {Stage}: {err}");
             }
-            diagnostics.Add(new Diagnostic { Location = (line, column), Stage = this.Stage, Text = err });
+            diagnostics.Add(new Diagnostic { Location = new SourceLocation(line, column), Stage = this.Stage, Text = err });
         }
 
         protected void StartCurrentSpan()
@@ -72,8 +74,8 @@ namespace UnityShaderParser.Common
         {
             return new SourceSpan
             {
-                Start = (anchorLine, anchorColumn),
-                End = (line, column)
+                Start = new SourceLocation(anchorLine, anchorColumn),
+                End = new SourceLocation(line, column)
             };
         }
 
