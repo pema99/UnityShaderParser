@@ -843,7 +843,7 @@ namespace UnityShaderParser.HLSL
         public bool IsConst { get; set; }
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
-            MergeChildren(base.Children, Child(FromType), ToNames);
+            MergeChildren(base.GetChildren, Child(FromType), ToNames);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitTypedefNode(this);
 
