@@ -379,7 +379,7 @@ namespace UnityShaderParser.ShaderLab
     {
         public string FullCode;
         public string CodeWithoutIncludes;
-        public SourceLocation Location; // TODO
+        public SourceLocation Location;
         public List<string> Pragmas;
         public List<HLSLSyntaxNode> TopLevelDeclarations;
     }
