@@ -60,11 +60,11 @@ namespace UnityShaderParser.Common
         where T : struct
     {
         public T Kind;
-        public string Identifier; // Optional
-        public SourceSpan Span;
+        public string Identifier;   // Optional
+        public SourceSpan Span;     // Location in source code
+        public int Position;        // Location in token stream
 
         // TODO: Trivia
-
         public override string ToString()
         {
             if (Identifier == null)

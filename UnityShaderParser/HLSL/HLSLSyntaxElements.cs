@@ -648,19 +648,18 @@ namespace UnityShaderParser.HLSL
 
         public override SourceSpan Span => span;
         private SourceSpan span;
+
+        public List<HLSLToken> Tokens => tokens;
+        private List<HLSLToken> tokens;
         
-        public HLSLSyntaxNode(HLSLToken first, HLSLToken last)
+        public HLSLSyntaxNode(List<HLSLToken> tokens)
         {
             this.span = new SourceSpan
             {
-                Start = first.Span.Start,
-                End = last.Span.End,
+                Start = tokens.First().Span.Start,
+                End = tokens.Last().Span.End,
             };
-        }
-
-        public HLSLSyntaxNode(SourceSpan span)
-        {
-            this.span = span;
+            this.tokens = tokens;
         }
     }
 
@@ -676,8 +675,7 @@ namespace UnityShaderParser.HLSL
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             MergeChildren(Attributes, Child(ReturnType), Child(Name), Parameters, OptionalChild(Semantic));
 
-        public FunctionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public FunctionNode(SourceSpan span) : base(span) { }
+        public FunctionNode(List<HLSLToken> tokens) : base(tokens) { }
     }
 
     public class FormalParameterNode : HLSLSyntaxNode
@@ -692,8 +690,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitFormalParameterNode(this);
 
-        public FormalParameterNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public FormalParameterNode(SourceSpan span) : base(span) { }   
+        public FormalParameterNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class VariableDeclaratorNode : HLSLSyntaxNode
@@ -709,8 +706,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitVariableDeclaratorNode(this);
 
-        public VariableDeclaratorNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public VariableDeclaratorNode(SourceSpan span) : base(span) { }   
+        public VariableDeclaratorNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class ArrayRankNode : HLSLSyntaxNode
@@ -722,14 +718,12 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitArrayRankNode(this);
 
-        public ArrayRankNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public ArrayRankNode(SourceSpan span) : base(span) { }   
+        public ArrayRankNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public abstract class InitializerNode : HLSLSyntaxNode
     {
-        public InitializerNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public InitializerNode(SourceSpan span) : base(span) { }   
+        public InitializerNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class ValueInitializerNode : InitializerNode
@@ -741,8 +735,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitValueInitializerNode(this);
 
-        public ValueInitializerNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public ValueInitializerNode(SourceSpan span) : base(span) { }   
+        public ValueInitializerNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     // BlendState, SamplerState, etc.
@@ -755,8 +748,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitStateInitializerNode(this);
 
-        public StateInitializerNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public StateInitializerNode(SourceSpan span) : base(span) { }   
+        public StateInitializerNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class StateArrayInitializerNode : InitializerNode
@@ -768,16 +760,14 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitStateArrayInitializerNode(this);
 
-        public StateArrayInitializerNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public StateArrayInitializerNode(SourceSpan span) : base(span) { }   
+        public StateArrayInitializerNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class FunctionDeclarationNode : FunctionNode
     {
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitFunctionDeclarationNode(this);
 
-        public FunctionDeclarationNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public FunctionDeclarationNode(SourceSpan span) : base(span) { }   
+        public FunctionDeclarationNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class FunctionDefinitionNode : FunctionNode
@@ -789,8 +779,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitFunctionDefinitionNode(this);
 
-        public FunctionDefinitionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public FunctionDefinitionNode(SourceSpan span) : base(span) { }   
+        public FunctionDefinitionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class StructDefinitionNode : StatementNode
@@ -802,8 +791,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitStructDefinitionNode(this);
 
-        public StructDefinitionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public StructDefinitionNode(SourceSpan span) : base(span) { }   
+        public StructDefinitionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class InterfaceDefinitionNode : StatementNode
@@ -816,8 +804,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitInterfaceDefinitionNode(this);
 
-        public InterfaceDefinitionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public InterfaceDefinitionNode(SourceSpan span) : base(span) { }   
+        public InterfaceDefinitionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class ConstantBufferNode : HLSLSyntaxNode
@@ -832,8 +819,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitConstantBufferNode(this);
 
-        public ConstantBufferNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public ConstantBufferNode(SourceSpan span) : base(span) { }   
+        public ConstantBufferNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class TypedefNode : StatementNode
@@ -847,14 +833,12 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitTypedefNode(this);
 
-        public TypedefNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public TypedefNode(SourceSpan span) : base(span) { }   
+        public TypedefNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public abstract class VariableDeclaratorQualifierNode : HLSLSyntaxNode
     {
-        public VariableDeclaratorQualifierNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public VariableDeclaratorQualifierNode(SourceSpan span) : base(span) { }   
+        public VariableDeclaratorQualifierNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class SemanticNode : VariableDeclaratorQualifierNode
@@ -866,8 +850,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitSemanticNode(this);
 
-        public SemanticNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public SemanticNode(SourceSpan span) : base(span) { }   
+        public SemanticNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class RegisterLocationNode : VariableDeclaratorQualifierNode
@@ -881,8 +864,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitRegisterLocationNode(this);
 
-        public RegisterLocationNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public RegisterLocationNode(SourceSpan span) : base(span) { }   
+        public RegisterLocationNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class PackoffsetNode : VariableDeclaratorQualifierNode
@@ -895,8 +877,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitPackoffsetNode(this);
 
-        public PackoffsetNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public PackoffsetNode(SourceSpan span) : base(span) { }   
+        public PackoffsetNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public abstract class StatementNode : HLSLSyntaxNode
@@ -906,8 +887,7 @@ namespace UnityShaderParser.HLSL
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             Attributes;
 
-        public StatementNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public StatementNode(SourceSpan span) : base(span) { }   
+        public StatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class BlockNode : StatementNode
@@ -919,8 +899,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitBlockNode(this);
 
-        public BlockNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public BlockNode(SourceSpan span) : base(span) { }   
+        public BlockNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class VariableDeclarationStatementNode : StatementNode
@@ -934,8 +913,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitVariableDeclarationStatementNode(this);
 
-        public VariableDeclarationStatementNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public VariableDeclarationStatementNode(SourceSpan span) : base(span) { }   
+        public VariableDeclarationStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class ReturnStatementNode : StatementNode
@@ -947,40 +925,35 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitReturnStatementNode(this);
 
-        public ReturnStatementNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public ReturnStatementNode(SourceSpan span) : base(span) { }   
+        public ReturnStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class BreakStatementNode : StatementNode
     {
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitBreakStatementNode(this);
 
-        public BreakStatementNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public BreakStatementNode(SourceSpan span) : base(span) { }   
+        public BreakStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class ContinueStatementNode : StatementNode
     {
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitContinueStatementNode(this);
 
-        public ContinueStatementNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public ContinueStatementNode(SourceSpan span) : base(span) { }   
+        public ContinueStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class DiscardStatementNode : StatementNode
     {
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitDiscardStatementNode(this);
 
-        public DiscardStatementNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public DiscardStatementNode(SourceSpan span) : base(span) { }   
+        public DiscardStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class EmptyStatementNode : StatementNode
     {
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitEmptyStatementNode(this);
 
-        public EmptyStatementNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public EmptyStatementNode(SourceSpan span) : base(span) { }   
+        public EmptyStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class ForStatementNode : StatementNode
@@ -1000,8 +973,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitForStatementNode(this);
 
-        public ForStatementNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public ForStatementNode(SourceSpan span) : base(span) { }   
+        public ForStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class WhileStatementNode : StatementNode
@@ -1014,8 +986,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitWhileStatementNode(this);
 
-        public WhileStatementNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public WhileStatementNode(SourceSpan span) : base(span) { }   
+        public WhileStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class DoWhileStatementNode : StatementNode
@@ -1028,8 +999,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitDoWhileStatementNode(this);
 
-        public DoWhileStatementNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public DoWhileStatementNode(SourceSpan span) : base(span) { }   
+        public DoWhileStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class IfStatementNode : StatementNode
@@ -1043,8 +1013,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitIfStatementNode(this);
 
-        public IfStatementNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public IfStatementNode(SourceSpan span) : base(span) { }   
+        public IfStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class SwitchStatementNode : StatementNode
@@ -1057,8 +1026,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitSwitchStatementNode(this);
 
-        public SwitchStatementNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public SwitchStatementNode(SourceSpan span) : base(span) { }   
+        public SwitchStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class SwitchClauseNode : HLSLSyntaxNode
@@ -1071,14 +1039,12 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitSwitchClauseNode(this);
 
-        public SwitchClauseNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public SwitchClauseNode(SourceSpan span) : base(span) { }   
+        public SwitchClauseNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public abstract class SwitchLabelNode : HLSLSyntaxNode
     {
-        public SwitchLabelNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public SwitchLabelNode(SourceSpan span) : base(span) { }   
+        public SwitchLabelNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class SwitchCaseLabelNode : SwitchLabelNode
@@ -1090,8 +1056,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitSwitchCaseLabelNode(this);
 
-        public SwitchCaseLabelNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public SwitchCaseLabelNode(SourceSpan span) : base(span) { }   
+        public SwitchCaseLabelNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class SwitchDefaultLabelNode : SwitchLabelNode
@@ -1101,8 +1066,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitSwitchDefaultLabelNode(this);
 
-        public SwitchDefaultLabelNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public SwitchDefaultLabelNode(SourceSpan span) : base(span) { }   
+        public SwitchDefaultLabelNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class ExpressionStatementNode : StatementNode
@@ -1114,8 +1078,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitExpressionStatementNode(this);
 
-        public ExpressionStatementNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public ExpressionStatementNode(SourceSpan span) : base(span) { }   
+        public ExpressionStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class AttributeNode : HLSLSyntaxNode
@@ -1128,14 +1091,12 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitAttributeNode(this);
 
-        public AttributeNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public AttributeNode(SourceSpan span) : base(span) { }   
+        public AttributeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public abstract class ExpressionNode : HLSLSyntaxNode
     {
-        public ExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public ExpressionNode(SourceSpan span) : base(span) { }   
+        public ExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public abstract class NamedExpressionNode : ExpressionNode
@@ -1143,8 +1104,7 @@ namespace UnityShaderParser.HLSL
         public abstract string GetName();
         public abstract string GetUnqualifiedName();
 
-        public NamedExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public NamedExpressionNode(SourceSpan span) : base(span) { }   
+        public NamedExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class QualifiedIdentifierExpressionNode : NamedExpressionNode
@@ -1160,8 +1120,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitQualifiedIdentifierExpressionNode(this);
 
-        public QualifiedIdentifierExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public QualifiedIdentifierExpressionNode(SourceSpan span) : base(span) { }   
+        public QualifiedIdentifierExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class IdentifierExpressionNode : NamedExpressionNode
@@ -1176,8 +1135,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitIdentifierExpressionNode(this);
 
-        public IdentifierExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public IdentifierExpressionNode(SourceSpan span) : base(span) { }   
+        public IdentifierExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class LiteralExpressionNode : ExpressionNode
@@ -1190,8 +1148,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitLiteralExpressionNode(this);
 
-        public LiteralExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public LiteralExpressionNode(SourceSpan span) : base(span) { }   
+        public LiteralExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class AssignmentExpressionNode : ExpressionNode
@@ -1205,8 +1162,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitAssignmentExpressionNode(this);
 
-        public AssignmentExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public AssignmentExpressionNode(SourceSpan span) : base(span) { }   
+        public AssignmentExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class BinaryExpressionNode : ExpressionNode
@@ -1220,8 +1176,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitBinaryExpressionNode(this);
 
-        public BinaryExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public BinaryExpressionNode(SourceSpan span) : base(span) { }   
+        public BinaryExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class CompoundExpressionNode : ExpressionNode
@@ -1234,8 +1189,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitCompoundExpressionNode(this);
 
-        public CompoundExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public CompoundExpressionNode(SourceSpan span) : base(span) { }   
+        public CompoundExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class PrefixUnaryExpressionNode : ExpressionNode
@@ -1248,8 +1202,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitPrefixUnaryExpressionNode(this);
 
-        public PrefixUnaryExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public PrefixUnaryExpressionNode(SourceSpan span) : base(span) { }   
+        public PrefixUnaryExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class PostfixUnaryExpressionNode : ExpressionNode
@@ -1262,8 +1215,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitPostfixUnaryExpressionNode(this);
 
-        public PostfixUnaryExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public PostfixUnaryExpressionNode(SourceSpan span) : base(span) { }   
+        public PostfixUnaryExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class FieldAccessExpressionNode : ExpressionNode
@@ -1276,8 +1228,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitFieldAccessExpressionNode(this);
 
-        public FieldAccessExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public FieldAccessExpressionNode(SourceSpan span) : base(span) { }   
+        public FieldAccessExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class MethodCallExpressionNode : ExpressionNode
@@ -1291,8 +1242,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitMethodCallExpressionNode(this);
 
-        public MethodCallExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public MethodCallExpressionNode(SourceSpan span) : base(span) { }   
+        public MethodCallExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class FunctionCallExpressionNode : ExpressionNode
@@ -1305,8 +1255,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitFunctionCallExpressionNode(this);
 
-        public FunctionCallExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public FunctionCallExpressionNode(SourceSpan span) : base(span) { }   
+        public FunctionCallExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class NumericConstructorCallExpressionNode : ExpressionNode
@@ -1319,8 +1268,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitNumericConstructorCallExpressionNode(this);
 
-        public NumericConstructorCallExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public NumericConstructorCallExpressionNode(SourceSpan span) : base(span) { }   
+        public NumericConstructorCallExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class ElementAccessExpressionNode : ExpressionNode
@@ -1333,8 +1281,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitElementAccessExpressionNode(this);
 
-        public ElementAccessExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public ElementAccessExpressionNode(SourceSpan span) : base(span) { }   
+        public ElementAccessExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class CastExpressionNode : ExpressionNode
@@ -1347,8 +1294,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitCastExpressionNode(this);
 
-        public CastExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public CastExpressionNode(SourceSpan span) : base(span) { }   
+        public CastExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class ArrayInitializerExpressionNode : ExpressionNode
@@ -1360,8 +1306,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitArrayInitializerExpressionNode(this);
 
-        public ArrayInitializerExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public ArrayInitializerExpressionNode(SourceSpan span) : base(span) { }   
+        public ArrayInitializerExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class TernaryExpressionNode : ExpressionNode
@@ -1375,8 +1320,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitTernaryExpressionNode(this);
 
-        public TernaryExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public TernaryExpressionNode(SourceSpan span) : base(span) { }   
+        public TernaryExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     // Part of legacy sampler syntax (d3d9)
@@ -1389,8 +1333,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitSamplerStateLiteralExpressionNode(this);
 
-        public SamplerStateLiteralExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public SamplerStateLiteralExpressionNode(SourceSpan span) : base(span) { }   
+        public SamplerStateLiteralExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     // From FX framework
@@ -1404,32 +1347,27 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitCompileExpressionNode(this);
 
-        public CompileExpressionNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public CompileExpressionNode(SourceSpan span) : base(span) { }   
+        public CompileExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public abstract class TypeNode : HLSLSyntaxNode
     {
-        public TypeNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public TypeNode(SourceSpan span) : base(span) { }   
+        public TypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
     public abstract class UserDefinedTypeNode : TypeNode
     {
-        public UserDefinedTypeNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public UserDefinedTypeNode(SourceSpan span) : base(span) { }   
+        public UserDefinedTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
     public abstract class UserDefinedNamedTypeNode : UserDefinedTypeNode
     {
         public abstract string GetName();
         public abstract string GetUnqualifiedName();
 
-        public UserDefinedNamedTypeNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public UserDefinedNamedTypeNode(SourceSpan span) : base(span) { }   
+        public UserDefinedNamedTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
     public abstract class PredefinedTypeNode : TypeNode
     {
-        public PredefinedTypeNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public PredefinedTypeNode(SourceSpan span) : base(span) { }   
+        public PredefinedTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class QualifiedNamedTypeNode : UserDefinedNamedTypeNode
@@ -1445,8 +1383,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitQualifiedNamedTypeNode(this);
 
-        public QualifiedNamedTypeNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public QualifiedNamedTypeNode(SourceSpan span) : base(span) { }   
+        public QualifiedNamedTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class NamedTypeNode : UserDefinedNamedTypeNode
@@ -1461,8 +1398,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitNamedTypeNode(this);
 
-        public NamedTypeNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public NamedTypeNode(SourceSpan span) : base(span) { }   
+        public NamedTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class PredefinedObjectTypeNode : PredefinedTypeNode
@@ -1475,8 +1411,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitPredefinedObjectTypeNode(this);
 
-        public PredefinedObjectTypeNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public PredefinedObjectTypeNode(SourceSpan span) : base(span) { }   
+        public PredefinedObjectTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class StructTypeNode : UserDefinedTypeNode
@@ -1492,16 +1427,14 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitStructTypeNode(this);
 
-        public StructTypeNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public StructTypeNode(SourceSpan span) : base(span) { }   
+        public StructTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public abstract class NumericTypeNode : PredefinedTypeNode
     {
         public ScalarType Kind { get; set; }
 
-        public NumericTypeNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public NumericTypeNode(SourceSpan span) : base(span) { }   
+        public NumericTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class ScalarTypeNode : NumericTypeNode
@@ -1511,8 +1444,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitScalarTypeNode(this);
 
-        public ScalarTypeNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public ScalarTypeNode(SourceSpan span) : base(span) { }   
+        public ScalarTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class MatrixTypeNode : NumericTypeNode
@@ -1525,8 +1457,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitMatrixTypeNode(this);
 
-        public MatrixTypeNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public MatrixTypeNode(SourceSpan span) : base(span) { }   
+        public MatrixTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     public class VectorTypeNode : NumericTypeNode
@@ -1538,8 +1469,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitVectorTypeNode(this);
 
-        public VectorTypeNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public VectorTypeNode(SourceSpan span) : base(span) { }   
+        public VectorTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     // This type mostly exists such that template can receive literal arguments.
@@ -1553,8 +1483,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitLiteralTemplateArgumentType(this);
 
-        public LiteralTemplateArgumentType(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public LiteralTemplateArgumentType(SourceSpan span) : base(span) { }   
+        public LiteralTemplateArgumentType(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     // Part of an object literal (SamplerState, BlendState, etc)
@@ -1570,8 +1499,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitStatePropertyNode(this);
 
-        public StatePropertyNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public StatePropertyNode(SourceSpan span) : base(span) { }   
+        public StatePropertyNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     // Old FX pipeline syntax
@@ -1587,8 +1515,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitTechniqueNode(this);
 
-        public TechniqueNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public TechniqueNode(SourceSpan span) : base(span) { }   
+        public TechniqueNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
     // Old FX pipeline syntax
@@ -1603,8 +1530,7 @@ namespace UnityShaderParser.HLSL
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitPassNode(this);
 
-        public PassNode(HLSLToken first, HLSLToken last) : base(first, last) { }
-        public PassNode(SourceSpan span) : base(span) { }   
+        public PassNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
     #endregion
 }

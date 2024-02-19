@@ -244,6 +244,7 @@ namespace UnityShaderParser.HLSL
                 }
 
                 // Process char
+                StartCurrentSpan();
                 ProcessChar(Peek());
             }
             Add(TokenKind.EndDirectiveToken);

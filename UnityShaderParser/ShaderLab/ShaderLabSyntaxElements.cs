@@ -397,18 +397,17 @@ namespace UnityShaderParser.ShaderLab
         public override SourceSpan Span => span;
         private SourceSpan span;
 
-        public ShaderLabSyntaxNode(SLToken first, SLToken last)
+        public List<SLToken> Tokens => tokens;
+        private List<SLToken> tokens;
+
+        public ShaderLabSyntaxNode(List<SLToken> tokens)
         {
             this.span = new SourceSpan
             {
-                Start = first.Span.Start,
-                End = last.Span.End,
+                Start = tokens.First().Span.Start,
+                End = tokens.Last().Span.End,
             };
-        }
-
-        public ShaderLabSyntaxNode(SourceSpan span)
-        {
-            this.span = span;
+            this.tokens = tokens;
         }
     }
 
@@ -426,8 +425,7 @@ namespace UnityShaderParser.ShaderLab
         protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => MergeChildren(Properties, SubShaders);
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderNode(this);
 
-        public ShaderNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderNode(SourceSpan span) : base(span) { }
+        public ShaderNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderPropertyNode : ShaderLabSyntaxNode
@@ -442,8 +440,7 @@ namespace UnityShaderParser.ShaderLab
         protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => new[] { Value };
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPropertyNode(this);
 
-        public ShaderPropertyNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderPropertyNode(SourceSpan span) : base(span) { }
+        public ShaderPropertyNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderPropertyValueNode : ShaderLabSyntaxNode
@@ -451,8 +448,7 @@ namespace UnityShaderParser.ShaderLab
         protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => Enumerable.Empty<ShaderLabSyntaxNode>();
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPropertyValueNode(this);
 
-        public ShaderPropertyValueNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderPropertyValueNode(SourceSpan span) : base(span) { }
+        public ShaderPropertyValueNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderPropertyValueFloatNode : ShaderPropertyValueNode
@@ -461,8 +457,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPropertyValueFloatNode(this);
 
-        public ShaderPropertyValueFloatNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderPropertyValueFloatNode(SourceSpan span) : base(span) { }
+        public ShaderPropertyValueFloatNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderPropertyValueIntegerNode : ShaderPropertyValueNode
@@ -471,8 +466,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPropertyValueIntegerNode(this);
 
-        public ShaderPropertyValueIntegerNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderPropertyValueIntegerNode(SourceSpan span) : base(span) { }
+        public ShaderPropertyValueIntegerNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderPropertyValueVectorNode : ShaderPropertyValueNode
@@ -482,8 +476,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPropertyValueVectorNode(this);
 
-        public ShaderPropertyValueVectorNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderPropertyValueVectorNode(SourceSpan span) : base(span) { }
+        public ShaderPropertyValueVectorNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderPropertyValueColorNode : ShaderPropertyValueNode
@@ -493,8 +486,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPropertyValueColorNode(this);
 
-        public ShaderPropertyValueColorNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderPropertyValueColorNode(SourceSpan span) : base(span) { }
+        public ShaderPropertyValueColorNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderPropertyValueTextureNode : ShaderPropertyValueNode
@@ -504,8 +496,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPropertyValueTextureNode(this);
 
-        public ShaderPropertyValueTextureNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderPropertyValueTextureNode(SourceSpan span) : base(span) { }
+        public ShaderPropertyValueTextureNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class SubShaderNode : ShaderLabSyntaxNode
@@ -519,8 +510,7 @@ namespace UnityShaderParser.ShaderLab
         protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => MergeChildren(Passes, Commands);
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitSubShaderNode(this);
 
-        public SubShaderNode(SLToken first, SLToken last) : base(first, last) { }
-        public SubShaderNode(SourceSpan span) : base(span) { }
+        public SubShaderNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderPassNode : ShaderLabSyntaxNode
@@ -528,8 +518,7 @@ namespace UnityShaderParser.ShaderLab
         protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => Enumerable.Empty<ShaderLabSyntaxNode>();
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPassNode(this);
 
-        public ShaderPassNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderPassNode(SourceSpan span) : base(span) { }
+        public ShaderPassNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderCodePassNode : ShaderPassNode
@@ -542,8 +531,7 @@ namespace UnityShaderParser.ShaderLab
         protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => Commands;
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderCodePassNode(this);
 
-        public ShaderCodePassNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderCodePassNode(SourceSpan span) : base(span) { }
+        public ShaderCodePassNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderGrabPassNode : ShaderPassNode
@@ -556,8 +544,7 @@ namespace UnityShaderParser.ShaderLab
         protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => Commands;
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderGrabPassNode(this);
 
-        public ShaderGrabPassNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderGrabPassNode(SourceSpan span) : base(span) { }
+        public ShaderGrabPassNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderUsePassNode : ShaderPassNode
@@ -566,8 +553,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderUsePassNode(this);
 
-        public ShaderUsePassNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderUsePassNode(SourceSpan span) : base(span) { }
+        public ShaderUsePassNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandNode : ShaderLabSyntaxNode
@@ -575,8 +561,7 @@ namespace UnityShaderParser.ShaderLab
         protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => Enumerable.Empty<ShaderLabSyntaxNode>();
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandNode(this);
 
-        public ShaderLabCommandNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandTagsNode : ShaderLabCommandNode
@@ -585,8 +570,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandTagsNode(this);
 
-        public ShaderLabCommandTagsNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandTagsNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandTagsNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandLodNode : ShaderLabCommandNode
@@ -595,8 +579,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandLodNode(this);
 
-        public ShaderLabCommandLodNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandLodNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandLodNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabBasicToggleCommandNode : ShaderLabCommandNode
@@ -605,56 +588,49 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabBasicToggleCommandNode(this);
 
-        public ShaderLabBasicToggleCommandNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabBasicToggleCommandNode(SourceSpan span) : base(span) { }
+        public ShaderLabBasicToggleCommandNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandLightingNode : ShaderLabBasicToggleCommandNode
     {
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandLightingNode(this);
 
-        public ShaderLabCommandLightingNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandLightingNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandLightingNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandSeparateSpecularNode : ShaderLabBasicToggleCommandNode
     {
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandSeparateSpecularNode(this);
 
-        public ShaderLabCommandSeparateSpecularNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandSeparateSpecularNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandSeparateSpecularNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandZWriteNode : ShaderLabBasicToggleCommandNode
     {
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandZWriteNode(this);
 
-        public ShaderLabCommandZWriteNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandZWriteNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandZWriteNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandAlphaToMaskNode : ShaderLabBasicToggleCommandNode
     {
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandAlphaToMaskNode(this);
 
-        public ShaderLabCommandAlphaToMaskNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandAlphaToMaskNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandAlphaToMaskNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandZClipNode : ShaderLabBasicToggleCommandNode
     {
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandZClipNode(this);
 
-        public ShaderLabCommandZClipNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandZClipNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandZClipNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandConservativeNode : ShaderLabBasicToggleCommandNode
     {
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandConservativeNode(this);
 
-        public ShaderLabCommandConservativeNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandConservativeNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandConservativeNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandCullNode : ShaderLabCommandNode
@@ -663,8 +639,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandCullNode(this);
 
-        public ShaderLabCommandCullNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandCullNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandCullNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandZTestNode : ShaderLabCommandNode
@@ -673,8 +648,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandZTestNode(this);
 
-        public ShaderLabCommandZTestNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandZTestNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandZTestNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandBlendNode : ShaderLabCommandNode
@@ -688,8 +662,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandBlendNode(this);
 
-        public ShaderLabCommandBlendNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandBlendNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandBlendNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandOffsetNode : ShaderLabCommandNode
@@ -699,8 +672,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandOffsetNode(this);
 
-        public ShaderLabCommandOffsetNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandOffsetNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandOffsetNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandColorMaskNode : ShaderLabCommandNode
@@ -712,8 +684,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandColorMaskNode(this);
 
-        public ShaderLabCommandColorMaskNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandColorMaskNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandColorMaskNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandAlphaTestNode : ShaderLabCommandNode
@@ -723,8 +694,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandAlphaTestNode(this);
 
-        public ShaderLabCommandAlphaTestNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandAlphaTestNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandAlphaTestNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandFogNode : ShaderLabCommandNode
@@ -734,8 +704,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandFogNode(this);
 
-        public ShaderLabCommandFogNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandFogNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandFogNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandNameNode : ShaderLabCommandNode
@@ -744,8 +713,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandNameNode(this);
 
-        public ShaderLabCommandNameNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandNameNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandNameNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandBindChannelsNode : ShaderLabCommandNode
@@ -754,8 +722,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandBindChannelsNode(this);
 
-        public ShaderLabCommandBindChannelsNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandBindChannelsNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandBindChannelsNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandColorNode : ShaderLabCommandNode
@@ -765,8 +732,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandColorNode(this);
 
-        public ShaderLabCommandColorNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandColorNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandColorNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandBlendOpNode : ShaderLabCommandNode
@@ -776,8 +742,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandBlendOpNode(this);
 
-        public ShaderLabCommandBlendOpNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandBlendOpNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandBlendOpNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandMaterialNode : ShaderLabCommandNode
@@ -786,8 +751,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandMaterialNode(this);
 
-        public ShaderLabCommandMaterialNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandMaterialNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandMaterialNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandSetTextureNode : ShaderLabCommandNode
@@ -798,8 +762,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandSetTextureNode(this);
 
-        public ShaderLabCommandSetTextureNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandSetTextureNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandSetTextureNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandColorMaterialNode : ShaderLabCommandNode
@@ -809,8 +772,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandColorMaterialNode(this);
 
-        public ShaderLabCommandColorMaterialNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandColorMaterialNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandColorMaterialNode(List<SLToken> tokens) : base(tokens) { }
     }
 
     public class ShaderLabCommandStencilNode : ShaderLabCommandNode
@@ -833,8 +795,7 @@ namespace UnityShaderParser.ShaderLab
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandStencilNode(this);
 
-        public ShaderLabCommandStencilNode(SLToken first, SLToken last) : base(first, last) { }
-        public ShaderLabCommandStencilNode(SourceSpan span) : base(span) { }
+        public ShaderLabCommandStencilNode(List<SLToken> tokens) : base(tokens) { }
     }
     #endregion
 }

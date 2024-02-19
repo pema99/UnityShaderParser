@@ -33,8 +33,8 @@ namespace UnityShaderParser.Common
         protected bool LookAhead(char c, int offset = 1) => LookAhead(offset) == c;
         protected bool Match(char tok) => Peek() == tok;
         protected bool IsAtEnd(int offset = 0) => position + offset >= source.Length;
-        protected void Add(string identifier, T kind) => tokens.Add(new Token<T> { Identifier = identifier, Kind = kind, Span = GetCurrentSpan() });
-        protected void Add(T kind) => tokens.Add(new Token<T>() { Kind = kind, Span = GetCurrentSpan() });
+        protected void Add(string identifier, T kind) => tokens.Add(new Token<T> { Identifier = identifier, Kind = kind, Span = GetCurrentSpan(), Position = tokens.Count });
+        protected void Add(T kind) => tokens.Add(new Token<T>() { Kind = kind, Span = GetCurrentSpan(), Position = tokens.Count });
         protected void Eat(char tok)
         {
             if (!Match(tok))

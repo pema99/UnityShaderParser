@@ -26,6 +26,7 @@ namespace UnityShaderParser.PreProcessor
         public List<HLSLToken> Tokens;
     }
 
+    // TODO: Restore proper span after substitution
     public class HLSLPreProcessor : BaseParser<TokenKind>
     {
         protected override TokenKind StringLiteralTokenKind => TokenKind.StringLiteralToken;
@@ -399,6 +400,16 @@ namespace UnityShaderParser.PreProcessor
             return expanded;
         }
 
+        private static void ShiftPositionsToStartFrom(int start, List<HLSLToken> tokens)
+        {
+            for (int i = 0; i < tokens.Count; i++)
+            {
+                var token = tokens[i];
+                token.Position = start + i;
+                tokens[i] = token;
+            }
+        }
+
         private List<HLSLToken> SkipUntilEndOfConditional()
         {
             List<HLSLToken> skipped = new List<HLSLToken>();
@@ -523,6 +534,7 @@ namespace UnityShaderParser.PreProcessor
                     }
                     Eat(TokenKind.EndDirectiveToken);
                     // Finally evaluate the expression
+                    ShiftPositionsToStartFrom(0, expandedConditionTokens);
                     return EvaluateConstExpr(expandedConditionTokens);
                 default:
                     Error($"Unexpected token '{conditional.Kind}', expected preprocessor directive.");
@@ -711,6 +723,9 @@ namespace UnityShaderParser.PreProcessor
 
             // C spec says we need to glue adjacent string literals
             GlueStringLiteralsPass();
+
+            // Fix up token positions
+            ShiftPositionsToStartFrom(0, outputTokens);
         }
 
         public void ExpandIncludesOnly()
@@ -727,6 +742,9 @@ namespace UnityShaderParser.PreProcessor
                     Add(Advance());
                 }
             }
+
+            // Fix up token positions
+            ShiftPositionsToStartFrom(0, outputTokens);
         }
 
         public void StripDirectives(bool expandIncludes = true)
@@ -766,6 +784,9 @@ namespace UnityShaderParser.PreProcessor
 
             // C spec says we need to glue adjacent string literals
             GlueStringLiteralsPass();
+
+            // Fix up token positions
+            ShiftPositionsToStartFrom(0, outputTokens);
         }
     }
 }

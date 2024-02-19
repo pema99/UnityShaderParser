@@ -155,6 +155,11 @@ namespace UnityShaderParser.Common
             Error($"Expected {expected}, got token ({token})", token.Span);
         }
 
+        protected List<Token<T>> Range(Token<T> first, Token<T> last)
+        {
+            return tokens.GetRange(first.Position, last.Position - first.Position + 1);
+        }
+
         protected string ParseIdentifier()
         {
             Token<T> identifierToken = Eat(IdentifierTokenKind);
