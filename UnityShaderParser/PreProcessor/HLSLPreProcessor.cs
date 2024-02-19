@@ -15,6 +15,7 @@ namespace UnityShaderParser.PreProcessor
         ExpandAllExceptIncludes,
         StripDirectives,
         DoNothing,
+        // TODO: Option to embed directives into tokens
     }
 
     internal struct Macro

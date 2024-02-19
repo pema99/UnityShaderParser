@@ -10,7 +10,7 @@
             }
         }
 
-        public virtual void VisitSyntaxNode(HLSLSyntaxNode node) => DefaultVisit(node);
+        public virtual void Visit(HLSLSyntaxNode node) => DefaultVisit(node);
         public virtual void VisitFormalParameterNode(FormalParameterNode node) => DefaultVisit(node);
         public virtual void VisitVariableDeclaratorNode(VariableDeclaratorNode node) => DefaultVisit(node);
         public virtual void VisitArrayRankNode(ArrayRankNode node) => DefaultVisit(node);

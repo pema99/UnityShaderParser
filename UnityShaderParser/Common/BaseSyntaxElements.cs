@@ -63,6 +63,8 @@ namespace UnityShaderParser.Common
         public string Identifier; // Optional
         public SourceSpan Span;
 
+        // TODO: Trivia
+
         public override string ToString()
         {
             if (Identifier == null)
