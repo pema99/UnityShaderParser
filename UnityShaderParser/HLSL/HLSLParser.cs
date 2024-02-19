@@ -340,25 +340,6 @@ namespace UnityShaderParser.HLSL
             return ParseBinaryExpression(level);
         }
 
-        private enum PrecedenceLevel
-        {                 // Associativity:
-            Compound,     // left
-            Assignment,   // right
-            Ternary,      // right
-            LogicalOr,    // left
-            LogicalAnd,   // left
-            BitwiseOr,    // left
-            BitwiseXor,   // left
-            BitwiseAnd,   // left
-            Equality,     // left
-            Comparison,   // left
-            BitShift,     // left
-            AddSub,       // left
-            MulDivMod,    // left
-            PrefixUnary,  // right
-            PostFixUnary, // left
-        }
-
         // https://en.cppreference.com/w/c/language/operator_precedence
         private List<(
             HashSet<TokenKind> operators,
@@ -454,7 +435,7 @@ namespace UnityShaderParser.HLSL
             ExpressionNode higher = ParseBinaryExpression(level + 1);
 
             // Ternary is a special case
-            if (level == (int)PrecedenceLevel.Ternary)
+            if (level == (int)OperatorPrecedence.Ternary)
             {
                 if (Match(TokenKind.QuestionToken))
                 {
@@ -517,7 +498,7 @@ namespace UnityShaderParser.HLSL
                     }
                     Eat(TokenKind.CloseParenToken);
                     var castExpr = ParsePrefixOrPostFixExpression();
-                    higher = new CastExpressionNode(Range(firstTok, Previous())) { Kind = type, Expression = castExpr, ArrayRanks = arrayRanks };
+                    higher = new CastExpressionNode(Range(firstTok, Previous())) { Kind = type, Expression = castExpr, ArrayRanks = arrayRanks, IsFunctionLike = false };
                     break;
 
                 case TokenKind.OpenParenToken:
@@ -541,7 +522,7 @@ namespace UnityShaderParser.HLSL
                         Eat(TokenKind.OpenParenToken);
                         var castFrom = ParseExpression();
                         Eat(TokenKind.CloseParenToken);
-                        higher = new CastExpressionNode(Range(firstTok, Previous())) { Kind = kind, Expression = castFrom, ArrayRanks = new List<ArrayRankNode>() };
+                        higher = new CastExpressionNode(Range(firstTok, Previous())) { Kind = kind, Expression = castFrom, ArrayRanks = new List<ArrayRankNode>(), IsFunctionLike = true };
                     }
                     else
                     {
@@ -619,7 +600,7 @@ namespace UnityShaderParser.HLSL
             var exprs = ParseSeparatedList0(
                 TokenKind.CloseBraceToken,
                 TokenKind.CommaToken,
-                () => ParseExpression((int)PrecedenceLevel.Compound + 1),
+                () => ParseExpression((int)OperatorPrecedence.Compound + 1),
                 true);
             var closeTok = Eat(TokenKind.CloseBraceToken);
             return new ArrayInitializerExpressionNode(Range(openTok, closeTok)) { Elements = exprs };
@@ -664,7 +645,7 @@ namespace UnityShaderParser.HLSL
             List<ExpressionNode> exprs = ParseSeparatedList0(
                 TokenKind.CloseParenToken,
                 TokenKind.CommaToken,
-                () => ParseExpression((int)PrecedenceLevel.Compound + 1));
+                () => ParseExpression((int)OperatorPrecedence.Compound + 1));
             Eat(TokenKind.CloseParenToken);
             return exprs;
         }
@@ -1112,7 +1093,7 @@ namespace UnityShaderParser.HLSL
         private ValueInitializerNode ParseValueInitializer(bool allowCompoundInitializer = true)
         {
             var eqTok = Eat(TokenKind.EqualsToken);
-            var expr = ParseExpression(allowCompoundInitializer ? 0 : (int)PrecedenceLevel.Compound + 1);
+            var expr = ParseExpression(allowCompoundInitializer ? 0 : (int)OperatorPrecedence.Compound + 1);
             return new ValueInitializerNode(Range(eqTok, Previous())) { Expression = expr };
         }
 
@@ -1314,15 +1295,18 @@ namespace UnityShaderParser.HLSL
                     return ParseTypedef(attributes);
 
                 case TokenKind.BreakKeyword:
-                    var breakTok = Advance();
+                    Advance();
+                    var breakTok = Eat(TokenKind.SemiToken);
                     return new BreakStatementNode(Range(firstTok, breakTok)) { Attributes = attributes };
 
                 case TokenKind.ContinueKeyword:
-                    var continueTok = Advance();
+                    Advance();
+                    var continueTok = Eat(TokenKind.SemiToken);
                     return new ContinueStatementNode(Range(firstTok, continueTok)) { Attributes = attributes };
 
                 case TokenKind.DiscardKeyword:
-                    var discardTok = Advance();
+                    Advance();
+                    var discardTok = Eat(TokenKind.SemiToken);
                     return new DiscardStatementNode(Range(firstTok, discardTok)) { Attributes = attributes };
 
                 case TokenKind.InterfaceKeyword:
@@ -1465,9 +1449,10 @@ namespace UnityShaderParser.HLSL
 
             var cond = ParseExpression();
 
-            var closeTok = Eat(TokenKind.CloseParenToken);
+            Eat(TokenKind.CloseParenToken);
+            var semiTok = Eat(TokenKind.SemiToken);
 
-            return new DoWhileStatementNode(Range(firstTok, closeTok))
+            return new DoWhileStatementNode(Range(firstTok, semiTok))
             {
                 Attributes = attributes,
                 Body = body,

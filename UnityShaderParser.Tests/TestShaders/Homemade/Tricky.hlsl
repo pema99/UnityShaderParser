@@ -11,6 +11,7 @@ const static BlendState WhatArStateObjectsEven[1] : I: LOVE: SEMANTICS: register
 
 void foo()
 {
+	int a = 3 * (5 + 7);
 	int boo = (some, more, 333 + 33);
 	int a = b ? c : d ? e : f;
 	Foo::Bar::Baz();

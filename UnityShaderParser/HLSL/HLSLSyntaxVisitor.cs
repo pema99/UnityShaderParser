@@ -1,4 +1,7 @@
-﻿namespace UnityShaderParser.HLSL
+﻿using System;
+using System.Collections.Generic;
+
+namespace UnityShaderParser.HLSL
 {
     public abstract class HLSLSyntaxVisitor
     {
@@ -10,7 +13,26 @@
             }
         }
 
-        public virtual void Visit(HLSLSyntaxNode node) => DefaultVisit(node);
+        public void VisitMany(IEnumerable<HLSLSyntaxNode> nodes)
+        {
+            foreach (HLSLSyntaxNode node in nodes)
+            {
+                Visit(node);
+            }
+        }
+
+        public void VisitMany<T>(IList<T> nodes, Action runBetween)
+            where T: HLSLSyntaxNode
+        {
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                Visit(nodes[i]);
+                if (i < nodes.Count - 1)
+                    runBetween();
+            }
+        }
+
+        public virtual void Visit(HLSLSyntaxNode node) => node?.Accept(this);
         public virtual void VisitFormalParameterNode(FormalParameterNode node) => DefaultVisit(node);
         public virtual void VisitVariableDeclaratorNode(VariableDeclaratorNode node) => DefaultVisit(node);
         public virtual void VisitArrayRankNode(ArrayRankNode node) => DefaultVisit(node);

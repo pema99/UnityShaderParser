@@ -462,6 +462,7 @@ namespace UnityShaderParser.HLSL
         OpenFunctionLikeMacroParenToken,
     }
 
+    [PrettyEnum(PrettyEnumStyle.AllLowerCase)]
     public enum ScalarType
     {
         Void,
@@ -478,28 +479,31 @@ namespace UnityShaderParser.HLSL
         Min16Uint,
         Min12Uint,
         String,
-        UNormFloat,
-        SNormFloat,
+        [PrettyName("unorm float")] UNormFloat,
+        [PrettyName("snorm float")] SNormFloat,
     }
 
+    [PrettyEnum(PrettyEnumStyle.AllLowerCase)]
     public enum LiteralKind
     {
         String,
         Float,
-        Integer,
-        Character,
-        Boolean,
-        Null,
+        [PrettyName("int")] Integer,
+        [PrettyName("char")] Character,
+        [PrettyName("bool")] Boolean,
+        [PrettyName("NULL")] Null,
     }
 
+    [PrettyEnum(PrettyEnumStyle.AllLowerCase)]
     public enum RegisterKind
     {
-        Texture,
-        Sampler,
-        UAV,
-        Buffer,
+        [PrettyName("t")] Texture,
+        [PrettyName("s")] Sampler,
+        [PrettyName("u")] UAV,
+        [PrettyName("b")] Buffer,
     }
 
+    [PrettyEnum(PrettyEnumStyle.PascalCase)]
     public enum PredefinedObjectType
     {
         Texture,
@@ -554,6 +558,7 @@ namespace UnityShaderParser.HLSL
         RaytracingAccelerationStructure
     }
 
+    [PrettyEnum(PrettyEnumStyle.AllLowerCase)]
     public enum BindingModifier
     {
         Const,
@@ -587,6 +592,7 @@ namespace UnityShaderParser.HLSL
         LineAdj,
     }
 
+    [PrettyEnum(PrettyEnumStyle.PascalCase)]
     public enum StateKind
     {
         SamplerState,
@@ -594,50 +600,77 @@ namespace UnityShaderParser.HLSL
         BlendState,
     }
 
+    [PrettyEnum(PrettyEnumStyle.AllLowerCase)]
     public enum OperatorKind
     {
-        Assignment,
-        PlusAssignment,
-        MinusAssignment,
-        MulAssignment,
-        DivAssignment,
-        ModAssignment,
-        ShiftLeftAssignment,
-        ShiftRightAssignment,
-        BitwiseAndAssignment,
-        BitwiseXorAssignment,
-        BitwiseOrAssignment,
+        [PrettyName("=")] Assignment,
+        [PrettyName("+=")] PlusAssignment,
+        [PrettyName("-=")] MinusAssignment,
+        [PrettyName("*=")] MulAssignment,
+        [PrettyName("/=")] DivAssignment,
+        [PrettyName("%=")] ModAssignment,
+        [PrettyName("<<=")] ShiftLeftAssignment,
+        [PrettyName(">>=")] ShiftRightAssignment,
+        [PrettyName("&=")] BitwiseAndAssignment,
+        [PrettyName("^=")] BitwiseXorAssignment,
+        [PrettyName("|=")] BitwiseOrAssignment,
 
-        LogicalOr,
-        LogicalAnd,
-        BitwiseOr,
-        BitwiseAnd,
-        BitwiseXor,
+        [PrettyName("||")] LogicalOr,
+        [PrettyName("&&")] LogicalAnd,
+        [PrettyName("|")] BitwiseOr,
+        [PrettyName("&")] BitwiseAnd,
+        [PrettyName("^")] BitwiseXor,
 
-        Compound,
-        Ternary,
+        [PrettyName(",")] Compound,
+        [PrettyName("?")] Ternary,
 
-        Equals,
-        NotEquals,
-        LessThan,
-        LessThanOrEquals,
-        GreaterThan,
-        GreaterThanOrEquals,
+        [PrettyName("==")] Equals,
+        [PrettyName("!=")] NotEquals,
+        [PrettyName("<")] LessThan,
+        [PrettyName("<=")] LessThanOrEquals,
+        [PrettyName(">")] GreaterThan,
+        [PrettyName(">=")] GreaterThanOrEquals,
 
-        ShiftLeft,
-        ShiftRight,
+        [PrettyName("<<")] ShiftLeft,
+        [PrettyName(">>")] ShiftRight,
 
-        Plus,
-        Minus,
-        Mul,
-        Div,
-        Mod,
+        [PrettyName("+")] Plus,
+        [PrettyName("-")] Minus,
+        [PrettyName("*")] Mul,
+        [PrettyName("/")] Div,
+        [PrettyName("%")] Mod,
 
-        Increment,
-        Decrement,
+        [PrettyName("++")] Increment,
+        [PrettyName("--")] Decrement,
 
-        Not,
-        BitFlip,
+        [PrettyName("!")] Not,
+        [PrettyName("~")] BitFlip,
+    }
+
+    public enum OperatorFixity
+    {
+        Prefix,
+        Postfix,
+        Infix,
+    }
+
+    public enum OperatorPrecedence
+    {                 // Associativity:
+        Compound,     // left
+        Assignment,   // right
+        Ternary,      // right
+        LogicalOr,    // left
+        LogicalAnd,   // left
+        BitwiseOr,    // left
+        BitwiseXor,   // left
+        BitwiseAnd,   // left
+        Equality,     // left
+        Comparison,   // left
+        BitShift,     // left
+        AddSub,       // left
+        MulDivMod,    // left
+        PrefixUnary,  // right
+        PostFixUnary, // left
     }
     #endregion
 
@@ -773,6 +806,8 @@ namespace UnityShaderParser.HLSL
     public class FunctionDefinitionNode : FunctionNode
     {
         public BlockNode Body { get; set; }
+
+        public bool BodyIsSingleStatement => !(Body is BlockNode);
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             MergeChildren(base.GetChildren, Child(Body));
@@ -967,6 +1002,7 @@ namespace UnityShaderParser.HLSL
 
         public bool FirstIsDeclaration => Declaration != null;
         public bool FirstIsExpression => Initializer != null;
+        public bool BodyIsSingleStatement => !(Body is BlockNode);
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             MergeChildren(base.GetChildren, OptionalChild(Declaration), OptionalChild(Initializer), OptionalChild(Condition), OptionalChild(Increment), Child(Body));
@@ -981,6 +1017,8 @@ namespace UnityShaderParser.HLSL
         public ExpressionNode Condition { get; set; }
         public StatementNode Body { get; set; }
 
+        public bool BodyIsSingleStatement => !(Body is BlockNode);
+
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             MergeChildren(base.GetChildren, Child(Condition), Child(Body));
 
@@ -993,6 +1031,8 @@ namespace UnityShaderParser.HLSL
     {
         public StatementNode Body { get; set; }
         public ExpressionNode Condition { get; set; }
+
+        public bool BodyIsSingleStatement => !(Body is BlockNode);
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             MergeChildren(base.GetChildren, Child(Body), Child(Condition));
@@ -1007,6 +1047,11 @@ namespace UnityShaderParser.HLSL
         public ExpressionNode Condition { get; set; }
         public StatementNode Body { get; set; }
         public StatementNode ElseClause { get; set; } // Optional
+
+        public bool BodyIsSingleStatement => !(Body is BlockNode);
+        public bool BodyIsElseIfClause => Parent is IfStatementNode;
+        public bool ElseClauseIsSingleStatement => !(ElseClause is BlockNode);
+        public bool ElseClauseIsElseIfClause => ElseClause is IfStatementNode;
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             MergeChildren(base.GetChildren, Child(Condition), Child(Body), OptionalChild(ElseClause));
@@ -1289,6 +1334,7 @@ namespace UnityShaderParser.HLSL
         public TypeNode Kind { get; set; }
         public ExpressionNode Expression { get; set; }
         public List<ArrayRankNode> ArrayRanks { get; set; }
+        public bool IsFunctionLike { get; set; }
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             MergeChildren(Child(Kind), Child(Expression), ArrayRanks);
 

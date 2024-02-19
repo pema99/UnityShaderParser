@@ -101,5 +101,47 @@ namespace UnityShaderParser.HLSL.Tests
             HLSLPreProcessor.PreProcess(tokens, false, PreProcessorMode.StripDirectives, Directory.GetParent(path)?.FullName!, new DefaultPreProcessorIncludeResolver(), new Dictionary<string, string>(), out pragmas, out preProcessorDiags);
             Assert.IsEmpty(preProcessorDiags, $"Expected no preprocessing errors, got: {preProcessorDiags.FirstOrDefault()}");
         }
+
+        [Test, TestCaseSource(nameof(GetTestShaders))]
+        public void RoundTripTestShaders(string path)
+        {
+            // Read text
+            string source = File.ReadAllText(path);
+
+            // Lex
+            var tokens = HLSLLexer.Lex(source, false, out var lexerDiags);
+            Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
+
+            // Parse
+            var config = new HLSLParserConfig
+            {
+                PreProcessorMode = PreProcessorMode.ExpandAll,
+                ThrowExceptionOnError = false,
+                BasePath = Directory.GetParent(path)?.FullName,
+                IncludeResolver = new DefaultPreProcessorIncludeResolver(),
+            };
+            var decls = HLSLParser.ParseTopLevelDeclarations(tokens, config, out var parserDiags, out _);
+            Assert.IsEmpty(parserDiags, $"Expected no parser errors, got: {parserDiags.FirstOrDefault()}");
+
+            // Pretty print
+            var printer = new HLSLPrinter();
+            printer.VisitMany(decls);
+            string prettyPrinted = printer.Text;
+
+            // Re-lex
+            tokens = HLSLLexer.Lex(source, false, out var relexerDiags);
+            Assert.IsEmpty(relexerDiags, $"Expected no lexer errors, got: {relexerDiags.FirstOrDefault()}");
+
+            // Re-parse
+            decls = HLSLParser.ParseTopLevelDeclarations(tokens, config, out var reparserDiags, out _);
+            Assert.IsEmpty(reparserDiags, $"Expected no parser errors, got: {reparserDiags.FirstOrDefault()}");
+
+            // Re-pretty print
+            printer = new HLSLPrinter();
+            printer.VisitMany(decls);
+            string roundtripped = printer.Text;
+
+            Assert.AreEqual(prettyPrinted, roundtripped);
+        }
     }
 }

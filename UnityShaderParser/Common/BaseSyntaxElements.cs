@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace UnityShaderParser.Common
 {
@@ -100,5 +102,75 @@ namespace UnityShaderParser.Common
         public List<TSelf> Children => GetChildren.ToList();
         public TSelf Parent => parent;
         public abstract SourceSpan Span { get; }
+    }
+
+    public enum PrettyEnumStyle
+    {
+        AllLowerCase,
+        AllUpperCase,
+        CamelCase,
+        PascalCase,
+    }
+
+    public class PrettyEnumAttribute : Attribute
+    {
+        public PrettyEnumStyle Style { get; set; }
+        public PrettyEnumAttribute(PrettyEnumStyle firstIsLowerCase)
+        {
+            Style = firstIsLowerCase;
+        }
+    }
+
+    public class PrettyNameAttribute : Attribute
+    {
+        public string Name { get; set; }
+
+        public PrettyNameAttribute(string name)
+        {
+            Name = name;
+        }
+    }
+
+    public static class PrintingUtil
+    {
+        public static string GetEnumName<T>(T val)
+            where T : Enum
+        {
+            string name;
+            PrettyEnumAttribute[] enumAttrs = typeof(T).GetCustomAttributes<PrettyEnumAttribute>().ToArray();
+            if (enumAttrs == null || enumAttrs.Length == 0)
+            {
+                name = Enum.GetName(typeof(T), val);
+            }
+            else
+            {
+                MemberInfo[] memberInfo = typeof(T).GetMember(val.ToString());
+                if (memberInfo != null && memberInfo.Length > 0)
+                {
+                    PrettyNameAttribute[] attrs = memberInfo[0].GetCustomAttributes<PrettyNameAttribute>().ToArray();
+
+                    if (attrs != null && attrs.Length > 0)
+                    {
+                        //Pull out the description value
+                        return attrs[0].Name;
+                    }
+                }
+                name = Enum.GetName(typeof(T), val);
+            }
+
+            switch (enumAttrs[0].Style)
+            {
+                case PrettyEnumStyle.AllLowerCase: return name.ToLower();
+                case PrettyEnumStyle.AllUpperCase: return name.ToUpper();
+                case PrettyEnumStyle.CamelCase:
+                    if (name.Length > 0)
+                    {
+                        name = $"{char.ToLower(name[0])}{name.Substring(1)}";
+                    }
+                    return name;
+                default:
+                    return name;
+            }
+        }
     }
 }

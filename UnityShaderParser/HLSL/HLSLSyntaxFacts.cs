@@ -1333,6 +1333,69 @@ namespace UnityShaderParser.HLSL
             }
         }
 
+        public static OperatorPrecedence GetPrecedence(OperatorKind op, OperatorFixity fixity)
+        {
+            switch (op)
+            {
+                case OperatorKind.Compound:
+                    return OperatorPrecedence.Compound;
+                case OperatorKind.Assignment:
+                case OperatorKind.PlusAssignment:
+                case OperatorKind.MinusAssignment:
+                case OperatorKind.MulAssignment:
+                case OperatorKind.DivAssignment:
+                case OperatorKind.ModAssignment:
+                case OperatorKind.ShiftLeftAssignment:
+                case OperatorKind.ShiftRightAssignment:
+                case OperatorKind.BitwiseAndAssignment:
+                case OperatorKind.BitwiseXorAssignment:
+                case OperatorKind.BitwiseOrAssignment:
+                    return OperatorPrecedence.Assignment;
+                case OperatorKind.Ternary:
+                    return OperatorPrecedence.Ternary;
+                case OperatorKind.LogicalOr:
+                    return OperatorPrecedence.LogicalOr;
+                case OperatorKind.LogicalAnd:
+                    return OperatorPrecedence.LogicalAnd;
+                case OperatorKind.BitwiseOr:
+                    return OperatorPrecedence.BitwiseOr;
+                case OperatorKind.BitwiseXor:
+                    return OperatorPrecedence.BitwiseXor;
+                case OperatorKind.BitwiseAnd:
+                    return OperatorPrecedence.BitwiseAnd;
+                case OperatorKind.Equals:
+                case OperatorKind.NotEquals:
+                    return OperatorPrecedence.Equality;
+                case OperatorKind.LessThan:
+                case OperatorKind.LessThanOrEquals:
+                case OperatorKind.GreaterThan:
+                case OperatorKind.GreaterThanOrEquals:
+                    return OperatorPrecedence.Comparison;
+                case OperatorKind.ShiftLeft:
+                case OperatorKind.ShiftRight:
+                    return OperatorPrecedence.BitShift;
+                case OperatorKind.Plus when fixity == OperatorFixity.Infix:
+                case OperatorKind.Minus when fixity == OperatorFixity.Infix:
+                    return OperatorPrecedence.AddSub;
+                case OperatorKind.Mul:
+                case OperatorKind.Div:
+                case OperatorKind.Mod:
+                    return OperatorPrecedence.MulDivMod;
+                case OperatorKind.Plus:
+                case OperatorKind.Minus:
+                case OperatorKind.Not:
+                case OperatorKind.BitFlip:
+                case OperatorKind.Increment when fixity == OperatorFixity.Prefix:
+                case OperatorKind.Decrement when fixity == OperatorFixity.Prefix:
+                    return OperatorPrecedence.PrefixUnary;
+                case OperatorKind.Increment:
+                case OperatorKind.Decrement:
+                    return OperatorPrecedence.PostFixUnary;
+                default:
+                    return OperatorPrecedence.Compound;
+            }
+        }
+
         public static bool TryConvertKeywordToString(TokenKind kind, out string result)
         {
             switch (kind)
