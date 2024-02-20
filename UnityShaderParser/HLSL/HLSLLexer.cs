@@ -41,7 +41,7 @@ namespace UnityShaderParser.HLSL
                     string hexNum = EatIdentifier().Substring(1);
                     if (hexNum.EndsWith('u') || hexNum.EndsWith('U'))
                         hexNum = hexNum.Substring(0, hexNum.Length - 1);
-                    if (!int.TryParse(hexNum, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out int hexVal))
+                    if (!uint.TryParse(hexNum, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out uint hexVal))
                         Error($"Invalid hex literal 0x{hexNum}");
                     Add(hexVal.ToString(), TokenKind.IntegerLiteralToken);
                     break;

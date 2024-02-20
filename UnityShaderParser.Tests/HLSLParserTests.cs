@@ -169,14 +169,14 @@ namespace UnityShaderParser.HLSL.Tests
             printer.VisitMany(redecls);
             string roundtripped = printer.Text;
 
-            Assert.AreEqual(prettyPrinted, roundtripped);
-
             var settings = new JsonSerializerSettings()
             {
                 ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
                 ContractResolver = new HLSLSyntaxContractResolver(),
             };
             Assert.That(JsonConvert.SerializeObject(redecls, settings), Is.EqualTo(JsonConvert.SerializeObject(decls, settings)).NoClip);
+            
+            Assert.AreEqual(prettyPrinted, roundtripped);
         }
     }
 }
