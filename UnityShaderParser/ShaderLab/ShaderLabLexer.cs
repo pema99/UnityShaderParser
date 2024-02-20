@@ -43,7 +43,7 @@ namespace UnityShaderParser.ShaderLab
                     break;
 
                 case '"':
-                    Add(EatStringLiteral('"', '"'), TokenKind.StringLiteralToken);
+                    Add($"\"{EatStringLiteral('"', '"')}\"", TokenKind.StringLiteralToken);
                     break;
 
                 case '[' when IsAlphaNumericOrUnderscore(LookAhead()):
