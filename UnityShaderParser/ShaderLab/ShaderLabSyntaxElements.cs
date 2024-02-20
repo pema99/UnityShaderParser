@@ -404,8 +404,8 @@ namespace UnityShaderParser.ShaderLab
         {
             this.span = new SourceSpan
             {
-                Start = tokens.First().Span.Start,
-                End = tokens.Last().Span.End,
+                Start = tokens.FirstOrDefault().Span.Start,
+                End = tokens.LastOrDefault().Span.End,
             };
             this.tokens = tokens;
         }
