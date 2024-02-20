@@ -232,16 +232,17 @@ namespace UnityShaderParser.ShaderLab
         }
     }
 
+    [PrettyEnum(PrettyEnumStyle.PascalCase)]
     public enum ShaderPropertyKind
     {
-        None,
-        Texture2D,
-        Texture3D,
-        TextureCube,
-        TextureAny,
-        Texture2DArray,
-        Texture3DArray,
-        TextureCubeArray,
+        [PrettyName("Any")] None,
+        [PrettyName("2D")] Texture2D,
+        [PrettyName("3D")] Texture3D,
+        [PrettyName("Cube")] TextureCube,
+        [PrettyName("Any")] TextureAny,
+        [PrettyName("2DArray")] Texture2DArray,
+        [PrettyName("3DArray")] Texture3DArray,
+        [PrettyName("CubeArray")] TextureCubeArray,
         Float,
         Int,
         Integer,
@@ -250,17 +251,19 @@ namespace UnityShaderParser.ShaderLab
         Range,
     }
 
+    [PrettyEnum(PrettyEnumStyle.PascalCase)]
     public enum TextureType
     {
-        Texture2D,
-        Texture3D,
-        TextureCube,
-        TextureAny,
-        Texture2DArray,
-        Texture3DArray,
-        TextureCubeArray,
+        [PrettyName("2D")] Texture2D,
+        [PrettyName("3D")] Texture3D,
+        [PrettyName("Cube")] TextureCube,
+        [PrettyName("Any")] TextureAny,
+        [PrettyName("2DArray")] Texture2DArray,
+        [PrettyName("3DArray")] Texture3DArray,
+        [PrettyName("CubeArray")] TextureCubeArray,
     }
 
+    [PrettyEnum(PrettyEnumStyle.PascalCase)]
     public enum CullMode
     {
         Off,
@@ -268,6 +271,7 @@ namespace UnityShaderParser.ShaderLab
         Back,
     }
 
+    [PrettyEnum(PrettyEnumStyle.PascalCase)]
     public enum ComparisonMode
     {
         Off,
@@ -281,6 +285,7 @@ namespace UnityShaderParser.ShaderLab
         Always,
     }
 
+    [PrettyEnum(PrettyEnumStyle.PascalCase)]
     public enum BlendFactor
     {
         One,
@@ -296,6 +301,7 @@ namespace UnityShaderParser.ShaderLab
         OneMinusDstAlpha,
     }
 
+    [PrettyEnum(PrettyEnumStyle.PascalCase)]
     public enum BindChannel
     {
         Vertex,
@@ -312,6 +318,7 @@ namespace UnityShaderParser.ShaderLab
         Color,
     }
 
+    [PrettyEnum(PrettyEnumStyle.PascalCase)]
     public enum BlendOp
     {
         Add,
@@ -351,6 +358,7 @@ namespace UnityShaderParser.ShaderLab
         HSLLuminosity,
     }
 
+    [PrettyEnum(PrettyEnumStyle.PascalCase)]
     public enum FixedFunctionMaterialProperty
     {
         Diffuse,
@@ -360,6 +368,7 @@ namespace UnityShaderParser.ShaderLab
         Emission,
     }
 
+    [PrettyEnum(PrettyEnumStyle.PascalCase)]
     public enum StencilOp
     {
         Keep,
@@ -443,11 +452,9 @@ namespace UnityShaderParser.ShaderLab
         public ShaderPropertyNode(List<SLToken> tokens) : base(tokens) { }
     }
 
-    public class ShaderPropertyValueNode : ShaderLabSyntaxNode
+    public abstract class ShaderPropertyValueNode : ShaderLabSyntaxNode
     {
         protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => Enumerable.Empty<ShaderLabSyntaxNode>();
-        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPropertyValueNode(this);
-
         public ShaderPropertyValueNode(List<SLToken> tokens) : base(tokens) { }
     }
 
@@ -482,7 +489,7 @@ namespace UnityShaderParser.ShaderLab
     public class ShaderPropertyValueColorNode : ShaderPropertyValueNode
     {
         public bool HasAlphaChannel { get; set; }
-        public (float x, float y, float z, float w) Color { get; set; } = default;
+        public (float r, float g, float b, float a) Color { get; set; } = default;
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPropertyValueColorNode(this);
 

@@ -366,7 +366,7 @@ namespace UnityShaderParser.ShaderLab
             Eat(TokenKind.EqualsToken);
 
             var valueNodeFirstTok = Peek();
-            ShaderPropertyValueNode valueNode = new ShaderPropertyValueNode(Range(valueNodeFirstTok, valueNodeFirstTok));
+            ShaderPropertyValueNode valueNode = null;
             switch (kind)
             {
                 case ShaderPropertyKind.Color:
