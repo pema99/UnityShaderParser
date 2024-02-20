@@ -563,8 +563,8 @@ namespace UnityShaderParser.HLSL
     public enum BindingModifier
     {
         Const,
-        RowMajor,
-        ColumnMajor,
+        [PrettyName("row_major")] RowMajor,
+        [PrettyName("column_major")] ColumnMajor,
         Export,
         Extern,
         Inline,
