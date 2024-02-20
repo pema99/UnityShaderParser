@@ -55,7 +55,9 @@ namespace UnityShaderParser.HLSL
         {
             int precedence = (int)prec;
             bool needsParen = false;
-            if (expressionPrecedences.Count > 0 && expressionPrecedences.Peek() > precedence)
+            //if (expressionPrecedences.Count > 0 && expressionPrecedences.Peek() >= precedence)
+            // TODO: This doesn't work
+            if (expressionPrecedences.Count > 0)
             {
                 needsParen = true;
             }
