@@ -23,8 +23,8 @@ namespace UnityShaderParser.HLSL
         private string Indent() => new string(' ', indentLevel * 4);
 
         private void Emit(string text) => sb.Append(text);
-        private void EmitLine(string text) => sb.AppendLine(text);
-        private void EmitIndented(string text)
+        private void EmitLine(string text = "") => sb.AppendLine(text);
+        private void EmitIndented(string text = "")
         {
             sb.Append(Indent());
             sb.Append(text);
@@ -84,7 +84,7 @@ namespace UnityShaderParser.HLSL
             VisitMany(node.Qualifiers);
             if (node.Annotations?.Count > 0)
             {
-                EmitLine("");
+                EmitLine();
                 EmitIndentedLine("<");
                 PushIndent();
                 VisitMany(node.Annotations);
@@ -106,7 +106,7 @@ namespace UnityShaderParser.HLSL
         }
         public override void VisitStateInitializerNode(StateInitializerNode node)
         {
-            EmitLine("");
+            EmitLine();
             EmitIndentedLine("{");
             PushIndent();
             VisitMany(node.States);
@@ -115,32 +115,32 @@ namespace UnityShaderParser.HLSL
         }
         public override void VisitStateArrayInitializerNode(StateArrayInitializerNode node)
         {
-            EmitLine("");
+            EmitLine();
             EmitIndentedLine("{");
             PushIndent();
             VisitManySeparated(node.Initializers, ",");
             PopIndent();
-            EmitLine("");
+            EmitLine();
             EmitIndented("}");
         }
         private void VisitFunctionNode(FunctionNode node)
         {
-            EmitIndented("");
+            EmitIndented();
             string modifiers = string.Join("", node.Modifiers.Select(PrintingUtil.GetEnumName).Select(x => x + " "));
             Emit(modifiers);
             VisitManySeparated(node.Attributes, " ", true);
-            if (node.Attributes.Count > 0) EmitLine("");
+            if (node.Attributes.Count > 0) EmitLine();
             Visit(node.ReturnType);
             Emit(" ");
             Visit(node.Name);
             Emit("(");
             if (node.Parameters?.Count > MaxParametersUntilLineBreak)
             {
-                EmitLine("");
+                EmitLine();
                 PushIndent();
                 for (int i = 0; i < node.Parameters.Count; i++)
                 {
-                    EmitIndented("");
+                    EmitIndented();
                     Visit(node.Parameters[i]);
                     if (i < node.Parameters.Count - 1)
                         EmitLine(",");
@@ -162,27 +162,27 @@ namespace UnityShaderParser.HLSL
         public override void VisitFunctionDefinitionNode(FunctionDefinitionNode node)
         {
             VisitFunctionNode(node);
-            EmitLine("");
+            EmitLine();
             if (node.BodyIsSingleStatement)
             {
-                EmitIndented("");
+                EmitIndented();
             }
             Visit(node.Body);
         }
         public override void VisitStructDefinitionNode(StructDefinitionNode node)
         {
-            EmitIndented("");
+            EmitIndented();
             VisitManySeparated(node.Attributes, " ", true);
             Visit(node.StructType);
             EmitLine(";");
         }
         public override void VisitInterfaceDefinitionNode(InterfaceDefinitionNode node)
         {
-            EmitIndented("");
+            EmitIndented();
             VisitManySeparated(node.Attributes, " ", true);
             Emit("interface ");
             Visit(node.Name);
-            EmitLine("");
+            EmitLine();
             EmitIndentedLine("{");
             PushIndent();
             VisitMany(node.Functions);
@@ -201,7 +201,7 @@ namespace UnityShaderParser.HLSL
             }
             Visit(node.Name);
             Visit(node.RegisterLocation);
-            EmitLine("");
+            EmitLine();
             EmitIndentedLine("{");
             PushIndent();
             VisitMany(node.Declarations);
@@ -210,7 +210,7 @@ namespace UnityShaderParser.HLSL
         }
         public override void VisitTypedefNode(TypedefNode node)
         {
-            EmitIndented("");
+            EmitIndented();
             VisitManySeparated(node.Attributes, " ", true);
             Emit("typedef ");
             if (node.IsConst)
@@ -252,7 +252,7 @@ namespace UnityShaderParser.HLSL
         }
         public override void VisitBlockNode(BlockNode node)
         {
-            EmitIndented("");
+            EmitIndented();
             VisitManySeparated(node.Attributes, " ", true);
             EmitLine("{");
             PushIndent();
@@ -264,7 +264,7 @@ namespace UnityShaderParser.HLSL
         {
             bool partOfFor = node.Parent is ForStatementNode forStatement && forStatement.Declaration == node;
 
-            if (!partOfFor) EmitIndented("");
+            if (!partOfFor) EmitIndented();
             VisitManySeparated(node.Attributes, " ", true);
             string modifiers = string.Join("", node.Modifiers.Select(PrintingUtil.GetEnumName).Select(x => x + " "));
             Emit(modifiers);
@@ -272,7 +272,7 @@ namespace UnityShaderParser.HLSL
             Emit(" ");
             VisitManySeparated(node.Declarators, ", ");
             Emit(";");
-            if (!partOfFor) EmitLine("");
+            if (!partOfFor) EmitLine();
         }
         public override void VisitReturnStatementNode(ReturnStatementNode node)
         {
@@ -306,7 +306,7 @@ namespace UnityShaderParser.HLSL
         }
         public override void VisitForStatementNode(ForStatementNode node)
         {
-            EmitIndented("");
+            EmitIndented();
             VisitManySeparated(node.Attributes, " ", true);
             Emit("for (");
             if (node.FirstIsDeclaration)
@@ -327,31 +327,31 @@ namespace UnityShaderParser.HLSL
             EmitLine(")");
             if (node.BodyIsSingleStatement)
             {
-                EmitIndented("");
+                EmitIndented();
             }
             Visit(node.Body);
         }
         public override void VisitWhileStatementNode(WhileStatementNode node)
         {
-            EmitIndented("");
+            EmitIndented();
             VisitManySeparated(node.Attributes, " ", true);
             Emit("while (");
             Visit(node.Condition);
             EmitLine(")");
             if (node.BodyIsSingleStatement)
             {
-                EmitIndented("");
+                EmitIndented();
             }
             Visit(node.Body);
         }
         public override void VisitDoWhileStatementNode(DoWhileStatementNode node)
         {
-            EmitIndented("");
+            EmitIndented();
             VisitManySeparated(node.Attributes, " ", true);
             EmitLine("do");
             if (node.BodyIsSingleStatement)
             {
-                EmitIndented("");
+                EmitIndented();
             }
             Visit(node.Body);
             EmitIndented("while (");
@@ -362,7 +362,7 @@ namespace UnityShaderParser.HLSL
         {
             if (!node.BodyIsElseIfClause)
             {
-                EmitIndented("");
+                EmitIndented();
             }
             VisitManySeparated(node.Attributes, " ", true);
             Emit("if (");
@@ -370,7 +370,7 @@ namespace UnityShaderParser.HLSL
             EmitLine(")");
             if (node.BodyIsSingleStatement)
             {
-                EmitIndented("");
+                EmitIndented();
             }
             Visit(node.Body);
             if (node.ElseClause != null)
@@ -378,12 +378,12 @@ namespace UnityShaderParser.HLSL
                 EmitIndented("else ");
                 if (node.ElseClauseIsSingleStatement && !node.ElseClauseIsElseIfClause)
                 {
-                    EmitLine("");
-                    EmitIndented("");
+                    EmitLine();
+                    EmitIndented();
                 }
                 else if (!node.ElseClauseIsElseIfClause)
                 {
-                    EmitLine("");
+                    EmitLine();
                 }
 
                 Visit(node.ElseClause);
@@ -391,7 +391,7 @@ namespace UnityShaderParser.HLSL
         }
         public override void VisitSwitchStatementNode(SwitchStatementNode node)
         {
-            EmitIndented("");
+            EmitIndented();
             VisitManySeparated(node.Attributes, " ", true);
             Emit("switch (");
             Visit(node.Expression);
@@ -422,7 +422,7 @@ namespace UnityShaderParser.HLSL
         }
         public override void VisitExpressionStatementNode(ExpressionStatementNode node)
         {
-            EmitIndented("");
+            EmitIndented();
             Visit(node.Expression);
             EmitLine(";");
         }
@@ -580,12 +580,12 @@ namespace UnityShaderParser.HLSL
         }
         public override void VisitArrayInitializerExpressionNode(ArrayInitializerExpressionNode node)
         {
-            EmitLine("");
+            EmitLine();
             EmitIndentedLine("{");
             PushIndent();
             foreach (var element in node.Elements)
             {
-                EmitIndented("");
+                EmitIndented();
                 Visit(element);
                 EmitLine(",");
             }
@@ -652,7 +652,7 @@ namespace UnityShaderParser.HLSL
                 Emit(" : ");
                 VisitManySeparated(node.Inherits, ", ");
             }
-            EmitLine("");
+            EmitLine();
             EmitIndentedLine("{");
             PushIndent();
             VisitMany(node.Fields);
@@ -676,7 +676,7 @@ namespace UnityShaderParser.HLSL
         {
             Emit(node.Version == 11 ? "technique " : $"technique{node.Version} ");
             Visit(node.Name);
-            EmitLine("");
+            EmitLine();
             if (node.Annotations?.Count > 0)
             {
                 EmitIndentedLine("<");
@@ -693,7 +693,7 @@ namespace UnityShaderParser.HLSL
         }
         public override void VisitStatePropertyNode(StatePropertyNode node)
         {
-            EmitIndented("");
+            EmitIndented();
             Visit(node.Name);
             Visit(node.ArrayRank);
             Emit(" = ");
@@ -706,7 +706,7 @@ namespace UnityShaderParser.HLSL
         {
             EmitIndented("pass ");
             Visit(node.Name);
-            EmitLine("");
+            EmitLine();
             if (node.Annotations?.Count > 0)
             {
                 EmitIndentedLine("<");
