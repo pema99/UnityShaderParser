@@ -129,6 +129,9 @@ namespace UnityShaderParser.HLSL
         {
             switch (Peek().Kind)
             {
+                case TokenKind.NamespaceKeyword:
+                    return ParseNamespace();
+
                 case TokenKind.CBufferKeyword:
                 case TokenKind.TBufferKeyword:
                     return ParseConstantBuffer();
@@ -789,6 +792,21 @@ namespace UnityShaderParser.HLSL
                 Attributes = attributes,
                 Name = name,
                 Functions = decls,
+            };
+        }
+
+        private NamespaceNode ParseNamespace()
+        {
+            var keywordTok = Eat(TokenKind.NamespaceKeyword);
+            var name = ParseUserDefinedNamedType();
+            Eat(TokenKind.OpenBraceToken);
+            var decls = ParseMany0(() => !Match(TokenKind.CloseBraceToken), ParseTopLevelDeclaration);
+            var closeTok = Eat(TokenKind.CloseBraceToken);
+
+            return new NamespaceNode(Range(keywordTok, closeTok))
+            {
+                Name = name,
+                Declarations = decls,
             };
         }
 

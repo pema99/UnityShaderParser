@@ -208,6 +208,17 @@ namespace UnityShaderParser.HLSL
             PopIndent();
             EmitIndentedLine("}");
         }
+        public override void VisitNamespaceNode(NamespaceNode node)
+        {
+            EmitIndented("namespace ");
+            Visit(node.Name);
+            EmitLine();
+            EmitIndentedLine("{");
+            PushIndent();
+            VisitMany(node.Declarations);
+            PopIndent();
+            EmitIndentedLine("}");
+        }
         public override void VisitTypedefNode(TypedefNode node)
         {
             EmitIndented();

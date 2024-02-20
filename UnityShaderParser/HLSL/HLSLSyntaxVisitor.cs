@@ -44,6 +44,7 @@ namespace UnityShaderParser.HLSL
         public virtual void VisitStructDefinitionNode(StructDefinitionNode node) => DefaultVisit(node);
         public virtual void VisitInterfaceDefinitionNode(InterfaceDefinitionNode node) => DefaultVisit(node);
         public virtual void VisitConstantBufferNode(ConstantBufferNode node) => DefaultVisit(node);
+        public virtual void VisitNamespaceNode(NamespaceNode node) => DefaultVisit(node);
         public virtual void VisitTypedefNode(TypedefNode node) => DefaultVisit(node);
         public virtual void VisitSemanticNode(SemanticNode node) => DefaultVisit(node);
         public virtual void VisitRegisterLocationNode(RegisterLocationNode node) => DefaultVisit(node);

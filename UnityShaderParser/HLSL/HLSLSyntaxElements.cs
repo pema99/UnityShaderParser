@@ -858,6 +858,19 @@ namespace UnityShaderParser.HLSL
         public ConstantBufferNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
+    public class NamespaceNode : HLSLSyntaxNode
+    {
+        public UserDefinedNamedTypeNode Name { get; set; }
+        public List<HLSLSyntaxNode> Declarations { get; set; }
+
+        protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
+            MergeChildren(Child(Name), Declarations);
+
+        public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitNamespaceNode(this);
+
+        public NamespaceNode(List<HLSLToken> tokens) : base(tokens) { }
+    }
+
     public class TypedefNode : StatementNode
     {
         public TypeNode FromType { get; set; }
