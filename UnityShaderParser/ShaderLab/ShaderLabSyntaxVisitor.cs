@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityShaderParser.Common;
 
 namespace UnityShaderParser.ShaderLab
@@ -13,7 +14,7 @@ namespace UnityShaderParser.ShaderLab
             }
         }
 
-        public void Visit(IEnumerable<ShaderLabSyntaxNode> nodes)
+        public void VisitMany(IEnumerable<ShaderLabSyntaxNode> nodes)
         {
             foreach (ShaderLabSyntaxNode node in nodes)
             {
@@ -21,10 +22,20 @@ namespace UnityShaderParser.ShaderLab
             }
         }
 
+        public void VisitMany<T>(IList<T> nodes, Action runBetween)
+            where T : ShaderLabSyntaxNode
+        {
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                Visit(nodes[i]);
+                if (i < nodes.Count - 1)
+                    runBetween();
+            }
+        }
+
         public virtual void Visit(ShaderLabSyntaxNode node) => node?.Accept(this);
         public virtual void VisitShaderNode(ShaderNode node) => DefaultVisit(node);
         public virtual void VisitShaderPropertyNode(ShaderPropertyNode node) => DefaultVisit(node);
-        public virtual void VisitShaderPropertyValueNode(ShaderPropertyValueNode node) => DefaultVisit(node);
         public virtual void VisitShaderPropertyValueFloatNode(ShaderPropertyValueFloatNode node) => DefaultVisit(node);
         public virtual void VisitShaderPropertyValueIntegerNode(ShaderPropertyValueIntegerNode node) => DefaultVisit(node);
         public virtual void VisitShaderPropertyValueVectorNode(ShaderPropertyValueVectorNode node) => DefaultVisit(node);
