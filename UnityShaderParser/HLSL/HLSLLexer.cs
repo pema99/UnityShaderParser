@@ -44,6 +44,7 @@ namespace UnityShaderParser.HLSL
                     if (!uint.TryParse(hexNum, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out uint hexVal))
                         Error($"Invalid hex literal 0x{hexNum}");
                     Add(hexVal.ToString(), TokenKind.IntegerLiteralToken);
+                    // TODO: Treat hex literals as their own literal type
                     break;
 
                 case char c when char.IsDigit(c) || (c == '.' && char.IsDigit(LookAhead())):

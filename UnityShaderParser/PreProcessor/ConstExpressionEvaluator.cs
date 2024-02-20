@@ -44,7 +44,7 @@ namespace UnityShaderParser.PreProcessor
                     switch (literalExpr.Kind)
                     {
                         case LiteralKind.Integer:
-                            return int.Parse(literalExpr.Lexeme);
+                            return long.Parse(literalExpr.Lexeme);
                         case LiteralKind.Character:
                             return char.Parse(literalExpr.Lexeme);
                         default:
