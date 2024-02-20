@@ -506,7 +506,7 @@ namespace UnityShaderParser.HLSL
     [PrettyEnum(PrettyEnumStyle.PascalCase)]
     public enum PredefinedObjectType
     {
-        Texture,
+        [PrettyName("texture")] Texture,
         Texture1D,
         Texture1DArray,
         Texture2D,
@@ -546,11 +546,11 @@ namespace UnityShaderParser.HLSL
         BlendState,
         DepthStencilState,
         RasterizerState,
-        Sampler,
-        Sampler1D,
-        Sampler2D,
-        Sampler3D,
-        SamplerCube,
+        [PrettyName("sampler")] Sampler,
+        [PrettyName("sampler1D")] Sampler1D,
+        [PrettyName("sampler2D")] Sampler2D,
+        [PrettyName("sampler3D")] Sampler3D,
+        [PrettyName("samplerCUBE")] SamplerCube,
         SamplerState,
         SamplerComparisonState,
         BuiltInTriangleIntersectionAttributes,

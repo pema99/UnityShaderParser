@@ -176,7 +176,7 @@ namespace UnityShaderParser.HLSL.Tests
                 ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
                 ContractResolver = new HLSLSyntaxContractResolver(),
             };
-            Assert.AreEqual(JsonConvert.SerializeObject(decls, settings), JsonConvert.SerializeObject(redecls, settings));
+            Assert.That(JsonConvert.SerializeObject(redecls, settings), Is.EqualTo(JsonConvert.SerializeObject(decls, settings)).NoClip);
         }
     }
 }

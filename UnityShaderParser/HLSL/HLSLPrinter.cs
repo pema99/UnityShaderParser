@@ -446,7 +446,18 @@ namespace UnityShaderParser.HLSL
         }
         public override void VisitLiteralExpressionNode(LiteralExpressionNode node)
         {
-            Emit(node.Lexeme);
+            if (node.Kind == LiteralKind.String)
+            {
+                Emit($"\"{node.Lexeme}\"");
+            }
+            else if (node.Kind == LiteralKind.Character)
+            {
+                Emit($"'{node.Lexeme}'");
+            }
+            else
+            {
+                Emit(node.Lexeme);
+            }
         }
         public override void VisitAssignmentExpressionNode(AssignmentExpressionNode node)
         {
