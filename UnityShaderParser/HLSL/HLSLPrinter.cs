@@ -126,6 +126,8 @@ namespace UnityShaderParser.HLSL
         private void VisitFunctionNode(FunctionNode node)
         {
             EmitIndented("");
+            string modifiers = string.Join("", node.Modifiers.Select(PrintingUtil.GetEnumName).Select(x => x + " "));
+            Emit(modifiers);
             VisitManySeparated(node.Attributes, " ", true);
             if (node.Attributes.Count > 0) EmitLine("");
             Visit(node.ReturnType);
