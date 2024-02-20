@@ -39,12 +39,12 @@ namespace UnityShaderParser.HLSL
                 case '0' when LookAhead('x'):
                     Advance(1);
                     string hexNum = EatIdentifier().Substring(1);
+                    string origHexNum = hexNum;
                     if (hexNum.EndsWith('u') || hexNum.EndsWith('U'))
                         hexNum = hexNum.Substring(0, hexNum.Length - 1);
                     if (!uint.TryParse(hexNum, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out uint hexVal))
                         Error($"Invalid hex literal 0x{hexNum}");
-                    Add(hexVal.ToString(), TokenKind.IntegerLiteralToken);
-                    // TODO: Treat hex literals as their own literal type
+                    Add($"0x{origHexNum}", TokenKind.IntegerLiteralToken);
                     break;
 
                 case char c when char.IsDigit(c) || (c == '.' && char.IsDigit(LookAhead())):

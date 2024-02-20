@@ -44,6 +44,13 @@ namespace UnityShaderParser.PreProcessor
                     switch (literalExpr.Kind)
                     {
                         case LiteralKind.Integer:
+                            if (literalExpr.Lexeme.StartsWith("0x"))
+                            {
+                                string lexeme = literalExpr.Lexeme.Substring(2);
+                                if (lexeme.EndsWith("u") || lexeme.EndsWith("U"))
+                                    lexeme = lexeme.Substring(0, lexeme.Length - 1);
+                                return long.Parse(lexeme, System.Globalization.NumberStyles.HexNumber);
+                            }
                             return long.Parse(literalExpr.Lexeme);
                         case LiteralKind.Character:
                             return char.Parse(literalExpr.Lexeme);

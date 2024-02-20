@@ -519,11 +519,10 @@ namespace UnityShaderParser.HLSL
         {
             EmitExpression(OperatorPrecedence.PostFixUnary, () =>
             {
-                // TODO: Optional parens
-                bool needsParen = !(node.Target is NamedExpressionNode);
-                if (needsParen) Emit("(");
+                bool needsExtraParen = node.Target is LiteralExpressionNode; // Can't directly swizzle a literal
+                if (needsExtraParen) Emit("(");
                 Visit(node.Target);
-                if (needsParen) Emit(")");
+                if (needsExtraParen) Emit(")");
                 Emit($".{node.Name}");
             });
         }
@@ -531,11 +530,7 @@ namespace UnityShaderParser.HLSL
         {
             EmitExpression(OperatorPrecedence.PostFixUnary, () =>
             {
-                // TODO: Optional parens
-                bool needsParen = !(node.Target is NamedExpressionNode);
-                if (needsParen) Emit("(");
                 Visit(node.Target);
-                if (needsParen) Emit(")");
                 Emit($".{node.Name}(");
                 VisitManySeparated(node.Arguments, ", ");
                 Emit(")");
@@ -543,27 +538,29 @@ namespace UnityShaderParser.HLSL
         }
         public override void VisitFunctionCallExpressionNode(FunctionCallExpressionNode node)
         {
-            Visit(node.Name);
-            Emit("(");
-            VisitManySeparated(node.Arguments, ", ");
-            Emit(")");
+            EmitExpression(OperatorPrecedence.PostFixUnary, () =>
+            {
+                Visit(node.Name);
+                Emit("(");
+                VisitManySeparated(node.Arguments, ", ");
+                Emit(")");
+            });
         }
         public override void VisitNumericConstructorCallExpressionNode(NumericConstructorCallExpressionNode node)
         {
-            Visit(node.Kind);
-            Emit("(");
-            VisitManySeparated(node.Arguments, ", ");
-            Emit(")");
+            EmitExpression(OperatorPrecedence.PostFixUnary, () =>
+            {
+                Visit(node.Kind);
+                Emit("(");
+                VisitManySeparated(node.Arguments, ", ");
+                Emit(")");
+            });
         }
         public override void VisitElementAccessExpressionNode(ElementAccessExpressionNode node)
         {
             EmitExpression(OperatorPrecedence.PostFixUnary, () =>
             {
-                // TODO: Optional parens
-                bool needsParen = !(node.Target is NamedExpressionNode);
-                if (needsParen) Emit("(");
                 Visit(node.Target);
-                if (needsParen) Emit(")");
                 Emit("[");
                 Visit(node.Index);
                 Emit("]");
@@ -573,20 +570,24 @@ namespace UnityShaderParser.HLSL
         {
             if (node.IsFunctionLike)
             {
-                Visit(node.Kind);
-                Emit("(");
-                Visit(node.Expression);
-                Emit(")");
+                EmitExpression(OperatorPrecedence.PostFixUnary, () =>
+                {
+                    Visit(node.Kind);
+                    Emit("(");
+                    Visit(node.Expression);
+                    Emit(")");
+                });
             }
             else
             {
-                Emit("(");
-                Visit(node.Kind);
-                VisitMany(node.ArrayRanks);
-                Emit(")");
-                Emit("("); // TODO: Optional parens
-                Visit(node.Expression);
-                Emit(")");
+                EmitExpression(OperatorPrecedence.PrefixUnary, () =>
+                {
+                    Emit("(");
+                    Visit(node.Kind);
+                    VisitMany(node.ArrayRanks);
+                    Emit(")");
+                    Visit(node.Expression);
+                });
             }
         }
         public override void VisitArrayInitializerExpressionNode(ArrayInitializerExpressionNode node)
