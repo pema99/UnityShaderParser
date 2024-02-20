@@ -688,11 +688,7 @@ namespace UnityShaderParser.HLSL
         
         public HLSLSyntaxNode(List<HLSLToken> tokens)
         {
-            this.span = new SourceSpan
-            {
-                Start = tokens.FirstOrDefault().Span.Start,
-                End = tokens.LastOrDefault().Span.End,
-            };
+            this.span = new SourceSpan(tokens.FirstOrDefault().Span.Start, tokens.LastOrDefault().Span.End);
             this.tokens = tokens;
         }
     }

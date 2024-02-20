@@ -141,7 +141,7 @@ namespace UnityShaderParser.Common
             {
                 throw new Exception($"Error at line {anchorSpan.Start.Line}, column {anchorSpan.Start.Column} during {Stage}: {msg}");
             }
-            diagnostics.Add(new Diagnostic { Location = anchorSpan.Start, Stage = this.Stage, Text = msg });
+            diagnostics.Add(new Diagnostic(anchorSpan.Start, Stage, msg));
         }
 
         protected void Error(string msg, SourceSpan span)

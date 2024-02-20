@@ -16,6 +16,7 @@ namespace UnityShaderParser.Common
         protected int column = 1;
         protected int anchorLine = 1;
         protected int anchorColumn = 1;
+        protected int anchorPosition = 0;
 
         protected List<Token<T>> tokens = new List<Token<T>>();
         protected List<Diagnostic> diagnostics = new List<Diagnostic>();
@@ -33,8 +34,8 @@ namespace UnityShaderParser.Common
         protected bool LookAhead(char c, int offset = 1) => LookAhead(offset) == c;
         protected bool Match(char tok) => Peek() == tok;
         protected bool IsAtEnd(int offset = 0) => position + offset >= source.Length;
-        protected void Add(string identifier, T kind) => tokens.Add(new Token<T> { Identifier = identifier, Kind = kind, Span = GetCurrentSpan(), Position = tokens.Count });
-        protected void Add(T kind) => tokens.Add(new Token<T>() { Kind = kind, Span = GetCurrentSpan(), Position = tokens.Count });
+        protected void Add(string identifier, T kind) => tokens.Add(new Token<T>(kind, identifier, GetCurrentSpan(), tokens.Count));
+        protected void Add(T kind) => tokens.Add(new Token<T>(kind, null, GetCurrentSpan(), tokens.Count));
         protected void Eat(char tok)
         {
             if (!Match(tok))
@@ -61,22 +62,19 @@ namespace UnityShaderParser.Common
             {
                 throw new Exception($"Error at line {line}, column {column} during {Stage}: {err}");
             }
-            diagnostics.Add(new Diagnostic { Location = new SourceLocation(line, column), Stage = this.Stage, Text = err });
+            diagnostics.Add(new Diagnostic(new SourceLocation(line, column, position), this.Stage, err));
         }
 
         protected void StartCurrentSpan()
         {
             anchorLine = line;
             anchorColumn = column;
+            anchorPosition = position;
         }
 
         protected SourceSpan GetCurrentSpan()
         {
-            return new SourceSpan
-            {
-                Start = new SourceLocation(anchorLine, anchorColumn),
-                End = new SourceLocation(line, column)
-            };
+            return new SourceSpan(new SourceLocation(anchorLine, anchorColumn, anchorPosition), new SourceLocation(line, column, position));
         }
 
         protected string EatStringLiteral(char start, char end)

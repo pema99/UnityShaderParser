@@ -15,7 +15,7 @@ namespace UnityShaderParser.HLSL
 
         public static List<HLSLToken> Lex(string source, bool throwExceptionOnError, out List<Diagnostic> diagnostics)
         {
-            return Lex(source, throwExceptionOnError, new SourceLocation(1, 1), out diagnostics);
+            return Lex(source, throwExceptionOnError, new SourceLocation(1, 1, 0), out diagnostics);
         }
 
         public static List<HLSLToken> Lex(string source, bool throwExceptionOnError, SourceLocation offset, out List<Diagnostic> diagnostics)

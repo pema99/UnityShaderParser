@@ -46,9 +46,12 @@ namespace UnityShaderParser.PreProcessor
 
         protected void Add(HLSLToken token)
         {
-            token.Span.Start.Line += lineOffset;
-            token.Span.End.Line += lineOffset;
-            outputTokens.Add(token);
+            // TODO: Fix this
+            var newSpan = new SourceSpan(
+                new SourceLocation(token.Span.Start.Line + lineOffset, token.Span.Start.Column, token.Span.End.Index),
+                new SourceLocation(token.Span.End.Line + lineOffset, token.Span.End.Column, token.Span.End.Index));
+            var newToken = new HLSLToken(token.Kind, token.Identifier, newSpan, token.Position);
+            outputTokens.Add(newToken);
         }
         protected void Add(IEnumerable<HLSLToken> tokens)
         {
@@ -158,6 +161,7 @@ namespace UnityShaderParser.PreProcessor
                 {
                     SourceSpan startSpan = token.Span;
                     SourceSpan endSpan = token.Span;
+                    int startPosition = token.Position;
 
                     i++; // identifier
                     while (LocalPeek(i).Kind == TokenKind.HashHashToken &&
@@ -169,12 +173,7 @@ namespace UnityShaderParser.PreProcessor
                         endSpan = nextToken.Span;
                     }
 
-                    var gluedToken = new HLSLToken
-                    {
-                        Identifier = gluedIdentifier,
-                        Kind = TokenKind.IdentifierToken,
-                        Span = new SourceSpan { Start = startSpan.Start, End = endSpan.End },
-                    };
+                    var gluedToken = new HLSLToken(TokenKind.IdentifierToken, gluedIdentifier, new SourceSpan(startSpan.Start, endSpan.End), startPosition);
                     i--; // For loop continues
 
                     result.Add(gluedToken);
@@ -182,6 +181,7 @@ namespace UnityShaderParser.PreProcessor
                 else if (token.Kind == TokenKind.IdentifierToken && token.Identifier == "defined")
                 {
                     SourceSpan startSpan = token.Span;
+                    int startPosition = token.Position;
 
                     i++; // defined
                     bool hasParen = LocalPeek(i).Kind == TokenKind.OpenParenToken;
@@ -190,12 +190,11 @@ namespace UnityShaderParser.PreProcessor
                     SourceSpan endSpan = identifier.Span;
                     if (hasParen) endSpan = LocalPeek(i++).Span;
 
-                    var replacedToken = new HLSLToken
-                    {
-                        Identifier = defines.ContainsKey(HLSLSyntaxFacts.IdentifierOrKeywordToString(identifier)) ? "1" : "0",
-                        Kind = TokenKind.IntegerLiteralToken,
-                        Span = new SourceSpan { Start = startSpan.Start, End = endSpan.End },
-                    };
+                    var replacedToken = new HLSLToken(
+                        TokenKind.IntegerLiteralToken,
+                        defines.ContainsKey(HLSLSyntaxFacts.IdentifierOrKeywordToString(identifier)) ? "1" : "0",
+                        new SourceSpan(startSpan.Start, endSpan.End),
+                        startPosition);
                     i--; // For loop continues
 
                     result.Add(replacedToken);
@@ -405,8 +404,8 @@ namespace UnityShaderParser.PreProcessor
             for (int i = 0; i < tokens.Count; i++)
             {
                 var token = tokens[i];
-                token.Position = start + i;
-                tokens[i] = token;
+                var newToken = new HLSLToken(token.Kind, token.Identifier, token.Span, start + i);
+                tokens[i] = newToken;
             }
         }
 
@@ -527,9 +526,8 @@ namespace UnityShaderParser.PreProcessor
                         var token = expandedConditionTokens[i];
                         if (token.Kind == TokenKind.IdentifierToken)
                         {
-                            token.Kind = TokenKind.IntegerLiteralToken;
-                            token.Identifier = "0";
-                            expandedConditionTokens[i] = token;
+                            var newToken = new HLSLToken(TokenKind.IntegerLiteralToken, "0", token.Span, token.Position);
+                            expandedConditionTokens[i] = newToken;
                         }
                     }
                     Eat(TokenKind.EndDirectiveToken);
@@ -600,18 +598,14 @@ namespace UnityShaderParser.PreProcessor
                     string glued = strTok.Identifier ?? string.Empty;
                     SourceSpan spanStart = strTok.Span;
                     SourceSpan spanEnd = strTok.Span;
+                    int positionStart = strTok.Position;
                     while (Match(TokenKind.StringLiteralToken))
                     {
                         var nextStrTok = Eat(TokenKind.StringLiteralToken);
                         glued += nextStrTok.Identifier ?? string.Empty;
                         spanEnd = strTok.Span;
                     }
-                    var gluedToken = new HLSLToken
-                    {
-                        Kind = TokenKind.StringLiteralToken,
-                        Identifier = glued,
-                        Span = new SourceSpan { Start = spanStart.Start, End = spanEnd.End },
-                    };
+                    var gluedToken = new HLSLToken(TokenKind.StringLiteralToken, glued, new SourceSpan(spanStart.Start, spanEnd.End), positionStart);
                     Add(gluedToken);
                 }
                 else

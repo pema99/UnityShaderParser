@@ -16,13 +16,18 @@ namespace UnityShaderParser.Common
 
     public struct SourceLocation
     {
-        public int Line;
-        public int Column;
+        // For better diagnostics
+        public int Line { get; }
+        public int Column { get; }
 
-        public SourceLocation(int line, int column)
+        // For analysis
+        public int Index { get; }
+
+        public SourceLocation(int line, int column, int index)
         {
-            this.Line = line;
-            this.Column = column;
+            Line = line;
+            Column = column;
+            Index = index;
         }
 
         public override string ToString() => $"({Line}, {Column})";
@@ -30,9 +35,16 @@ namespace UnityShaderParser.Common
 
     public struct Diagnostic
     {
-        public SourceLocation Location;
-        public ParserStage Stage;
-        public string Text;
+        public SourceLocation Location { get; }
+        public ParserStage Stage { get; }
+        public string Text { get; }
+
+        public Diagnostic(SourceLocation location, ParserStage stage, string text)
+        {
+            Location = location;
+            Stage = stage;
+            Text = text;
+        }
 
         public override string ToString()
         {
@@ -43,28 +55,33 @@ namespace UnityShaderParser.Common
     // TODO: Filename
     public struct SourceSpan
     {
-        public SourceLocation Start;
-        public SourceLocation End;
+        public SourceLocation Start { get; }
+        public SourceLocation End { get; }
+
+        public SourceSpan(SourceLocation start, SourceLocation end)
+        {
+            Start = start;
+            End = end;
+        }
 
         public override string ToString() => $"({Start.Line}:{Start.Column} - {End.Line}:{End.Column})";
-
-        public static SourceSpan Union(SourceSpan start, SourceSpan end)
-        {
-            return new SourceSpan
-            {
-                Start = start.Start,
-                End = end.End,
-            };
-        }
     }
 
     public struct Token<T>
         where T : struct
     {
-        public T Kind;
-        public string Identifier;   // Optional
-        public SourceSpan Span;     // Location in source code
-        public int Position;        // Location in token stream
+        public T Kind { get; }
+        public string Identifier { get; } // Optional
+        public SourceSpan Span { get; }   // Location in source code
+        public int Position { get; }      // Location in token stream
+
+        public Token(T kind, string identifier, SourceSpan span, int position)
+        {
+            Kind = kind;
+            Identifier = identifier;
+            Span = span;
+            Position = position;
+        }
 
         // TODO: Trivia
         public override string ToString()
