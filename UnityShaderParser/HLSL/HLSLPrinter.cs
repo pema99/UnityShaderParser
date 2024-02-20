@@ -679,12 +679,11 @@ namespace UnityShaderParser.HLSL
             EmitLine("");
             if (node.Annotations?.Count > 0)
             {
-                EmitLine("");
                 EmitIndentedLine("<");
                 PushIndent();
                 VisitMany(node.Annotations);
                 PopIndent();
-                EmitIndented(">");
+                EmitIndentedLine(">");
             }
             EmitIndentedLine("{");
             PushIndent();
@@ -710,12 +709,11 @@ namespace UnityShaderParser.HLSL
             EmitLine("");
             if (node.Annotations?.Count > 0)
             {
-                EmitLine("");
                 EmitIndentedLine("<");
                 PushIndent();
                 VisitMany(node.Annotations);
                 PopIndent();
-                EmitIndented(">");
+                EmitIndentedLine(">");
             }
             EmitIndentedLine("{");
             PushIndent();
