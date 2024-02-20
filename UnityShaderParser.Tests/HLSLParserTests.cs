@@ -1,7 +1,10 @@
-﻿using NUnit.Framework;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+using NUnit.Framework;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using UnityShaderParser.Common;
 using UnityShaderParser.PreProcessor;
 
@@ -102,6 +105,31 @@ namespace UnityShaderParser.HLSL.Tests
             Assert.IsEmpty(preProcessorDiags, $"Expected no preprocessing errors, got: {preProcessorDiags.FirstOrDefault()}");
         }
 
+        private class HLSLSyntaxContractResolver : DefaultContractResolver
+        {
+            private readonly static HashSet<string> Exclusions = new HashSet<string>
+            {
+                "GetChildren",
+                "Children",
+                "Span",
+                "Tokens",
+            };
+
+            protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
+            {
+                JsonProperty property = base.CreateProperty(member, memberSerialization);
+
+                if (Exclusions.Contains(property.PropertyName ?? string.Empty))
+                {
+                    property.ShouldSerialize =
+                        o => false;
+                }
+
+                return property;
+            }
+        }
+
+        // TODO: Test via serialization
         [Test, TestCaseSource(nameof(GetTestShaders))]
         public void RoundTripTestShaders(string path)
         {
@@ -129,19 +157,26 @@ namespace UnityShaderParser.HLSL.Tests
             string prettyPrinted = printer.Text;
 
             // Re-lex
-            tokens = HLSLLexer.Lex(source, false, out var relexerDiags);
+            tokens = HLSLLexer.Lex(prettyPrinted, false, out var relexerDiags);
             Assert.IsEmpty(relexerDiags, $"Expected no lexer errors, got: {relexerDiags.FirstOrDefault()}");
 
             // Re-parse
-            decls = HLSLParser.ParseTopLevelDeclarations(tokens, config, out var reparserDiags, out _);
+            var redecls = HLSLParser.ParseTopLevelDeclarations(tokens, config, out var reparserDiags, out _);
             Assert.IsEmpty(reparserDiags, $"Expected no parser errors, got: {reparserDiags.FirstOrDefault()}");
 
             // Re-pretty print
             printer = new HLSLPrinter();
-            printer.VisitMany(decls);
+            printer.VisitMany(redecls);
             string roundtripped = printer.Text;
 
             Assert.AreEqual(prettyPrinted, roundtripped);
+
+            var settings = new JsonSerializerSettings()
+            {
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                ContractResolver = new HLSLSyntaxContractResolver(),
+            };
+            Assert.AreEqual(JsonConvert.SerializeObject(decls, settings), JsonConvert.SerializeObject(redecls, settings));
         }
     }
 }

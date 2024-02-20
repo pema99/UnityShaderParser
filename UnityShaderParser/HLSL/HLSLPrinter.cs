@@ -560,7 +560,7 @@ namespace UnityShaderParser.HLSL
                 Visit(node.Kind);
                 VisitMany(node.ArrayRanks);
                 Emit(")");
-                Emit("("); // TODO: These parens are optional
+                Emit("("); // TODO: Optional parens
                 Visit(node.Expression);
                 Emit(")");
             }
