@@ -169,6 +169,7 @@ namespace UnityShaderParser.HLSL.Tests
             printer.VisitMany(redecls);
             string roundtripped = printer.Text;
 
+            // Compare
             var settings = new JsonSerializerSettings()
             {
                 ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
