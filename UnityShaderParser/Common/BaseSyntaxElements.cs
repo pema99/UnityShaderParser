@@ -147,12 +147,15 @@ namespace UnityShaderParser.Common
                 MemberInfo[] memberInfo = typeof(T).GetMember(val.ToString());
                 if (memberInfo != null && memberInfo.Length > 0)
                 {
-                    PrettyNameAttribute[] attrs = memberInfo[0].GetCustomAttributes<PrettyNameAttribute>().ToArray();
-
-                    if (attrs != null && attrs.Length > 0)
+                    foreach (MemberInfo member in memberInfo)
                     {
-                        //Pull out the description value
-                        return attrs[0].Name;
+                        PrettyNameAttribute[] attrs = member.GetCustomAttributes<PrettyNameAttribute>().ToArray();
+
+                        if (attrs != null && attrs.Length > 0)
+                        {
+                            //Pull out the description value
+                            return attrs[0].Name;
+                        }
                     }
                 }
                 name = Enum.GetName(typeof(T), val);
