@@ -53,11 +53,11 @@ namespace UnityShaderParser.HLSL
                     break;
 
                 case '\'':
-                    Add($"'{EatStringLiteral('\'', '\'')}'", TokenKind.CharacterLiteralToken);
+                    Add(EatStringLiteral('\'', '\''), TokenKind.CharacterLiteralToken);
                     break;
 
                 case '"':
-                    Add($"\"{EatStringLiteral('"', '"')}\"", TokenKind.StringLiteralToken);
+                    Add(EatStringLiteral('"', '"'), TokenKind.StringLiteralToken);
                     break;
 
                 case ' ':
