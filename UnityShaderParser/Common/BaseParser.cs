@@ -44,6 +44,11 @@ namespace UnityShaderParser.Common
             diagnostics.RemoveRange(snapshot.diagnosticCount, diagnostics.Count - snapshot.diagnosticCount);
         }
 
+        protected void DropState()
+        {
+            snapshots.Pop();
+        }
+
         protected bool Speculate(Func<bool> parser)
         {
             SnapshotState();
@@ -84,6 +89,7 @@ namespace UnityShaderParser.Common
             }
 
             // Otherwise return whatever the parser got
+            DropState();
             return true;
         }
 
