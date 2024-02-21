@@ -72,28 +72,19 @@ namespace UnityShaderParser.Common
         {
             SnapshotState();
 
-            try
-            {
-                // Try the parser
-                parsed = parser();
+            // Try the parser
+            parsed = parser();
 
-                // If we encountered any errors, report false
-                if (diagnostics.Count > snapshots.Peek().diagnosticCount)
-                {
-                    RestoreState();
-                    parsed = default;
-                    return false;
-                }
-
-                // Otherwise return whatever the parser got
-                return true;
-            }
-            catch
+            // If we encountered any errors, report false
+            if (diagnostics.Count > snapshots.Peek().diagnosticCount)
             {
                 RestoreState();
                 parsed = default;
                 return false;
             }
+
+            // Otherwise return whatever the parser got
+            return true;
         }
 
         protected Token<T> Peek() => IsAtEnd() ? default : tokens[position];
