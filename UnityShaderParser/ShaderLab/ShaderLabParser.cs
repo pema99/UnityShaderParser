@@ -630,11 +630,16 @@ namespace UnityShaderParser.ShaderLab
             Dictionary<string, string> tags = new Dictionary<string, string>();
             while (Peek().Kind != TokenKind.CloseBraceToken)
             {
+                var tagKeySpan = Peek().Span;
                 string key = ParseStringLiteral();
                 Eat(TokenKind.EqualsToken);
                 string val = ParseStringLiteral();
 
-                tags.Add(key, val);
+                if (tags.ContainsKey(key))
+                {
+                    Error(DiagnosticFlags.Warning, $"Duplicate definition of tag '{key}' found.", tagKeySpan);
+                }
+                tags[key] = val;
             }
 
             var closeTok = Eat(TokenKind.CloseBraceToken);

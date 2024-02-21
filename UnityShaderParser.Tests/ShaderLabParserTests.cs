@@ -2,6 +2,7 @@ using NUnit.Framework;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using UnityShaderParser.Common;
 using UnityShaderParser.HLSL.PreProcessor;
 
 namespace UnityShaderParser.ShaderLab.Tests
@@ -28,6 +29,7 @@ namespace UnityShaderParser.ShaderLab.Tests
             {
                 ParseEmbeddedHLSL = false,
                 ThrowExceptionOnError = false,
+                DiagnosticFilter = DiagnosticFlags.OnlyErrors,
             };
             var parsed = ShaderLabParser.Parse(tokens, config, out var parserDiags);
             Assert.IsEmpty(parserDiags, parserDiags.FirstOrDefault().ToString());
@@ -46,6 +48,7 @@ namespace UnityShaderParser.ShaderLab.Tests
             {
                 ParseEmbeddedHLSL = true,
                 ThrowExceptionOnError = false,
+                DiagnosticFilter = DiagnosticFlags.OnlyErrors,
                 IncludeResolver = new DefaultPreProcessorIncludeResolver(new List<string> { cgIncludesPath }),
                 BasePath = Directory.GetParent(path)?.FullName,
                 Defines = new Dictionary<string, string>()
