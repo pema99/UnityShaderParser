@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using UnityShaderParser.Common;
 
@@ -681,9 +682,13 @@ namespace UnityShaderParser.HLSL
         public abstract void Accept(HLSLSyntaxVisitor visitor);
 
         public override SourceSpan Span => span;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private SourceSpan span;
 
         public List<HLSLToken> Tokens => tokens;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private List<HLSLToken> tokens;
         
         public HLSLSyntaxNode(List<HLSLToken> tokens)

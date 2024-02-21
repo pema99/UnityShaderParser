@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using UnityShaderParser.Common;
 using UnityShaderParser.HLSL;
@@ -404,9 +405,13 @@ namespace UnityShaderParser.ShaderLab
         public abstract void Accept(ShaderLabSyntaxVisitor visitor);
 
         public override SourceSpan Span => span;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private SourceSpan span;
 
         public List<SLToken> Tokens => tokens;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private List<SLToken> tokens;
 
         public ShaderLabSyntaxNode(List<SLToken> tokens)

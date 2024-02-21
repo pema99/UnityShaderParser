@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 
@@ -107,8 +108,11 @@ namespace UnityShaderParser.Common
             => child == null ? Enumerable.Empty<TSelf>() : new[] { child };
         protected static IEnumerable<TSelf> Child(TSelf child)
             => new[] { child };
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         protected abstract IEnumerable<TSelf> GetChildren { get; }
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private TSelf parent;
         internal void ComputeParents()
         {
