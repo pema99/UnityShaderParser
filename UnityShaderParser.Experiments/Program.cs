@@ -19,13 +19,11 @@ Console.WriteLine(editedShaderSource);
 class HLSLEditorTest : HLSLEditor
 {
     public HLSLEditorTest(string source, List<Token<UnityShaderParser.HLSL.TokenKind>> tokens)
-        : base(source, tokens)
-    {}
+        : base(source, tokens) { }
 
     public override void VisitIfStatementNode(IfStatementNode node)
     {
-        Edit(node.Condition, "true");
-
+        Edit(node.Condition, "true"); // replace conditions with 'true'
         base.VisitIfStatementNode(node);
     }
 }
