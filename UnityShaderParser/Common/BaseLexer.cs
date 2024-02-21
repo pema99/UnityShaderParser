@@ -17,6 +17,7 @@ namespace UnityShaderParser.Common
         protected int anchorLine = 1;
         protected int anchorColumn = 1;
         protected int anchorPosition = 0;
+        protected DiagnosticFlags diagnosticFilter = DiagnosticFlags.All;
 
         protected List<Token<T>> tokens = new List<Token<T>>();
         protected List<Diagnostic> diagnostics = new List<Diagnostic>();
@@ -39,7 +40,7 @@ namespace UnityShaderParser.Common
         protected void Eat(char tok)
         {
             if (!Match(tok))
-                Error($"Expected token '{tok}', got '{Peek()}'.");
+                Error(DiagnosticFlags.SyntaxError, $"Expected token '{tok}', got '{Peek()}'.");
             Advance();
         }
         protected char Advance(int amount = 1)
@@ -56,13 +57,16 @@ namespace UnityShaderParser.Common
             position += amount;
             return result;
         }
-        protected void Error(string err)
+        protected void Error(DiagnosticFlags kind, string err)
         {
-            if (throwExceptionOnError)
+            if (!diagnosticFilter.HasFlag(kind))
+                return;
+
+            if (throwExceptionOnError && kind != DiagnosticFlags.Warning)
             {
                 throw new Exception($"Error at line {line}, column {column} during {Stage}: {err}");
             }
-            diagnostics.Add(new Diagnostic(new SourceLocation(line, column, position), this.Stage, err));
+            diagnostics.Add(new Diagnostic(new SourceLocation(line, column, position), kind, this.Stage, err));
         }
 
         protected void StartCurrentSpan()

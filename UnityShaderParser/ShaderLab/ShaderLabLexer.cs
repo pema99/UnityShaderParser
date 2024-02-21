@@ -74,7 +74,7 @@ namespace UnityShaderParser.ShaderLab
                         Advance();
                         if (IsAtEnd())
                         {
-                            Error($"Unterminated comment.");
+                            Error(DiagnosticFlags.SyntaxError, $"Unterminated comment.");
                             break;
                         }
                     }
@@ -142,7 +142,7 @@ namespace UnityShaderParser.ShaderLab
 
                 case char c:
                     Advance();
-                    Error($"Unexpected token '{c}'.");
+                    Error(DiagnosticFlags.SyntaxError, $"Unexpected token '{c}'.");
                     break;
             }
         }
@@ -168,7 +168,7 @@ namespace UnityShaderParser.ShaderLab
                 // No space for terminator, error
                 else
                 {
-                    Error($"Unterminated program block.");
+                    Error(DiagnosticFlags.SyntaxError, $"Unterminated program block.");
                     break;
                 }
             }

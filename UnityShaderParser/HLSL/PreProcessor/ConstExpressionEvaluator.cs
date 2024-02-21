@@ -8,9 +8,9 @@ namespace UnityShaderParser.HLSL.PreProcessor
 
     internal class ConstExpressionEvaluator
     {
-        public static bool EvaluateConstExprTokens(List<HLSLToken> exprTokens, bool throwExceptionOnError, out List<string> diagnostics)
+        public static bool EvaluateConstExprTokens(List<HLSLToken> exprTokens, bool throwExceptionOnError, DiagnosticFlags diagnosticFilter, out List<string> diagnostics)
         {
-            HLSLParser localParser = new HLSLParser(exprTokens, throwExceptionOnError);
+            HLSLParser localParser = new HLSLParser(exprTokens, throwExceptionOnError, diagnosticFilter);
             var expr = localParser.ParseExpression();
 
             if (localParser.Diagnostics.Count > 0)

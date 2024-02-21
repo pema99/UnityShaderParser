@@ -30,7 +30,7 @@ namespace UnityShaderParser.ShaderLab
     public class ShaderLabParser : BaseParser<TokenKind>
     {
         public ShaderLabParser(List<SLToken> tokens, ShaderLabParserConfig config)
-            : base(tokens, config.ThrowExceptionOnError)
+            : base(tokens, config.ThrowExceptionOnError, config.DiagnosticFilter)
         {
             this.config = config;
         }
@@ -880,7 +880,7 @@ namespace UnityShaderParser.ShaderLab
                 }
                 else
                 {
-                    Error($"Failed to parse channel binding from '{source}' to '{target}'.");
+                    Error(DiagnosticFlags.SemanticError, $"Failed to parse channel binding from '{source}' to '{target}'.");
                 }
             }
 

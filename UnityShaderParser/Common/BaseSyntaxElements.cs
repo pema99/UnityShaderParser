@@ -34,15 +34,30 @@ namespace UnityShaderParser.Common
         public override string ToString() => $"({Line}, {Column})";
     }
 
+    [Flags]
+    public enum DiagnosticFlags
+    {
+        None = 0,
+        SyntaxError = 1 << 0,       // Ill-formed source code
+        SemanticError = 1 << 1,     // Well-formed source code, but incorrect meaning
+        PreProcessorError = 1 << 2, // Error during preprocessing
+        Warning = 1 << 3,           // Well-formed source code, but probably not what was intended
+
+        OnlyErrors = SyntaxError | SemanticError | PreProcessorError,
+        All = OnlyErrors | Warning
+    }
+
     public struct Diagnostic
     {
         public SourceLocation Location { get; }
+        public DiagnosticFlags Kind { get; }
         public ParserStage Stage { get; }
         public string Text { get; }
 
-        public Diagnostic(SourceLocation location, ParserStage stage, string text)
+        public Diagnostic(SourceLocation location, DiagnosticFlags kind, ParserStage stage, string text)
         {
             Location = location;
+            Kind = kind;
             Stage = stage;
             Text = text;
         }

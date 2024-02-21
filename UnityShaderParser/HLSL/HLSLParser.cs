@@ -16,6 +16,7 @@ namespace UnityShaderParser.HLSL
         public IPreProcessorIncludeResolver IncludeResolver { get; set; }
         public Dictionary<string, string> Defines { get; set; }
         public bool ThrowExceptionOnError { get; set; }
+        public DiagnosticFlags DiagnosticFilter { get; set; }
 
         public HLSLParserConfig()
         {
@@ -24,6 +25,7 @@ namespace UnityShaderParser.HLSL
             IncludeResolver = new DefaultPreProcessorIncludeResolver();
             Defines = new Dictionary<string, string>();
             ThrowExceptionOnError = false;
+            DiagnosticFilter = DiagnosticFlags.All;
         }
 
         public HLSLParserConfig(HLSLParserConfig config)
@@ -33,13 +35,14 @@ namespace UnityShaderParser.HLSL
             IncludeResolver = config.IncludeResolver;
             Defines = config.Defines;
             ThrowExceptionOnError = config.ThrowExceptionOnError;
+            DiagnosticFilter = config.DiagnosticFilter;
         }
     }
 
     public class HLSLParser : BaseParser<TokenKind>
     {
-        public HLSLParser(List<HLSLToken> tokens, bool throwExceptionOnError)
-            : base(tokens, throwExceptionOnError)
+        public HLSLParser(List<HLSLToken> tokens, bool throwExceptionOnError, DiagnosticFlags diagnosticFilter)
+            : base(tokens, throwExceptionOnError, diagnosticFilter)
         {
             InitOperatorGroups();
         }
@@ -52,7 +55,7 @@ namespace UnityShaderParser.HLSL
 
         public static List<HLSLSyntaxNode> ParseTopLevelDeclarations(List<HLSLToken> tokens, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
         {
-            HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError);
+            HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError, config.DiagnosticFilter);
             parser.RunPreProcessor(config, out pragmas);
             var result = parser.ParseTopLevelDeclarations();
             foreach (var decl in result)
@@ -65,7 +68,7 @@ namespace UnityShaderParser.HLSL
 
         public static HLSLSyntaxNode ParseTopLevelDeclaration(List<HLSLToken> tokens, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
         {
-            HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError);
+            HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError, config.DiagnosticFilter);
             parser.RunPreProcessor(config, out pragmas);
             var result = parser.ParseTopLevelDeclaration();
             result.ComputeParents();
@@ -75,7 +78,7 @@ namespace UnityShaderParser.HLSL
 
         public static List<StatementNode> ParseStatements(List<HLSLToken> tokens, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
         {
-            HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError);
+            HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError, config.DiagnosticFilter);
             parser.RunPreProcessor(config, out pragmas);
             var result = parser.ParseMany0(() => !parser.IsAtEnd(), () => parser.ParseStatement());
             foreach (var stmt in result)
@@ -88,7 +91,7 @@ namespace UnityShaderParser.HLSL
 
         public static StatementNode ParseStatement(List<HLSLToken> tokens, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
         {
-            HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError);
+            HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError, config.DiagnosticFilter);
             parser.RunPreProcessor(config, out pragmas);
             var result = parser.ParseStatement();
             result.ComputeParents();
@@ -98,7 +101,7 @@ namespace UnityShaderParser.HLSL
 
         public static ExpressionNode ParseExpression(List<HLSLToken> tokens, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
         {
-            HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError);
+            HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError, config.DiagnosticFilter);
             parser.RunPreProcessor(config, out pragmas);
             var result = parser.ParseExpression();
             result.ComputeParents();
@@ -117,6 +120,7 @@ namespace UnityShaderParser.HLSL
             tokens = HLSLPreProcessor.PreProcess(
                 tokens,
                 config.ThrowExceptionOnError,
+                config.DiagnosticFilter,
                 config.PreProcessorMode,
                 config.BasePath,
                 config.IncludeResolver,
@@ -747,7 +751,7 @@ namespace UnityShaderParser.HLSL
             {
                 if (modifiers.Count > 0)
                 {
-                    Error($"Struct definitions cannot have modifiers, found '{string.Join(", ", modifiers)}'.");
+                    Error(DiagnosticFlags.SyntaxError, $"Struct definitions cannot have modifiers, found '{string.Join(", ", modifiers)}'.");
                 }
 
                 var semiTok = Eat(TokenKind.SemiToken);
@@ -793,7 +797,7 @@ namespace UnityShaderParser.HLSL
                 }
                 else
                 {
-                    Error("Expected only function declarations/prototypes in interface type, but found a function body.");
+                    Error(DiagnosticFlags.SemanticError, "Expected only function declarations/prototypes in interface type, but found a function body.");
                 }
             }
 
@@ -1193,7 +1197,7 @@ namespace UnityShaderParser.HLSL
             string indexLexeme = string.Concat(location.SkipWhile(x => !char.IsNumber(x)));
             if (!int.TryParse(indexLexeme, out index))
             {
-                Error($"Expected a valid register location, but got '{location}'.");
+                Error(DiagnosticFlags.SemanticError, $"Expected a valid register location, but got '{location}'.");
             }
 
             int? spaceIndex = null;
@@ -1209,7 +1213,7 @@ namespace UnityShaderParser.HLSL
                 }
                 else
                 {
-                    Error($"Expected a valid register location, but got '{location}'.");
+                    Error(DiagnosticFlags.SemanticError, $"Expected a valid space, but got '{location}'.");
                 }
             }
 
@@ -1234,7 +1238,7 @@ namespace UnityShaderParser.HLSL
             string indexLexeme = string.Concat(location.SkipWhile(x => !char.IsNumber(x)));
             if (!int.TryParse(indexLexeme, out index))
             {
-                Error($"Expected a valid packoffset location, but got '{location}'.");
+                Error(DiagnosticFlags.SemanticError, $"Expected a valid packoffset location, but got '{location}'.");
             }
 
             string swizzle = null;

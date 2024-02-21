@@ -59,8 +59,8 @@ namespace UnityShaderParser.HLSL.PreProcessor
             }
         }
 
-        public HLSLPreProcessor(List<HLSLToken> tokens, bool throwExceptionOnError, string basePath, IPreProcessorIncludeResolver includeResolver, Dictionary<string, string> defines)
-            : base(tokens, throwExceptionOnError)
+        public HLSLPreProcessor(List<HLSLToken> tokens, bool throwExceptionOnError, DiagnosticFlags diagnosticFilter, string basePath, IPreProcessorIncludeResolver includeResolver, Dictionary<string, string> defines)
+            : base(tokens, throwExceptionOnError, diagnosticFilter)
         {
             this.basePath = basePath;
             this.includeResolver = includeResolver;
@@ -70,7 +70,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                 var localTokens = HLSLLexer.Lex(kvp.Value, false, out var localLexerDiags);
                 if (localLexerDiags.Count > 0)
                 {
-                    Error($"Invalid define '{kvp.Key}' passed.");
+                    Error(DiagnosticFlags.SyntaxError, $"Invalid define '{kvp.Key}' passed.");
                 }
                 this.defines.Add(kvp.Key, new Macro
                 {
@@ -85,6 +85,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
         public static List<HLSLToken> PreProcess(
             List<HLSLToken> tokens,
             bool throwExceptionOnError,
+            DiagnosticFlags diagnosticFilter,
             PreProcessorMode mode,
             string basePath,
             IPreProcessorIncludeResolver includeResolver,
@@ -92,7 +93,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
             out List<string> pragmas,
             out List<Diagnostic> diagnostics)
         {
-            HLSLPreProcessor preProcessor = new HLSLPreProcessor(tokens, throwExceptionOnError, basePath, includeResolver, defines);
+            HLSLPreProcessor preProcessor = new HLSLPreProcessor(tokens, throwExceptionOnError, diagnosticFilter, basePath, includeResolver, defines);
             switch (mode)
             {
                 case PreProcessorMode.ExpandAll:
@@ -219,7 +220,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
             HLSLToken LocalEat(TokenKind kind)
             {
                 if (!LocalMatch(kind))
-                    Error($"Expected token type '{kind}', got '{LocalPeek().Kind}'.");
+                    Error(DiagnosticFlags.PreProcessorError, $"Expected token type '{kind}', got '{LocalPeek().Kind}'.");
                 return LocalAdvance();
             }
 
@@ -347,7 +348,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                                 next.Add(token);
 
                             if (parameters.Count != macro.Parameters.Count)
-                                Error($"Incorrect number of arguments passed to macro '{macro.Name}', expected {macro.Parameters.Count}, got {parameters.Count}.");
+                                Error(DiagnosticFlags.PreProcessorError, $"Incorrect number of arguments passed to macro '{macro.Name}', expected {macro.Parameters.Count}, got {parameters.Count}.");
 
                             // If they are there, substitute them
                             foreach (var macroToken in macro.Tokens)
@@ -415,7 +416,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
             {
                 if (IsAtEnd())
                 {
-                    Error("Unterminated conditional directive.");
+                    Error(DiagnosticFlags.PreProcessorError, "Unterminated conditional directive.");
                     break;
                 }
 
@@ -462,12 +463,12 @@ namespace UnityShaderParser.HLSL.PreProcessor
 
         private bool EvaluateConstExpr(List<HLSLToken> exprTokens)
         {
-            bool result = ConstExpressionEvaluator.EvaluateConstExprTokens(exprTokens, throwExceptionOnError, out var evalDiags);
+            bool result = ConstExpressionEvaluator.EvaluateConstExprTokens(exprTokens, throwExceptionOnError, diagnosticFilter, out var evalDiags);
             if (evalDiags.Count > 0)
             {
                 foreach (var diag in evalDiags)
                 {
-                    Error(diag);
+                    Error(DiagnosticFlags.PreProcessorError, diag);
                 }
                 return false;
             }
@@ -493,7 +494,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                     Eat(TokenKind.EndDirectiveToken);
                     if (!continued)
                     {
-                        Error("Unexpected #else directive - there is no conditional directive preceding it.");
+                        Error(DiagnosticFlags.PreProcessorError, "Unexpected #else directive - there is no conditional directive preceding it.");
                     }
                     return true;
 
@@ -501,7 +502,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                 case TokenKind.ElifDirectiveKeyword:
                     if (!continued && conditional.Kind == TokenKind.ElifDirectiveKeyword)
                     {
-                        Error("Unexpected #elif directive - there is no conditional directive preceding it.");
+                        Error(DiagnosticFlags.PreProcessorError, "Unexpected #elif directive - there is no conditional directive preceding it.");
                     }
                     // Get the expanded tokens for the condition expression
                     List<HLSLToken> expandedConditionTokens = new List<HLSLToken>();
@@ -533,7 +534,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                     ShiftPositionsToStartFrom(0, expandedConditionTokens);
                     return EvaluateConstExpr(expandedConditionTokens);
                 default:
-                    Error($"Unexpected token '{conditional.Kind}', expected preprocessor directive.");
+                    Error(DiagnosticFlags.PreProcessorError, $"Unexpected token '{conditional.Kind}', expected preprocessor directive.");
                     return false;
             }
         }
@@ -550,7 +551,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
             {
                 if (IsAtEnd())
                 {
-                    Error("Unterminated conditional directive.");
+                    Error(DiagnosticFlags.PreProcessorError, "Unterminated conditional directive.");
                     break;
                 }
 
@@ -682,7 +683,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                             .Select(x => HLSLSyntaxFacts.TokenToString(x));
                         Eat(TokenKind.EndDirectiveToken);
                         string error = string.Join(" ", errorToks);
-                        Error(error);
+                        Error(DiagnosticFlags.PreProcessorError, error);
                         break;
 
                     case TokenKind.PragmaDirectiveKeyword:

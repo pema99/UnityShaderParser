@@ -43,7 +43,7 @@ namespace UnityShaderParser.HLSL
                     if (hexNum.EndsWith("u") || hexNum.EndsWith("U"))
                         hexNum = hexNum.Substring(0, hexNum.Length - 1);
                     if (!uint.TryParse(hexNum, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out uint hexVal))
-                        Error($"Invalid hex literal 0x{hexNum}");
+                        Error(DiagnosticFlags.SyntaxError, $"Invalid hex literal 0x{hexNum}");
                     Add($"0x{origHexNum}", TokenKind.IntegerLiteralToken);
                     break;
 
@@ -86,7 +86,7 @@ namespace UnityShaderParser.HLSL
                         Advance();
                         if (IsAtEnd())
                         {
-                            Error($"Unterminated comment.");
+                            Error(DiagnosticFlags.SyntaxError, $"Unterminated comment.");
                             break;
                         }
                     }
@@ -160,7 +160,7 @@ namespace UnityShaderParser.HLSL
 
                 case char c:
                     Advance();
-                    Error($"Unexpected token '{c}'.");
+                    Error(DiagnosticFlags.SyntaxError, $"Unexpected token '{c}'.");
                     break;
             }
         }

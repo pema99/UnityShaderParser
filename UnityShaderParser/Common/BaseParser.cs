@@ -18,15 +18,17 @@ namespace UnityShaderParser.Common
         protected int position = 0;
         protected SourceSpan anchorSpan = default;
         protected bool throwExceptionOnError = false;
+        protected DiagnosticFlags diagnosticFilter = DiagnosticFlags.All;
 
         protected List<Diagnostic> diagnostics = new List<Diagnostic>();
         public List<Diagnostic> Diagnostics => diagnostics;
 
-        public BaseParser(List<Token<T>> tokens, bool throwExceptionOnError)
+        public BaseParser(List<Token<T>> tokens, bool throwExceptionOnError, DiagnosticFlags diagnosticFilter)
         {
             // Need to copy since the parser might want to modify tokens in place
             this.tokens = new List<Token<T>>(tokens);
             this.throwExceptionOnError = throwExceptionOnError;
+            this.diagnosticFilter = diagnosticFilter;
         }
 
         protected Stack<(int position, SourceSpan span, int diagnosticCount)> snapshots = new Stack<(int position, SourceSpan span, int diagnosticCount)>();
@@ -103,13 +105,13 @@ namespace UnityShaderParser.Common
         protected Token<T> Eat(Func<T, bool> predicate)
         {
             if (!Match(predicate))
-                Error($"Unexpected token '{Peek()}'.");
+                Error(DiagnosticFlags.SyntaxError, $"Unexpected token '{Peek()}'.");
             return Advance();
         }
         protected Token<T> Eat(T kind)
         {
             if (!Match(kind))
-                Error($"Expected token type '{kind}', got '{Peek().Kind}'.");
+                Error(DiagnosticFlags.SyntaxError, $"Expected token type '{kind}', got '{Peek().Kind}'.");
             return Advance();
         }
         protected Token<T> Eat(params T[] alternatives)
@@ -117,7 +119,7 @@ namespace UnityShaderParser.Common
             if (!Match(alternatives))
             {
                 string allowed = string.Join(", ", alternatives);
-                Error($"Unexpected token '{Peek()}', expected one of the following token types: {allowed}.");
+                Error(DiagnosticFlags.SyntaxError, $"Unexpected token '{Peek()}', expected one of the following token types: {allowed}.");
             }
             return Advance();
         }
@@ -132,24 +134,27 @@ namespace UnityShaderParser.Common
         }
         protected Token<T> Previous() => LookAhead(-1);
 
-        protected void Error(string msg)
+        protected void Error(DiagnosticFlags kind, string msg)
         {
-            if (throwExceptionOnError && snapshots.Count == 0)
+            if (!diagnosticFilter.HasFlag(kind))
+                return;
+
+            if (throwExceptionOnError && snapshots.Count == 0 && kind != DiagnosticFlags.Warning)
             {
                 throw new Exception($"Error at line {anchorSpan.Start.Line}, column {anchorSpan.Start.Column} during {Stage}: {msg}");
             }
-            diagnostics.Add(new Diagnostic(anchorSpan.Start, Stage, msg));
+            diagnostics.Add(new Diagnostic(anchorSpan.Start, kind, Stage, msg));
         }
 
-        protected void Error(string msg, SourceSpan span)
+        protected void Error(DiagnosticFlags kind, string msg, SourceSpan span)
         {
             anchorSpan = span;
-            Error(msg);
+            Error(kind, msg);
         }
 
         protected void Error(string expected, Token<T> token)
         {
-            Error($"Expected {expected}, got token ({token})", token.Span);
+            Error(DiagnosticFlags.SyntaxError, $"Expected {expected}, got token ({token})", token.Span);
         }
 
         protected List<Token<T>> Range(Token<T> first, Token<T> last)

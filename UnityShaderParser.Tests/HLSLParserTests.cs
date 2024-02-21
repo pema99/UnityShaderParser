@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using UnityShaderParser.Common;
 using UnityShaderParser.HLSL.PreProcessor;
 
 namespace UnityShaderParser.HLSL.Tests
@@ -94,13 +95,13 @@ namespace UnityShaderParser.HLSL.Tests
             Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
 
             // Expand with different strategies
-            HLSLPreProcessor.PreProcess(tokens, false, PreProcessorMode.ExpandAllExceptIncludes, Directory.GetParent(path)?.FullName!, new DefaultPreProcessorIncludeResolver(), new Dictionary<string, string>(), out var pragmas, out var preProcessorDiags);
+            HLSLPreProcessor.PreProcess(tokens, false, DiagnosticFlags.All, PreProcessorMode.ExpandAllExceptIncludes, Directory.GetParent(path)?.FullName!, new DefaultPreProcessorIncludeResolver(), new Dictionary<string, string>(), out var pragmas, out var preProcessorDiags);
             Assert.IsEmpty(preProcessorDiags, $"Expected no preprocessing errors, got: {preProcessorDiags.FirstOrDefault()}");
 
-            HLSLPreProcessor.PreProcess(tokens, false, PreProcessorMode.ExpandIncludesOnly, Directory.GetParent(path)?.FullName!, new DefaultPreProcessorIncludeResolver(), new Dictionary<string, string>(), out pragmas, out preProcessorDiags);
+            HLSLPreProcessor.PreProcess(tokens, false, DiagnosticFlags.All, PreProcessorMode.ExpandIncludesOnly, Directory.GetParent(path)?.FullName!, new DefaultPreProcessorIncludeResolver(), new Dictionary<string, string>(), out pragmas, out preProcessorDiags);
             Assert.IsEmpty(preProcessorDiags, $"Expected no preprocessing errors, got: {preProcessorDiags.FirstOrDefault()}");
 
-            HLSLPreProcessor.PreProcess(tokens, false, PreProcessorMode.StripDirectives, Directory.GetParent(path)?.FullName!, new DefaultPreProcessorIncludeResolver(), new Dictionary<string, string>(), out pragmas, out preProcessorDiags);
+            HLSLPreProcessor.PreProcess(tokens, false, DiagnosticFlags.All, PreProcessorMode.StripDirectives, Directory.GetParent(path)?.FullName!, new DefaultPreProcessorIncludeResolver(), new Dictionary<string, string>(), out pragmas, out preProcessorDiags);
             Assert.IsEmpty(preProcessorDiags, $"Expected no preprocessing errors, got: {preProcessorDiags.FirstOrDefault()}");
         }
 
