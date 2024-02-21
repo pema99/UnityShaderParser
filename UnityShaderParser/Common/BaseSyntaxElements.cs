@@ -85,6 +85,8 @@ namespace UnityShaderParser.Common
         }
 
         public override string ToString() => $"({Start.Line}:{Start.Column} - {End.Line}:{End.Column})";
+
+        public string GetCodeInSourceText(string sourceText) => sourceText.Substring(StartIndex, Length);
     }
 
     public struct Token<T>
@@ -111,6 +113,8 @@ namespace UnityShaderParser.Common
             else
                 return $"{Kind}({Identifier})";
         }
+
+        public string GetCodeInSourceText(string sourceText) => Span.GetCodeInSourceText(sourceText);
     }
 
     public abstract class SyntaxNode<TSelf>

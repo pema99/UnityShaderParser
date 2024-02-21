@@ -690,7 +690,9 @@ namespace UnityShaderParser.HLSL
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private List<HLSLToken> tokens;
-        
+
+        public string GetCodeInSourceText(string sourceText) => Span.GetCodeInSourceText(sourceText);
+
         public HLSLSyntaxNode(List<HLSLToken> tokens)
         {
             this.span = new SourceSpan(tokens.FirstOrDefault().Span.Start, tokens.LastOrDefault().Span.End);
