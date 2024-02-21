@@ -48,7 +48,7 @@ namespace UnityShaderParser.PreProcessor
         {
             // TODO: Fix this
             var newSpan = new SourceSpan(
-                new SourceLocation(token.Span.Start.Line + lineOffset, token.Span.Start.Column, token.Span.End.Index),
+                new SourceLocation(token.Span.Start.Line + lineOffset, token.Span.Start.Column, token.Span.Start.Index),
                 new SourceLocation(token.Span.End.Line + lineOffset, token.Span.End.Column, token.Span.End.Index));
             var newToken = new HLSLToken(token.Kind, token.Identifier, newSpan, token.Position);
             outputTokens.Add(newToken);

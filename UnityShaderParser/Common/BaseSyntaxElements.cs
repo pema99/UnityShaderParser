@@ -58,6 +58,10 @@ namespace UnityShaderParser.Common
         public SourceLocation Start { get; }
         public SourceLocation End { get; }
 
+        public int StartIndex => Start.Index;
+        public int EndIndex => End.Index;
+        public int Length => EndIndex - StartIndex;
+
         public SourceSpan(SourceLocation start, SourceLocation end)
         {
             Start = start;
