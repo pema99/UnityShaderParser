@@ -87,6 +87,20 @@ namespace UnityShaderParser.Common
         public override string ToString() => $"({Start.Line}:{Start.Column} - {End.Line}:{End.Column})";
 
         public string GetCodeInSourceText(string sourceText) => sourceText.Substring(StartIndex, Length);
+
+        public static SourceSpan FromTokens<T>(IEnumerable<Token<T>> tokens)
+            where T : struct
+        {
+            if (tokens == null || !tokens.Any())
+                throw new ArgumentException(nameof(tokens));
+            var ordered = tokens.OrderBy(x => x.Span.StartIndex);
+            var first = ordered.First();
+            var last = ordered.Last();
+            return BetweenTokens(first, last);
+        }
+
+        public static SourceSpan BetweenTokens<T>(Token<T> first, Token<T> last)
+            where T : struct => new SourceSpan(first.Span.Start, last.Span.End);
     }
 
     public struct Token<T>
