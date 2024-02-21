@@ -2,7 +2,7 @@ using NUnit.Framework;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using UnityShaderParser.PreProcessor;
+using UnityShaderParser.HLSL.PreProcessor;
 
 namespace UnityShaderParser.ShaderLab.Tests
 {

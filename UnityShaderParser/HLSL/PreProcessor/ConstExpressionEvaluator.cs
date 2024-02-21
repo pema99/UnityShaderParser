@@ -1,9 +1,8 @@
 ﻿
 using System.Collections.Generic;
 using UnityShaderParser.Common;
-using UnityShaderParser.HLSL;
 
-namespace UnityShaderParser.PreProcessor
+namespace UnityShaderParser.HLSL.PreProcessor
 {
     using HLSLToken = Token<TokenKind>;
 

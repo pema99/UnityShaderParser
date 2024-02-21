@@ -130,11 +130,11 @@ namespace UnityShaderParser.Common
                 builder.Append(Advance());
             }
             string number = builder.ToString();
-            isFloat = number.Contains('.') ||
-                number.EndsWith('f') ||
-                number.EndsWith('F') ||
-                number.EndsWith('h') ||
-                number.EndsWith('H');
+            isFloat = number.Contains(".") ||
+                number.EndsWith("f") ||
+                number.EndsWith("F") ||
+                number.EndsWith("h") ||
+                number.EndsWith("H");
             return number;
         }
 

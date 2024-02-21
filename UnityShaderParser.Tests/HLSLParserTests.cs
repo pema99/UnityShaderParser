@@ -5,8 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using UnityShaderParser.Common;
-using UnityShaderParser.PreProcessor;
+using UnityShaderParser.HLSL.PreProcessor;
 
 namespace UnityShaderParser.HLSL.Tests
 {

@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace UnityShaderParser.PreProcessor
+namespace UnityShaderParser.HLSL.PreProcessor
 {
     public interface IPreProcessorIncludeResolver
     {

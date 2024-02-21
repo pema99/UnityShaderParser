@@ -1,6 +1,6 @@
 ﻿using UnityShaderParser.Common;
 using UnityShaderParser.HLSL;
-using UnityShaderParser.PreProcessor;
+using UnityShaderParser.HLSL.PreProcessor;
 
 string shaderPath = @"D:\Projects\UnityShaderParser\UnityShaderParser\UnityShaderParser.Tests\TestShaders\Homemade\Tricky.hlsl";
 string shaderSource = File.ReadAllText(shaderPath);

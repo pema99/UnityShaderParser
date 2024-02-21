@@ -708,6 +708,14 @@ namespace UnityShaderParser.ShaderLab
         };
         private static readonly TokenKind[] blendFactorsKeys = blendFactors.Keys.ToArray();
 
+        private static U GetValueOrDefault<T, U>(Dictionary<T, U> dictionary, T key)
+        {
+            if (dictionary.TryGetValue(key, out U result))
+                return result;
+            else
+                return default;
+        }
+
         private ShaderLabCommandBlendNode ParseBlendCommand()
         {
             var keywordTok = Eat(TokenKind.BlendKeyword);
@@ -724,16 +732,16 @@ namespace UnityShaderParser.ShaderLab
                 return new ShaderLabCommandBlendNode(Range(keywordTok, offTok)) { RenderTarget = renderTarget, Enabled = false };
             }
 
-            var srcRGB = ParsePropertyReferenceOr(() => blendFactors.GetValueOrDefault(Eat(blendFactorsKeys).Kind));
-            var dstRGB = ParsePropertyReferenceOr(() => blendFactors.GetValueOrDefault(Eat(blendFactorsKeys).Kind));
+            var srcRGB = ParsePropertyReferenceOr(() => GetValueOrDefault(blendFactors, Eat(blendFactorsKeys).Kind));
+            var dstRGB = ParsePropertyReferenceOr(() => GetValueOrDefault(blendFactors, Eat(blendFactorsKeys).Kind));
 
             var srcAlpha = srcRGB;
             var dstAlpha = dstRGB;
             if (Match(TokenKind.CommaToken))
             {
                 Eat(TokenKind.CommaToken);
-                srcAlpha = ParsePropertyReferenceOr(() => blendFactors.GetValueOrDefault(Eat(blendFactorsKeys).Kind));
-                dstAlpha = ParsePropertyReferenceOr(() => blendFactors.GetValueOrDefault(Eat(blendFactorsKeys).Kind));
+                srcAlpha = ParsePropertyReferenceOr(() => GetValueOrDefault(blendFactors, Eat(blendFactorsKeys).Kind));
+                dstAlpha = ParsePropertyReferenceOr(() => GetValueOrDefault(blendFactors, Eat(blendFactorsKeys).Kind));
             }
 
             return new ShaderLabCommandBlendNode(Range(keywordTok, Previous()))
@@ -935,12 +943,12 @@ namespace UnityShaderParser.ShaderLab
         private ShaderLabCommandBlendOpNode ParseBlendOpCommand()
         {
             var keywordTok = Eat(TokenKind.BlendOpKeyword);
-            var op = ParsePropertyReferenceOr(() => blendOps.GetValueOrDefault(Eat(blendOpsKeys).Kind));
+            var op = ParsePropertyReferenceOr(() => GetValueOrDefault(blendOps, Eat(blendOpsKeys).Kind));
             PropertyReferenceOr<BlendOp>? alphaOp = null;
             if (Match(TokenKind.CommaToken))
             {
                 Eat(TokenKind.CommaToken);
-                alphaOp = ParsePropertyReferenceOr(() => blendOps.GetValueOrDefault(Eat(blendOpsKeys).Kind));
+                alphaOp = ParsePropertyReferenceOr(() => GetValueOrDefault(blendOps, Eat(blendOpsKeys).Kind));
             }
             return new ShaderLabCommandBlendOpNode(Range(keywordTok, Previous())) { BlendOp = op, BlendOpAlpha = alphaOp };
         }
@@ -963,7 +971,7 @@ namespace UnityShaderParser.ShaderLab
             var props = new Dictionary<FixedFunctionMaterialProperty, PropertyReferenceOr<(float, float, float, float)>>();
             while (!Match(TokenKind.CloseBraceToken))
             {
-                var prop = fixedFunctionsMatProps.GetValueOrDefault(Eat(fixedFunctionsMatPropsKeys).Kind);
+                var prop = GetValueOrDefault(fixedFunctionsMatProps, Eat(fixedFunctionsMatPropsKeys).Kind);
                 var val = ParsePropertyReferenceOr(() =>
                 {
                     ParseColor(out var color, out _);
