@@ -134,7 +134,7 @@ namespace UnityShaderParser.Common
 
         protected void Error(string msg)
         {
-            if (throwExceptionOnError)
+            if (throwExceptionOnError && snapshots.Count == 0)
             {
                 throw new Exception($"Error at line {anchorSpan.Start.Line}, column {anchorSpan.Start.Column} during {Stage}: {msg}");
             }
