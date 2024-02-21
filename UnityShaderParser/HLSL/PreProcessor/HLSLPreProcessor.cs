@@ -72,11 +72,22 @@ namespace UnityShaderParser.HLSL.PreProcessor
                 {
                     Error(DiagnosticFlags.SyntaxError, $"Invalid define '{kvp.Key}' passed.");
                 }
-                this.defines.Add(kvp.Key, new Macro
+                string key = kvp.Key;
+                bool functionLike = false;
+                var parameters = new List<string>();
+                if (kvp.Key.Contains("("))
                 {
-                    FunctionLike = false,
-                    Name = kvp.Key,
-                    Parameters = new List<string>(),
+                    key = kvp.Key.Substring(0, kvp.Key.IndexOf('('));
+                    var paramsLexeme = kvp.Key.Substring(kvp.Key.IndexOf('('));
+                    paramsLexeme = paramsLexeme.TrimStart('(').TrimEnd(')');
+                    parameters = paramsLexeme.Split(',').Select(x => x.Trim()).ToList();
+                    functionLike = true;
+                }
+                this.defines.Add(key, new Macro
+                {
+                    FunctionLike = functionLike,
+                    Name = key,
+                    Parameters = parameters,
                     Tokens = localTokens
                 });
             }

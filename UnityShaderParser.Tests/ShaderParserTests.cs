@@ -1,5 +1,7 @@
 ﻿using NUnit.Framework;
+using System.Collections.Generic;
 using UnityShaderParser.Common;
+using UnityShaderParser.HLSL;
 
 namespace UnityShaderParser.Tests
 {
@@ -42,6 +44,29 @@ namespace UnityShaderParser.Tests
             var expr = ShaderParser.ParseExpression("1 + (3 * 4 + { 1, 2, 3 }) * a");
             Assert.Greater(expr.Children.Count, 0);
             CheckParents(expr);
+        }
+
+        [Test]
+        public void PreProcessWithPredefinedFunctionLikeMacro()
+        {
+            var config = new HLSLParserConfig
+            {
+                Defines = new Dictionary<string, string>()
+                {
+                    { "FOO(texName)", "Texture2D texName;" }
+                }
+            };
+
+            var decl = ShaderParser.ParseTopLevelDeclaration("FOO(bar)", config, out var diags, out _);
+
+            Assert.IsEmpty(diags);
+
+            var varDecl = decl as VariableDeclarationStatementNode;
+            Assert.IsNotNull(varDecl);
+            Assert.AreEqual("bar", varDecl?.Declarators[0].Name);
+
+            var typeDecl = varDecl?.Kind as PredefinedObjectTypeNode;
+            Assert.AreEqual(PredefinedObjectType.Texture2D, typeDecl?.Kind);
         }
     }
 }
