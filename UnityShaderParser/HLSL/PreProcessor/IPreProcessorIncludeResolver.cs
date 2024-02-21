@@ -21,6 +21,9 @@ namespace UnityShaderParser.HLSL.PreProcessor
 
         public string ReadFile(string basePath, string filePath)
         {
+            // Fix windows-specific include paths
+            filePath = filePath.Replace("\\", "/");
+
             string path = string.IsNullOrEmpty(basePath)
                 ? filePath
                 : Path.Combine(basePath, filePath);
