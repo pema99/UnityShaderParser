@@ -7,6 +7,7 @@ using UnityShaderParser.Common;
 
 namespace UnityShaderParser.HLSL
 {
+    // TODO: Base Editor for ShaderLab as well (base Visitor too?)
     public abstract class HLSLEditor : HLSLSyntaxVisitor
     {
         public string Source { get; private set; }
