@@ -692,6 +692,12 @@ namespace UnityShaderParser.HLSL
         private List<HLSLToken> tokens;
 
         public string GetCodeInSourceText(string sourceText) => Span.GetCodeInSourceText(sourceText);
+        public string GetPrettyPrintedCode()
+        {
+            HLSLPrinter printer = new HLSLPrinter();
+            printer.Visit(this);
+            return printer.Text;
+        }
 
         public HLSLSyntaxNode(List<HLSLToken> tokens)
         {
