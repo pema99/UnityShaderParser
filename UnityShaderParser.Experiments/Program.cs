@@ -5,20 +5,17 @@ using UnityShaderParser.PreProcessor;
 string shaderPath = @"D:\Projects\UnityShaderParser\UnityShaderParser\UnityShaderParser.Tests\TestShaders\Homemade\Tricky.hlsl";
 string shaderSource = File.ReadAllText(shaderPath);
 
-var config = new HLSLParserConfig()
-{
-    // Ignore macros for the purpose of editing
-    PreProcessorMode = PreProcessorMode.StripDirectives
-};
+// Ignore macros for the purpose of editing
+var config = new HLSLParserConfig() { PreProcessorMode = PreProcessorMode.StripDirectives };
 
 List<HLSLSyntaxNode> decls = ShaderParser.ParseTopLevelDeclarations(shaderSource, config);
 
-string editedShaderSource = HLSLEditor.RunEditor<HLSLEditorTest>(shaderSource, decls);
+string editedShaderSource = HLSLEditor.RunEditor<IfConditionReplacer>(shaderSource, decls);
 Console.WriteLine(editedShaderSource);
 
-class HLSLEditorTest : HLSLEditor
+class IfConditionReplacer : HLSLEditor
 {
-    public HLSLEditorTest(string source, List<Token<UnityShaderParser.HLSL.TokenKind>> tokens)
+    public IfConditionReplacer(string source, List<Token<UnityShaderParser.HLSL.TokenKind>> tokens)
         : base(source, tokens) { }
 
     public override void VisitIfStatementNode(IfStatementNode node)
