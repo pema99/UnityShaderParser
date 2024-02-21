@@ -43,6 +43,17 @@ namespace UnityShaderParser.Common
         public static HLSLSyntaxNode ParseTopLevelDeclaration(string source, out List<Diagnostic> diagnostics, out List<string> pragmas) => ParseTopLevelDeclaration(source, DefaultHLSLConfig, out diagnostics, out pragmas);
         public static HLSLSyntaxNode ParseTopLevelDeclaration(string source) => ParseTopLevelDeclaration(source, DefaultHLSLConfig, out _, out _);
 
+        public static List<StatementNode> ParseStatements(string source, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
+        {
+            var tokens = HLSLLexer.Lex(source, config.ThrowExceptionOnError, out var lexerDiags);
+            var stmt = HLSLParser.ParseStatements(tokens, config, out var parserDiags, out pragmas);
+            diagnostics = lexerDiags.Concat(parserDiags).ToList();
+            return stmt;
+        }
+        public static List<StatementNode> ParseStatements(string source, HLSLParserConfig config) => ParseStatements(source, config, out _, out _);
+        public static List<StatementNode> ParseStatements(string source, out List<Diagnostic> diagnostics, out List<string> pragmas) => ParseStatements(source, DefaultHLSLConfig, out diagnostics, out pragmas);
+        public static List<StatementNode> ParseStatements(string source) => ParseStatements(source, DefaultHLSLConfig, out _, out _);
+
         public static StatementNode ParseStatement(string source, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
         {
             var tokens = HLSLLexer.Lex(source, config.ThrowExceptionOnError, out var lexerDiags);

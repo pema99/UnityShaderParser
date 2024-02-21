@@ -73,6 +73,19 @@ namespace UnityShaderParser.HLSL
             return result;
         }
 
+        public static List<StatementNode> ParseStatements(List<HLSLToken> tokens, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
+        {
+            HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError);
+            parser.RunPreProcessor(config, out pragmas);
+            var result = parser.ParseMany0(() => !parser.IsAtEnd(), () => parser.ParseStatement());
+            foreach (var stmt in result)
+            {
+                stmt.ComputeParents();
+            }
+            diagnostics = parser.diagnostics;
+            return result;
+        }
+
         public static StatementNode ParseStatement(List<HLSLToken> tokens, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
         {
             HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError);
