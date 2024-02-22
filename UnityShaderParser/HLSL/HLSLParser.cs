@@ -375,7 +375,7 @@ namespace UnityShaderParser.HLSL
                 // Compound expression
                 (new HashSet<TokenKind>() { TokenKind.CommaToken },
                 false,
-                (l, op, r) => new CompoundExpressionNode(Range(l.Tokens.First(), r.Tokens.Last())) { Left = l, Right = r }),
+                (l, op, r) => new CompoundExpressionNode(Range(l.Tokens.FirstOrDefault(), r.Tokens.LastOrDefault())) { Left = l, Right = r }),
 
                 // Assignment
                 (new HashSet<TokenKind>() {
@@ -384,7 +384,7 @@ namespace UnityShaderParser.HLSL
                     TokenKind.LessThanLessThanEqualsToken, TokenKind.GreaterThanGreaterThanEqualsToken,
                     TokenKind.AmpersandEqualsToken, TokenKind.CaretEqualsToken, TokenKind.BarEqualsToken },
                 true,
-                (l, op, r) => new AssignmentExpressionNode(Range(l.Tokens.First(), r.Tokens.Last())) { Left = l, Operator = op, Right = r }),
+                (l, op, r) => new AssignmentExpressionNode(Range(l.Tokens.FirstOrDefault(), r.Tokens.LastOrDefault())) { Left = l, Operator = op, Right = r }),
 
                 // Ternary
                 (new HashSet<TokenKind>() { TokenKind.QuestionToken },
@@ -394,27 +394,27 @@ namespace UnityShaderParser.HLSL
                 // LogicalOr
                 (new HashSet<TokenKind>() { TokenKind.BarBarToken },
                 false,
-                (l, op, r) => new BinaryExpressionNode(Range(l.Tokens.First(), r.Tokens.Last())) { Left = l, Operator = op, Right = r }),
+                (l, op, r) => new BinaryExpressionNode(Range(l.Tokens.FirstOrDefault(), r.Tokens.LastOrDefault())) { Left = l, Operator = op, Right = r }),
 
                 // LogicalAnd
                 (new HashSet<TokenKind>() { TokenKind.AmpersandAmpersandToken },
                 false,
-                (l, op, r) => new BinaryExpressionNode(Range(l.Tokens.First(), r.Tokens.Last())) { Left = l, Operator = op, Right = r }),
+                (l, op, r) => new BinaryExpressionNode(Range(l.Tokens.FirstOrDefault(), r.Tokens.LastOrDefault())) { Left = l, Operator = op, Right = r }),
 
                 // BitwiseOr
                 (new HashSet<TokenKind>() { TokenKind.BarToken },
                 false,
-                (l, op, r) => new BinaryExpressionNode(Range(l.Tokens.First(), r.Tokens.Last())) { Left = l, Operator = op, Right = r }),
+                (l, op, r) => new BinaryExpressionNode(Range(l.Tokens.FirstOrDefault(), r.Tokens.LastOrDefault())) { Left = l, Operator = op, Right = r }),
 
                 // BitwiseXor
                 (new HashSet<TokenKind>() { TokenKind.CaretToken },
                 false,
-                (l, op, r) => new BinaryExpressionNode(Range(l.Tokens.First(), r.Tokens.Last())) { Left = l, Operator = op, Right = r }),
+                (l, op, r) => new BinaryExpressionNode(Range(l.Tokens.FirstOrDefault(), r.Tokens.LastOrDefault())) { Left = l, Operator = op, Right = r }),
 
                 // BitwiseAnd
                 (new HashSet<TokenKind>() { TokenKind.AmpersandToken },
                 false,
-                (l, op, r) => new BinaryExpressionNode(Range(l.Tokens.First(), r.Tokens.Last())) { Left = l, Operator = op, Right = r }),
+                (l, op, r) => new BinaryExpressionNode(Range(l.Tokens.FirstOrDefault(), r.Tokens.LastOrDefault())) { Left = l, Operator = op, Right = r }),
 
                 // Equality
                 (new HashSet<TokenKind>() { TokenKind.EqualsEqualsToken, TokenKind.ExclamationEqualsToken },
@@ -424,22 +424,22 @@ namespace UnityShaderParser.HLSL
                 // Comparison
                 (new HashSet<TokenKind>() { TokenKind.LessThanToken, TokenKind.LessThanEqualsToken, TokenKind.GreaterThanToken, TokenKind.GreaterThanEqualsToken },
                 false,
-                (l, op, r) => new BinaryExpressionNode(Range(l.Tokens.First(), r.Tokens.Last())) { Left = l, Operator = op, Right = r }),
+                (l, op, r) => new BinaryExpressionNode(Range(l.Tokens.FirstOrDefault(), r.Tokens.LastOrDefault())) { Left = l, Operator = op, Right = r }),
 
                 // BitShift
                 (new HashSet<TokenKind>() { TokenKind.LessThanLessThanToken, TokenKind.GreaterThanGreaterThanToken },
                 false,
-                (l, op, r) => new BinaryExpressionNode(Range(l.Tokens.First(), r.Tokens.Last())) { Left = l, Operator = op, Right = r }),
+                (l, op, r) => new BinaryExpressionNode(Range(l.Tokens.FirstOrDefault(), r.Tokens.LastOrDefault())) { Left = l, Operator = op, Right = r }),
 
                 // AddSub
                 (new HashSet<TokenKind>() { TokenKind.PlusToken, TokenKind.MinusToken },
                 false,
-                (l, op, r) => new BinaryExpressionNode(Range(l.Tokens.First(), r.Tokens.Last())) { Left = l, Operator = op, Right = r }),
+                (l, op, r) => new BinaryExpressionNode(Range(l.Tokens.FirstOrDefault(), r.Tokens.LastOrDefault())) { Left = l, Operator = op, Right = r }),
 
                 // MulDivMod
                 (new HashSet<TokenKind>() { TokenKind.AsteriskToken, TokenKind.SlashToken, TokenKind.PercentToken },
                 false,
-                (l, op, r) => new BinaryExpressionNode(Range(l.Tokens.First(), r.Tokens.Last())) { Left = l, Operator = op, Right = r }),
+                (l, op, r) => new BinaryExpressionNode(Range(l.Tokens.FirstOrDefault(), r.Tokens.LastOrDefault())) { Left = l, Operator = op, Right = r }),
 
                 // Binds most tightly
             };

@@ -185,10 +185,8 @@ namespace UnityShaderParser.Common
         protected List<Token<T>> Range(Token<T> first, Token<T> last)
         {
             int count = last.Position - first.Position + 1;
-            if (count < 0)
-            {
-                return tokens.GetRange(first.Position, tokens.Count - first.Position);
-            }
+            if (count < 0) count = 0;
+            if (first.Position + count > tokens.Count) count = tokens.Count - first.Position;
             return tokens.GetRange(first.Position, count);
         }
 

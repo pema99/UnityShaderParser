@@ -426,7 +426,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
             int depth = 0;
             while (true)
             {
-                if (IsAtEnd())
+                if (!LoopShouldContinue())
                 {
                     Error(DiagnosticFlags.PreProcessorError, "Unterminated conditional directive.");
                     break;
@@ -518,7 +518,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                     }
                     // Get the expanded tokens for the condition expression
                     List<HLSLToken> expandedConditionTokens = new List<HLSLToken>();
-                    while (!IsAtEnd() && !Match(TokenKind.EndDirectiveToken))
+                    while (LoopShouldContinue() && !Match(TokenKind.EndDirectiveToken))
                     {
                         // If we find an identifier, eagerly expand (https://www.math.utah.edu/docs/info/cpp_1.html)
                         var next = Peek();
@@ -561,7 +561,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
 
             while (true)
             {
-                if (IsAtEnd())
+                if (!LoopShouldContinue())
                 {
                     Error(DiagnosticFlags.PreProcessorError, "Unterminated conditional directive.");
                     break;
@@ -601,7 +601,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
             position = 0;
             tokens = new List<HLSLToken>(outputTokens);
             outputTokens.Clear();
-            while (!IsAtEnd())
+            while (LoopShouldContinue())
             {
                 if (Match(TokenKind.StringLiteralToken))
                 {
@@ -628,7 +628,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
 
         public void ExpandDirectives(bool expandIncludes = true)
         {
-            while (!IsAtEnd())
+            while (LoopShouldContinue())
             {
                 HLSLToken next = Peek();
                 switch (next.Kind)
@@ -735,7 +735,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
 
         public void ExpandIncludesOnly()
         {
-            while (!IsAtEnd())
+            while (LoopShouldContinue())
             {
                 HLSLToken next = Peek();
                 if (next.Kind == TokenKind.IncludeDirectiveKeyword)
@@ -754,7 +754,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
 
         public void StripDirectives(bool expandIncludes = true)
         {
-            while (!IsAtEnd())
+            while (LoopShouldContinue())
             {
                 HLSLToken next = Peek();
                 switch (next.Kind)
@@ -771,7 +771,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                     case TokenKind.ElifDirectiveKeyword:
                     case TokenKind.ElseDirectiveKeyword:
                     case TokenKind.EndifDirectiveKeyword:
-                        while (!IsAtEnd() && !Match(TokenKind.EndDirectiveToken))
+                        while (LoopShouldContinue() && !Match(TokenKind.EndDirectiveToken))
                         {
                             Advance();
                         }

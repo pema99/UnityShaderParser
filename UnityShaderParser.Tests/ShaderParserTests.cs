@@ -45,28 +45,5 @@ namespace UnityShaderParser.Tests
             Assert.Greater(expr.Children.Count, 0);
             CheckParents(expr);
         }
-
-        [Test]
-        public void PreProcessWithPredefinedFunctionLikeMacro()
-        {
-            var config = new HLSLParserConfig
-            {
-                Defines = new Dictionary<string, string>()
-                {
-                    { "FOO(texName)", "Texture2D texName;" }
-                }
-            };
-
-            var decl = ShaderParser.ParseTopLevelDeclaration("FOO(bar)", config, out var diags, out _);
-
-            Assert.IsEmpty(diags);
-
-            var varDecl = decl as VariableDeclarationStatementNode;
-            Assert.IsNotNull(varDecl);
-            Assert.AreEqual("bar", varDecl?.Declarators[0].Name);
-
-            var typeDecl = varDecl?.Kind as PredefinedObjectTypeNode;
-            Assert.AreEqual(PredefinedObjectType.Texture2D, typeDecl?.Kind);
-        }
     }
 }

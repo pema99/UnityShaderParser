@@ -197,7 +197,7 @@ namespace UnityShaderParser.ShaderLab
             // We essentially pretend categories don't exist, since they are a niche feature.
             Stack<List<ShaderLabCommandNode>> categoryCommands = new Stack<List<ShaderLabCommandNode>>();
 
-            while (!IsAtEnd())
+            while (LoopShouldContinue())
             {
                 ParseIncludeBlocksIfPresent(includeBlocks);
                 SetIncludes(includeBlocks);
@@ -451,7 +451,7 @@ namespace UnityShaderParser.ShaderLab
             List<HLSLProgramBlock> programBlocks = new List<HLSLProgramBlock>();
             List<HLSLIncludeBlock> includeBlocks = new List<HLSLIncludeBlock>();
 
-            while (!IsAtEnd())
+            while (LoopShouldContinue())
             {
                 SLToken next = Peek();
                 if (next.Kind == TokenKind.CloseBraceToken)
