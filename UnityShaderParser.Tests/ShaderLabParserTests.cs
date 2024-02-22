@@ -60,4 +60,30 @@ namespace UnityShaderParser.ShaderLab.Tests
             Assert.IsEmpty(parserDiags, parserDiags.FirstOrDefault().ToString());
         }
     }
+
+    public class NegativeTests
+    {
+        [Test]
+        public void SimpleErrorRecoversAndEmitsAllDiagnostics()
+        {
+            var decl = ShaderParser.ParseUnityShader(@"
+                Shader ""Foo""
+                {
+                    SubShader
+                    {
+                        Blend deez nuts lmao
+                        ZWrite On
+                        ZWrite what even is that
+                        ZTest Always
+                    }
+                }
+            ", out var diags);
+
+            Assert.AreEqual(2, diags.Count);
+
+            var pass = decl.SubShaders[0];
+            Assert.IsTrue(pass!.Commands[1] is ShaderLabCommandZWriteNode zw && zw.Enabled.Value);
+            Assert.IsTrue(pass!.Commands[3] is ShaderLabCommandZTestNode zt && zt.Mode.Value == ComparisonMode.Always);
+        }
+    }
 }

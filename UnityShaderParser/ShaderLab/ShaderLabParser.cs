@@ -42,6 +42,18 @@ namespace UnityShaderParser.ShaderLab
         protected override TokenKind InvalidTokenKind => TokenKind.InvalidToken;
         protected override ParserStage Stage => ParserStage.ShaderLabParsing;
 
+        // Tokens that we may be able to recover to after encountered an error in a command.
+        private static readonly HashSet<TokenKind> commandSyncTokens = new HashSet<TokenKind>()
+        {
+            TokenKind.TagsKeyword, TokenKind.LodKeyword, TokenKind.LightingKeyword, TokenKind.SeparateSpecularKeyword,
+            TokenKind.ZWriteKeyword,TokenKind.AlphaToMaskKeyword, TokenKind.ZClipKeyword, TokenKind.ConservativeKeyword,
+            TokenKind.CullKeyword, TokenKind.ZTestKeyword, TokenKind.BlendKeyword, TokenKind.OffsetKeyword, TokenKind.ColorMaskKeyword,
+            TokenKind.AlphaTestKeyword, TokenKind.FogKeyword, TokenKind.NameKeyword, TokenKind.BindChannelsKeyword, TokenKind.ColorKeyword,
+            TokenKind.BlendOpKeyword,TokenKind.MaterialKeyword, TokenKind.SetTextureKeyword, TokenKind.ColorMaterialKeyword, TokenKind.StencilKeyword,
+            TokenKind.SubShaderKeyword, TokenKind.ShaderKeyword, TokenKind.PassKeyword, TokenKind.CategoryKeyword, TokenKind.GrabPassKeyword,
+            TokenKind.UsePassKeyword, TokenKind.FallbackKeyword, TokenKind.CustomEditorKeyword,
+        };
+
         protected ShaderLabParserConfig config = default;
         protected Stack<List<HLSLIncludeBlock>> currentIncludeBlocks = new Stack<List<HLSLIncludeBlock>>();
 
@@ -259,6 +271,7 @@ namespace UnityShaderParser.ShaderLab
             ParseIncludeBlocksIfPresent(includeBlocks);
 
             var closeTok = Eat(TokenKind.CloseBraceToken);
+            RecoverTo(TokenKind.CloseBraceToken);
 
             PopIncludes();
 
@@ -313,6 +326,7 @@ namespace UnityShaderParser.ShaderLab
             }
 
             Eat(TokenKind.CloseBraceToken);
+            RecoverTo(TokenKind.CloseBraceToken);
         }
 
         private ShaderPropertyNode ParseProperty()
@@ -473,6 +487,7 @@ namespace UnityShaderParser.ShaderLab
             ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
 
             var closeTok = Eat(TokenKind.CloseBraceToken);
+            RecoverTo(TokenKind.CloseBraceToken);
 
             PopIncludes();
 
@@ -507,6 +522,7 @@ namespace UnityShaderParser.ShaderLab
             }
 
             var closeTok = Eat(TokenKind.CloseBraceToken);
+            RecoverTo(TokenKind.CloseBraceToken);
 
             PopIncludes();
 
@@ -536,6 +552,7 @@ namespace UnityShaderParser.ShaderLab
             }
 
             var closeTok = Eat(TokenKind.CloseBraceToken);
+            RecoverTo(TokenKind.CloseBraceToken);
 
             return new ShaderGrabPassNode(Range(keywordTok, closeTok))
             {
@@ -605,6 +622,9 @@ namespace UnityShaderParser.ShaderLab
                         run = false;
                         break;
                 }
+
+                // If we encountered an error, try to find the next command.
+                RecoverTo(kind => commandSyncTokens.Contains(kind), false);
             }
         }
 
@@ -644,6 +664,7 @@ namespace UnityShaderParser.ShaderLab
             }
 
             var closeTok = Eat(TokenKind.CloseBraceToken);
+            RecoverTo(TokenKind.CloseBraceToken);
 
             return new ShaderLabCommandTagsNode(Range(keywordTok, closeTok))
             {
@@ -855,6 +876,7 @@ namespace UnityShaderParser.ShaderLab
             }
 
             var closeTok = Eat(TokenKind.CloseBraceToken);
+            RecoverTo(TokenKind.CloseBraceToken);
             return new ShaderLabCommandFogNode(Range(keywordTok, closeTok)) { Enabled = isEnabled, Color = color };
         }
 
@@ -891,6 +913,7 @@ namespace UnityShaderParser.ShaderLab
             }
 
             var closeTok = Eat(TokenKind.CloseBraceToken);
+            RecoverTo(TokenKind.CloseBraceToken);
 
             return new ShaderLabCommandBindChannelsNode(Range(keywordTok, closeTok)) { Bindings = bindings };
         }
@@ -987,6 +1010,7 @@ namespace UnityShaderParser.ShaderLab
             }
 
             var closeTok = Eat(TokenKind.CloseBraceToken);
+            RecoverTo(TokenKind.CloseBraceToken);
 
             return new ShaderLabCommandMaterialNode(Range(keywordTok, closeTok)) { Properties = props };
         }
@@ -1004,6 +1028,7 @@ namespace UnityShaderParser.ShaderLab
             }
 
             var closeTok = Eat(TokenKind.CloseBraceToken);
+            RecoverTo(TokenKind.CloseBraceToken);
 
             return new ShaderLabCommandSetTextureNode(Range(keywordTok, closeTok)) { TextureName = name, Body = tokens };
         }
@@ -1065,6 +1090,7 @@ namespace UnityShaderParser.ShaderLab
             }
 
             var closeTok = Eat(TokenKind.CloseBraceToken);
+            RecoverTo(TokenKind.CloseBraceToken);
 
             return new ShaderLabCommandStencilNode(Range(keywordTok, closeTok))
             {

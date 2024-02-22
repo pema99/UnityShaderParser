@@ -405,7 +405,7 @@ namespace UnityShaderParser.Common
             return default;
         }
 
-        protected void RecoverTo(T sync)
+        protected void RecoverTo(T sync, bool inclusive = true)
         {
             // If not recovering, nothing to do
             if (!isRecovering)
@@ -413,14 +413,20 @@ namespace UnityShaderParser.Common
 
             // Otherwise advance until the sync token
             isRecovering = false;
-            while (!IsAtEnd() && !Match(sync))
-            {
-                Advance();
-            }
-            if (Match(sync))
-            {
-                Advance();
-            }
+            while (!IsAtEnd() && !Match(sync)) Advance();
+            if (inclusive && Match(sync)) Advance();
+        }
+
+        protected void RecoverTo(Func<T, bool> predicate, bool inclusive = true)
+        {
+            // If not recovering, nothing to do
+            if (!isRecovering)
+                return;
+
+            // Otherwise advance until the sync token
+            isRecovering = false;
+            while (!IsAtEnd() && !predicate(Peek().Kind)) Advance();
+            if (inclusive && predicate(Peek().Kind)) Advance();
         }
 
         protected void RecoverTo(params T[] syncs)
@@ -431,14 +437,8 @@ namespace UnityShaderParser.Common
 
             // Otherwise advance until the sync token
             isRecovering = false;
-            while (!IsAtEnd() && !Match(syncs))
-            {
-                Advance();
-            }
-            if (Match(syncs))
-            {
-                Advance();
-            }
+            while (!IsAtEnd() && !Match(syncs)) Advance();
+            if (Match(syncs)) Advance();
         }
         #endregion
     }
