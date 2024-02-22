@@ -2,19 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using UnityShaderParser.Common;
 
-namespace UnityShaderParser.HLSL
+namespace UnityShaderParser.ShaderLab
 {
-    // TODO: Base Editor for ShaderLab as well (base Visitor too?)
-    // TODO: Edits across macro boundaries
-    public abstract class HLSLEditor : HLSLSyntaxVisitor
+    public abstract class ShaderLabEditor : ShaderLabSyntaxVisitor
     {
         public string Source { get; private set; }
         public List<Token<TokenKind>> Tokens { get; private set; }
 
-        public HLSLEditor(string source, List<Token<TokenKind>> tokens)
+        public ShaderLabEditor(string source, List<Token<TokenKind>> tokens)
         {
             Source = source;
             Tokens = tokens;
@@ -24,33 +21,33 @@ namespace UnityShaderParser.HLSL
 
         protected void Edit(SourceSpan span, string newText) => Edits.Add((span, newText));
         protected void Edit(Token<TokenKind> token, string newText) => Edit(token.Span, newText);
-        protected void Edit(HLSLSyntaxNode node, string newText) => Edit(node.Span, newText);
+        protected void Edit(ShaderLabSyntaxNode node, string newText) => Edit(node.Span, newText);
 
         public string ApplyCurrentEdits() => PrintingUtil.ApplyEditsToSourceText(Edits, Source);
 
-        public string ApplyEdits(HLSLSyntaxNode node)
+        public string ApplyEdits(ShaderLabSyntaxNode node)
         {
             Visit(node);
             return ApplyCurrentEdits();
         }
 
-        public string ApplyEdits(IEnumerable<HLSLSyntaxNode> nodes)
+        public string ApplyEdits(IEnumerable<ShaderLabSyntaxNode> nodes)
         {
             VisitMany(nodes);
             return ApplyCurrentEdits();
         }
 
-        public static string RunEditor<T>(string source, HLSLSyntaxNode node)
-            where T : HLSLEditor
+        public static string RunEditor<T>(string source, ShaderLabSyntaxNode node)
+            where T : ShaderLabEditor
         {
-            var editor = (HLSLEditor)Activator.CreateInstance(typeof(T), source, node.Tokens);
+            var editor = (ShaderLabEditor)Activator.CreateInstance(typeof(T), source, node.Tokens);
             return editor.ApplyEdits(node);
         }
 
-        public static string RunEditor<T>(string source, IEnumerable<HLSLSyntaxNode> node)
-            where T : HLSLEditor
+        public static string RunEditor<T>(string source, IEnumerable<ShaderLabSyntaxNode> node)
+            where T : ShaderLabEditor
         {
-            var editor = (HLSLEditor)Activator.CreateInstance(typeof(T), source, node.SelectMany(x => x.Tokens).ToList());
+            var editor = (ShaderLabEditor)Activator.CreateInstance(typeof(T), source, node.SelectMany(x => x.Tokens).ToList());
             return editor.ApplyEdits(node);
         }
     }

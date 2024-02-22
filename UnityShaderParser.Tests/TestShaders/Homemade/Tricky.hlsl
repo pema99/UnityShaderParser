@@ -17,6 +17,11 @@ namespace Foobar::BOOBsdsad
 
 	void foo()
 	{
+		if (b + c)
+		{
+			return d;
+		}
+
 		int a = 3 * (5 + 7);
 		int boo = (some, more, 333 + 33);
 		int a = b ? c : d ? e : f;

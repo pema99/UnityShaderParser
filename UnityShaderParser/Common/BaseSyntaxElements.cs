@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 
 namespace UnityShaderParser.Common
 {
@@ -232,6 +233,21 @@ namespace UnityShaderParser.Common
                 default:
                     return name;
             }
+        }
+
+        public static string ApplyEditsToSourceText(IEnumerable<(SourceSpan span, string newText)> edits, string source)
+        {
+            var orderedEdits = edits.OrderBy(x => x.span.Start.Index);
+            var editedSourced = new StringBuilder(source);
+            int offset = 0;
+            foreach ((SourceSpan span, string newText) in orderedEdits)
+            {
+                editedSourced.Remove(span.Start.Index + offset, span.Length);
+                editedSourced.Insert(span.Start.Index + offset, newText);
+                offset -= span.Length;
+                offset += newText.Length;
+            }
+            return editedSourced.ToString();
         }
     }
 }
