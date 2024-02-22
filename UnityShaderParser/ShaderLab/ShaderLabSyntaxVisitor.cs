@@ -72,4 +72,78 @@ namespace UnityShaderParser.ShaderLab
         public virtual void VisitShaderLabCommandColorMaterialNode(ShaderLabCommandColorMaterialNode node) => DefaultVisit(node);
         public virtual void VisitShaderLabCommandStencilNode(ShaderLabCommandStencilNode node) => DefaultVisit(node);
     }
+
+    public abstract class ShaderLabSyntaxVisitor<TReturn>
+    {
+        protected TReturn DefaultVisit(ShaderLabSyntaxNode node)
+        {
+            foreach (var child in node.Children)
+            {
+                child.Accept(this);
+            }
+            return default;
+        }
+
+        public List<TReturn> VisitMany(IEnumerable<ShaderLabSyntaxNode> nodes)
+        {
+            List<TReturn> result = new List<TReturn>();
+            foreach (ShaderLabSyntaxNode node in nodes)
+            {
+                result.Add(Visit(node));
+            }
+            return result;
+        }
+
+        public List<TReturn> VisitMany<T>(IList<T> nodes, Action runBetween)
+            where T : ShaderLabSyntaxNode
+        {
+            List<TReturn> result = new List<TReturn>();
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                result.Add(Visit(nodes[i]));
+                if (i < nodes.Count - 1)
+                    runBetween();
+            }
+            return result;
+        }
+
+        public virtual TReturn Visit(ShaderLabSyntaxNode node) => node == null ? default : node.Accept(this);
+        public virtual TReturn VisitShaderNode(ShaderNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderPropertyNode(ShaderPropertyNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderPropertyValueFloatNode(ShaderPropertyValueFloatNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderPropertyValueIntegerNode(ShaderPropertyValueIntegerNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderPropertyValueVectorNode(ShaderPropertyValueVectorNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderPropertyValueColorNode(ShaderPropertyValueColorNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderPropertyValueTextureNode(ShaderPropertyValueTextureNode node) => DefaultVisit(node);
+        public virtual TReturn VisitSubShaderNode(SubShaderNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderPassNode(ShaderPassNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderCodePassNode(ShaderCodePassNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderGrabPassNode(ShaderGrabPassNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderUsePassNode(ShaderUsePassNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandNode(ShaderLabCommandNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandTagsNode(ShaderLabCommandTagsNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandLodNode(ShaderLabCommandLodNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabBasicToggleCommandNode(ShaderLabBasicToggleCommandNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandLightingNode(ShaderLabCommandLightingNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandSeparateSpecularNode(ShaderLabCommandSeparateSpecularNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandZWriteNode(ShaderLabCommandZWriteNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandAlphaToMaskNode(ShaderLabCommandAlphaToMaskNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandZClipNode(ShaderLabCommandZClipNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandConservativeNode(ShaderLabCommandConservativeNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandCullNode(ShaderLabCommandCullNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandZTestNode(ShaderLabCommandZTestNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandBlendNode(ShaderLabCommandBlendNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandOffsetNode(ShaderLabCommandOffsetNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandColorMaskNode(ShaderLabCommandColorMaskNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandAlphaTestNode(ShaderLabCommandAlphaTestNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandFogNode(ShaderLabCommandFogNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandNameNode(ShaderLabCommandNameNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandBindChannelsNode(ShaderLabCommandBindChannelsNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandColorNode(ShaderLabCommandColorNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandBlendOpNode(ShaderLabCommandBlendOpNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandMaterialNode(ShaderLabCommandMaterialNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandSetTextureNode(ShaderLabCommandSetTextureNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandColorMaterialNode(ShaderLabCommandColorMaterialNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandStencilNode(ShaderLabCommandStencilNode node) => DefaultVisit(node);
+    }
 }

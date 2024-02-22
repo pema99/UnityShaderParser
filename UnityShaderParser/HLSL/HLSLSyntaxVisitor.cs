@@ -96,4 +96,103 @@ namespace UnityShaderParser.HLSL
         public virtual void VisitStatePropertyNode(StatePropertyNode node) => DefaultVisit(node);
         public virtual void VisitPassNode(PassNode node) => DefaultVisit(node);
     }
+
+    public abstract class HLSLSyntaxVisitor<TReturn>
+    {
+        protected TReturn DefaultVisit(HLSLSyntaxNode node)
+        {
+            foreach (var child in node.Children)
+            {
+                child.Accept(this);
+            }
+            return default;
+        }
+
+        public List<TReturn> VisitMany(IEnumerable<HLSLSyntaxNode> nodes)
+        {
+            List<TReturn> result = new List<TReturn>();
+            foreach (HLSLSyntaxNode node in nodes)
+            {
+                result.Add(Visit(node));
+            }
+            return result;
+        }
+
+        public List<TReturn> VisitMany<T>(IList<T> nodes, Action runBetween)
+            where T : HLSLSyntaxNode
+        {
+            List<TReturn> result = new List<TReturn>();
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                result.Add(Visit(nodes[i]));
+                if (i < nodes.Count - 1)
+                    runBetween();
+            }
+            return result;
+        }
+
+        public virtual TReturn Visit(HLSLSyntaxNode node) => node == null ? default : node.Accept(this);
+        public virtual TReturn VisitFormalParameterNode(FormalParameterNode node) => DefaultVisit(node);
+        public virtual TReturn VisitVariableDeclaratorNode(VariableDeclaratorNode node) => DefaultVisit(node);
+        public virtual TReturn VisitArrayRankNode(ArrayRankNode node) => DefaultVisit(node);
+        public virtual TReturn VisitValueInitializerNode(ValueInitializerNode node) => DefaultVisit(node);
+        public virtual TReturn VisitStateInitializerNode(StateInitializerNode node) => DefaultVisit(node);
+        public virtual TReturn VisitStateArrayInitializerNode(StateArrayInitializerNode node) => DefaultVisit(node);
+        public virtual TReturn VisitFunctionDeclarationNode(FunctionDeclarationNode node) => DefaultVisit(node);
+        public virtual TReturn VisitFunctionDefinitionNode(FunctionDefinitionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitStructDefinitionNode(StructDefinitionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitInterfaceDefinitionNode(InterfaceDefinitionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitConstantBufferNode(ConstantBufferNode node) => DefaultVisit(node);
+        public virtual TReturn VisitNamespaceNode(NamespaceNode node) => DefaultVisit(node);
+        public virtual TReturn VisitTypedefNode(TypedefNode node) => DefaultVisit(node);
+        public virtual TReturn VisitSemanticNode(SemanticNode node) => DefaultVisit(node);
+        public virtual TReturn VisitRegisterLocationNode(RegisterLocationNode node) => DefaultVisit(node);
+        public virtual TReturn VisitPackoffsetNode(PackoffsetNode node) => DefaultVisit(node);
+        public virtual TReturn VisitBlockNode(BlockNode node) => DefaultVisit(node);
+        public virtual TReturn VisitVariableDeclarationStatementNode(VariableDeclarationStatementNode node) => DefaultVisit(node);
+        public virtual TReturn VisitReturnStatementNode(ReturnStatementNode node) => DefaultVisit(node);
+        public virtual TReturn VisitBreakStatementNode(BreakStatementNode node) => DefaultVisit(node);
+        public virtual TReturn VisitContinueStatementNode(ContinueStatementNode node) => DefaultVisit(node);
+        public virtual TReturn VisitDiscardStatementNode(DiscardStatementNode node) => DefaultVisit(node);
+        public virtual TReturn VisitEmptyStatementNode(EmptyStatementNode node) => DefaultVisit(node);
+        public virtual TReturn VisitForStatementNode(ForStatementNode node) => DefaultVisit(node);
+        public virtual TReturn VisitWhileStatementNode(WhileStatementNode node) => DefaultVisit(node);
+        public virtual TReturn VisitDoWhileStatementNode(DoWhileStatementNode node) => DefaultVisit(node);
+        public virtual TReturn VisitIfStatementNode(IfStatementNode node) => DefaultVisit(node);
+        public virtual TReturn VisitSwitchStatementNode(SwitchStatementNode node) => DefaultVisit(node);
+        public virtual TReturn VisitSwitchClauseNode(SwitchClauseNode node) => DefaultVisit(node);
+        public virtual TReturn VisitSwitchCaseLabelNode(SwitchCaseLabelNode node) => DefaultVisit(node);
+        public virtual TReturn VisitSwitchDefaultLabelNode(SwitchDefaultLabelNode node) => DefaultVisit(node);
+        public virtual TReturn VisitExpressionStatementNode(ExpressionStatementNode node) => DefaultVisit(node);
+        public virtual TReturn VisitAttributeNode(AttributeNode node) => DefaultVisit(node);
+        public virtual TReturn VisitQualifiedIdentifierExpressionNode(QualifiedIdentifierExpressionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitIdentifierExpressionNode(IdentifierExpressionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitLiteralExpressionNode(LiteralExpressionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitAssignmentExpressionNode(AssignmentExpressionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitBinaryExpressionNode(BinaryExpressionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitCompoundExpressionNode(CompoundExpressionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitPrefixUnaryExpressionNode(PrefixUnaryExpressionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitPostfixUnaryExpressionNode(PostfixUnaryExpressionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitFieldAccessExpressionNode(FieldAccessExpressionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitMethodCallExpressionNode(MethodCallExpressionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitFunctionCallExpressionNode(FunctionCallExpressionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitNumericConstructorCallExpressionNode(NumericConstructorCallExpressionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitElementAccessExpressionNode(ElementAccessExpressionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitCastExpressionNode(CastExpressionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitArrayInitializerExpressionNode(ArrayInitializerExpressionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitTernaryExpressionNode(TernaryExpressionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitSamplerStateLiteralExpressionNode(SamplerStateLiteralExpressionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitCompileExpressionNode(CompileExpressionNode node) => DefaultVisit(node);
+        public virtual TReturn VisitQualifiedNamedTypeNode(QualifiedNamedTypeNode node) => DefaultVisit(node);
+        public virtual TReturn VisitNamedTypeNode(NamedTypeNode node) => DefaultVisit(node);
+        public virtual TReturn VisitPredefinedObjectTypeNode(PredefinedObjectTypeNode node) => DefaultVisit(node);
+        public virtual TReturn VisitStructTypeNode(StructTypeNode node) => DefaultVisit(node);
+        public virtual TReturn VisitScalarTypeNode(ScalarTypeNode node) => DefaultVisit(node);
+        public virtual TReturn VisitMatrixTypeNode(MatrixTypeNode node) => DefaultVisit(node);
+        public virtual TReturn VisitVectorTypeNode(VectorTypeNode node) => DefaultVisit(node);
+        public virtual TReturn VisitTechniqueNode(TechniqueNode node) => DefaultVisit(node);
+        public virtual TReturn VisitLiteralTemplateArgumentType(LiteralTemplateArgumentType node) => DefaultVisit(node);
+        public virtual TReturn VisitStatePropertyNode(StatePropertyNode node) => DefaultVisit(node);
+        public virtual TReturn VisitPassNode(PassNode node) => DefaultVisit(node);
+    }
 }

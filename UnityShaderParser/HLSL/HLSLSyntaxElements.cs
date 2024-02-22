@@ -680,6 +680,7 @@ namespace UnityShaderParser.HLSL
     public abstract class HLSLSyntaxNode : SyntaxNode<HLSLSyntaxNode>
     {
         public abstract void Accept(HLSLSyntaxVisitor visitor);
+        public abstract T Accept<T>(HLSLSyntaxVisitor<T> visitor);
 
         public override SourceSpan Span => span;
 
@@ -732,6 +733,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(Attributes, Child(ParamType), Child(Declarator));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitFormalParameterNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitFormalParameterNode(this);
 
         public FormalParameterNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -748,6 +750,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(ArrayRanks, Qualifiers, Annotations, OptionalChild(Initializer));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitVariableDeclaratorNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitVariableDeclaratorNode(this);
 
         public VariableDeclaratorNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -760,6 +763,7 @@ namespace UnityShaderParser.HLSL
             OptionalChild(Dimension);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitArrayRankNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitArrayRankNode(this);
 
         public ArrayRankNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -777,6 +781,7 @@ namespace UnityShaderParser.HLSL
             Child(Expression);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitValueInitializerNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitValueInitializerNode(this);
 
         public ValueInitializerNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -790,6 +795,7 @@ namespace UnityShaderParser.HLSL
             States;
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitStateInitializerNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitStateInitializerNode(this);
 
         public StateInitializerNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -802,6 +808,7 @@ namespace UnityShaderParser.HLSL
             Initializers;
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitStateArrayInitializerNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitStateArrayInitializerNode(this);
 
         public StateArrayInitializerNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -809,6 +816,7 @@ namespace UnityShaderParser.HLSL
     public class FunctionDeclarationNode : FunctionNode
     {
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitFunctionDeclarationNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitFunctionDeclarationNode(this);
 
         public FunctionDeclarationNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -823,6 +831,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(base.GetChildren, Child(Body));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitFunctionDefinitionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitFunctionDefinitionNode(this);
 
         public FunctionDefinitionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -835,6 +844,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(base.GetChildren, Child(StructType));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitStructDefinitionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitStructDefinitionNode(this);
 
         public StructDefinitionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -848,6 +858,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(base.GetChildren, Child(Name), Functions);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitInterfaceDefinitionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitInterfaceDefinitionNode(this);
 
         public InterfaceDefinitionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -863,6 +874,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(Child(Name), OptionalChild(RegisterLocation), Declarations);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitConstantBufferNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitConstantBufferNode(this);
 
         public ConstantBufferNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -876,6 +888,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(Child(Name), Declarations);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitNamespaceNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitNamespaceNode(this);
 
         public NamespaceNode(List<HLSLToken> tokens) : base(tokens) { }
     }
@@ -890,6 +903,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(base.GetChildren, Child(FromType), ToNames);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitTypedefNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitTypedefNode(this);
 
         public TypedefNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -907,6 +921,7 @@ namespace UnityShaderParser.HLSL
             Enumerable.Empty<HLSLSyntaxNode>();
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitSemanticNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitSemanticNode(this);
 
         public SemanticNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -921,6 +936,7 @@ namespace UnityShaderParser.HLSL
             Enumerable.Empty<HLSLSyntaxNode>();
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitRegisterLocationNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitRegisterLocationNode(this);
 
         public RegisterLocationNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -934,6 +950,7 @@ namespace UnityShaderParser.HLSL
             Enumerable.Empty<HLSLSyntaxNode>();
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitPackoffsetNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitPackoffsetNode(this);
 
         public PackoffsetNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -956,6 +973,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(base.GetChildren, Statements);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitBlockNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitBlockNode(this);
 
         public BlockNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -970,6 +988,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(base.GetChildren, Child(Kind), Declarators);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitVariableDeclarationStatementNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitVariableDeclarationStatementNode(this);
 
         public VariableDeclarationStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -982,6 +1001,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(base.GetChildren, OptionalChild(Expression));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitReturnStatementNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitReturnStatementNode(this);
 
         public ReturnStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -989,6 +1009,7 @@ namespace UnityShaderParser.HLSL
     public class BreakStatementNode : StatementNode
     {
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitBreakStatementNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitBreakStatementNode(this);
 
         public BreakStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -996,6 +1017,7 @@ namespace UnityShaderParser.HLSL
     public class ContinueStatementNode : StatementNode
     {
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitContinueStatementNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitContinueStatementNode(this);
 
         public ContinueStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1003,6 +1025,7 @@ namespace UnityShaderParser.HLSL
     public class DiscardStatementNode : StatementNode
     {
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitDiscardStatementNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitDiscardStatementNode(this);
 
         public DiscardStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1010,6 +1033,7 @@ namespace UnityShaderParser.HLSL
     public class EmptyStatementNode : StatementNode
     {
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitEmptyStatementNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitEmptyStatementNode(this);
 
         public EmptyStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1031,6 +1055,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(base.GetChildren, OptionalChild(Declaration), OptionalChild(Initializer), OptionalChild(Condition), OptionalChild(Increment), Child(Body));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitForStatementNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitForStatementNode(this);
 
         public ForStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1046,6 +1071,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(base.GetChildren, Child(Condition), Child(Body));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitWhileStatementNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitWhileStatementNode(this);
 
         public WhileStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1061,6 +1087,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(base.GetChildren, Child(Body), Child(Condition));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitDoWhileStatementNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitDoWhileStatementNode(this);
 
         public DoWhileStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1080,6 +1107,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(base.GetChildren, Child(Condition), Child(Body), OptionalChild(ElseClause));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitIfStatementNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitIfStatementNode(this);
 
         public IfStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1093,6 +1121,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(base.GetChildren, Child(Expression), Clauses);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitSwitchStatementNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitSwitchStatementNode(this);
 
         public SwitchStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1106,6 +1135,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(Labels, Statements);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitSwitchClauseNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitSwitchClauseNode(this);
 
         public SwitchClauseNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1123,6 +1153,7 @@ namespace UnityShaderParser.HLSL
             Child(Value);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitSwitchCaseLabelNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitSwitchCaseLabelNode(this);
 
         public SwitchCaseLabelNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1133,6 +1164,7 @@ namespace UnityShaderParser.HLSL
             Enumerable.Empty<HLSLSyntaxNode>();
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitSwitchDefaultLabelNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitSwitchDefaultLabelNode(this);
 
         public SwitchDefaultLabelNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1145,6 +1177,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(base.GetChildren, Child(Expression));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitExpressionStatementNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitExpressionStatementNode(this);
 
         public ExpressionStatementNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1158,6 +1191,7 @@ namespace UnityShaderParser.HLSL
             Arguments;
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitAttributeNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitAttributeNode(this);
 
         public AttributeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1187,6 +1221,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(Child(Left), Child(Right));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitQualifiedIdentifierExpressionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitQualifiedIdentifierExpressionNode(this);
 
         public QualifiedIdentifierExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1202,6 +1237,7 @@ namespace UnityShaderParser.HLSL
             Enumerable.Empty<HLSLSyntaxNode>();
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitIdentifierExpressionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitIdentifierExpressionNode(this);
 
         public IdentifierExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1215,6 +1251,7 @@ namespace UnityShaderParser.HLSL
             Enumerable.Empty<HLSLSyntaxNode>();
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitLiteralExpressionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitLiteralExpressionNode(this);
 
         public LiteralExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1229,6 +1266,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(Child(Left), Child(Right));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitAssignmentExpressionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitAssignmentExpressionNode(this);
 
         public AssignmentExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1243,6 +1281,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(Child(Left), Child(Right));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitBinaryExpressionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitBinaryExpressionNode(this);
 
         public BinaryExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1256,6 +1295,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(Child(Left), Child(Right));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitCompoundExpressionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitCompoundExpressionNode(this);
 
         public CompoundExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1269,6 +1309,7 @@ namespace UnityShaderParser.HLSL
             Child(Expression);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitPrefixUnaryExpressionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitPrefixUnaryExpressionNode(this);
 
         public PrefixUnaryExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1282,6 +1323,7 @@ namespace UnityShaderParser.HLSL
             Child(Expression);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitPostfixUnaryExpressionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitPostfixUnaryExpressionNode(this);
 
         public PostfixUnaryExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1295,6 +1337,7 @@ namespace UnityShaderParser.HLSL
             Child(Target);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitFieldAccessExpressionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitFieldAccessExpressionNode(this);
 
         public FieldAccessExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1309,6 +1352,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(Child(Target), Arguments);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitMethodCallExpressionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitMethodCallExpressionNode(this);
 
         public MethodCallExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1322,6 +1366,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(Child(Name), Arguments);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitFunctionCallExpressionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitFunctionCallExpressionNode(this);
 
         public FunctionCallExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1335,6 +1380,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(Child(Kind), Arguments);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitNumericConstructorCallExpressionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitNumericConstructorCallExpressionNode(this);
 
         public NumericConstructorCallExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1348,6 +1394,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(Child(Target), Child(Index));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitElementAccessExpressionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitElementAccessExpressionNode(this);
 
         public ElementAccessExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1362,6 +1409,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(Child(Kind), Child(Expression), ArrayRanks);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitCastExpressionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitCastExpressionNode(this);
 
         public CastExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1374,6 +1422,7 @@ namespace UnityShaderParser.HLSL
             Elements;
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitArrayInitializerExpressionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitArrayInitializerExpressionNode(this);
 
         public ArrayInitializerExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1388,6 +1437,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(Child(Condition), Child(TrueCase), Child(FalseCase));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitTernaryExpressionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitTernaryExpressionNode(this);
 
         public TernaryExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1401,6 +1451,7 @@ namespace UnityShaderParser.HLSL
             States;
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitSamplerStateLiteralExpressionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitSamplerStateLiteralExpressionNode(this);
 
         public SamplerStateLiteralExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1415,6 +1466,7 @@ namespace UnityShaderParser.HLSL
             Child(Invocation);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitCompileExpressionNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitCompileExpressionNode(this);
 
         public CompileExpressionNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1451,6 +1503,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(Child(Left), Child(Right));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitQualifiedNamedTypeNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitQualifiedNamedTypeNode(this);
 
         public QualifiedNamedTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1466,6 +1519,7 @@ namespace UnityShaderParser.HLSL
             Enumerable.Empty<HLSLSyntaxNode>();
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitNamedTypeNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitNamedTypeNode(this);
 
         public NamedTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1479,6 +1533,7 @@ namespace UnityShaderParser.HLSL
             TemplateArguments;
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitPredefinedObjectTypeNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitPredefinedObjectTypeNode(this);
 
         public PredefinedObjectTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1495,6 +1550,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(OptionalChild(Name), Inherits, Fields, Methods);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitStructTypeNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitStructTypeNode(this);
 
         public StructTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1512,6 +1568,7 @@ namespace UnityShaderParser.HLSL
             Enumerable.Empty<HLSLSyntaxNode>();
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitScalarTypeNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitScalarTypeNode(this);
 
         public ScalarTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1525,6 +1582,7 @@ namespace UnityShaderParser.HLSL
             Enumerable.Empty<HLSLSyntaxNode>();
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitMatrixTypeNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitMatrixTypeNode(this);
 
         public MatrixTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1537,6 +1595,7 @@ namespace UnityShaderParser.HLSL
             Enumerable.Empty<HLSLSyntaxNode>();
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitVectorTypeNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitVectorTypeNode(this);
 
         public VectorTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1551,6 +1610,7 @@ namespace UnityShaderParser.HLSL
             Child(Literal);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitLiteralTemplateArgumentType(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitLiteralTemplateArgumentType(this);
 
         public LiteralTemplateArgumentType(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1567,6 +1627,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(OptionalChild(ArrayRank), Child(Value));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitStatePropertyNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitStatePropertyNode(this);
 
         public StatePropertyNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1583,6 +1644,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(OptionalChild(Name), Annotations, Passes);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitTechniqueNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitTechniqueNode(this);
 
         public TechniqueNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
@@ -1598,6 +1660,7 @@ namespace UnityShaderParser.HLSL
             MergeChildren(OptionalChild(Name), Annotations, Statements);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitPassNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitPassNode(this);
 
         public PassNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
