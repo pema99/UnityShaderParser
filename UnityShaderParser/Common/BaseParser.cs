@@ -12,15 +12,17 @@ namespace UnityShaderParser.Common
         protected abstract T IntegerLiteralTokenKind { get; }
         protected abstract T FloatLiteralTokenKind { get; }
         protected abstract T IdentifierTokenKind { get; }
+        protected abstract T InvalidTokenKind { get; }
         protected abstract ParserStage Stage { get; }
 
         protected List<Token<T>> tokens = new List<Token<T>>();
         protected int position = 0;
         protected SourceSpan anchorSpan = default;
+        protected List<Diagnostic> diagnostics = new List<Diagnostic>();
+        protected bool isRecovering = false;
+
         protected bool throwExceptionOnError = false;
         protected DiagnosticFlags diagnosticFilter = DiagnosticFlags.All;
-
-        protected List<Diagnostic> diagnostics = new List<Diagnostic>();
         public List<Diagnostic> Diagnostics => diagnostics;
 
         public BaseParser(List<Token<T>> tokens, bool throwExceptionOnError, DiagnosticFlags diagnosticFilter)
@@ -95,13 +97,23 @@ namespace UnityShaderParser.Common
             return true;
         }
 
-        protected Token<T> Peek() => IsAtEnd() ? default : tokens[position];
-        protected Token<T> LookAhead(int offset = 1) => IsAtEnd(offset) ? default : tokens[position + offset];
+        protected Token<T> LookAhead(int offset = 1)
+        {
+            if (IsAtEnd())
+                return default;
+            // If we are currently recovering from an error, return an error token.
+            else if (isRecovering)
+                return new Token<T>(InvalidTokenKind, null, anchorSpan, position);
+            else
+                return tokens[position + offset];
+        }
+        protected Token<T> Peek() => LookAhead(0);
         protected bool Match(Func<Token<T>, bool> predicate) => predicate(Peek());
         protected bool Match(Func<T, bool> predicate) => predicate(Peek().Kind);
         protected bool Match(T kind) => Match(tok => EqualityComparer<T>.Default.Equals(tok.Kind, kind));
         protected bool Match(params T[] alternatives) => Match(tok => alternatives.Contains(tok.Kind));
         protected bool IsAtEnd(int offset = 0) => position + offset >= tokens.Count;
+        protected bool LoopShouldContinue() => !IsAtEnd() && !isRecovering;
         protected Token<T> Eat(Func<T, bool> predicate)
         {
             if (!Match(predicate))
@@ -126,7 +138,10 @@ namespace UnityShaderParser.Common
         protected Token<T> Advance(int amount = 1)
         {
             if (IsAtEnd(amount - 1))
-                return default;
+                return default; 
+            // If we are currently recovering from an error, don't keep eating tokens, and instead return an error token.
+            else if (isRecovering)
+                return new Token<T>(InvalidTokenKind, null, anchorSpan, position);
             Token<T> result = tokens[position];
             position += amount;
             anchorSpan = Peek().Span;
@@ -136,13 +151,23 @@ namespace UnityShaderParser.Common
 
         protected void Error(DiagnosticFlags kind, string msg)
         {
-            if (!diagnosticFilter.HasFlag(kind))
+            // If we don't care about this kind of warning, or we are currently recovering from an error, bail
+            if (!diagnosticFilter.HasFlag(kind) || isRecovering)
                 return;
 
+            // If we have hit an actual error, start error recovery mode
+            if (kind != DiagnosticFlags.Warning)
+            {
+                isRecovering = true;
+            }
+
+            // Throw an exception if requested and while we aren't speculating
             if (throwExceptionOnError && snapshots.Count == 0 && kind != DiagnosticFlags.Warning)
             {
                 throw new Exception($"Error at line {anchorSpan.Start.Line}, column {anchorSpan.Start.Column} during {Stage}: {msg}");
             }
+
+            // Log the diagnostic
             diagnostics.Add(new Diagnostic(anchorSpan.Start, kind, Stage, msg));
         }
 
@@ -228,6 +253,10 @@ namespace UnityShaderParser.Common
             List<P> result = new List<P>();
 
             result.Add(parser());
+
+            if (isRecovering)
+                return result;
+
             while (Match(separator))
             {
                 int lastPosition = position;
@@ -237,6 +266,9 @@ namespace UnityShaderParser.Common
                 {
                     result.Add(parser());
                 }
+
+                if (isRecovering)
+                    return result;
 
                 if (lastPosition == position)
                 {
@@ -256,12 +288,19 @@ namespace UnityShaderParser.Common
             List<P> result = new List<P>();
 
             result.Add(parser());
+
+            if (isRecovering)
+                return result;
+
             while (Match(seperator))
             {
                 int lastPosition = position;
 
                 Eat(seperator);
                 result.Add(parser());
+
+                if (isRecovering)
+                    return result;
 
                 if (lastPosition == position)
                 {
@@ -282,11 +321,17 @@ namespace UnityShaderParser.Common
 
             result.Add(parser());
 
+            if (isRecovering)
+                return result;
+
             while (Match(first))
             {
                 int lastPosition = position;
 
                 result.Add(parser());
+
+                if (isRecovering)
+                    return result;
 
                 if (lastPosition == position)
                 {
@@ -315,11 +360,17 @@ namespace UnityShaderParser.Common
 
             result.Add(parser());
 
+            if (isRecovering)
+                return result;
+
             while (first())
             {
                 int lastPosition = position;
 
                 result.Add(parser());
+
+                if (isRecovering)
+                    return result;
 
                 if (lastPosition == position)
                 {
@@ -355,6 +406,42 @@ namespace UnityShaderParser.Common
                 return parser();
             return default;
         }
-#endregion
+
+        protected void RecoverTo(T sync)
+        {
+            // If not recovering, nothing to do
+            if (!isRecovering)
+                return;
+
+            // Otherwise advance until the sync token
+            isRecovering = false;
+            while (!IsAtEnd() && !Match(sync))
+            {
+                Advance();
+            }
+            if (Match(sync))
+            {
+                Advance();
+            }
+        }
+
+        protected void RecoverTo(params T[] syncs)
+        {
+            // If not recovering, nothing to do
+            if (!isRecovering)
+                return;
+
+            // Otherwise advance until the sync token
+            isRecovering = false;
+            while (!IsAtEnd() && !Match(syncs))
+            {
+                Advance();
+            }
+            if (Match(syncs))
+            {
+                Advance();
+            }
+        }
+        #endregion
     }
 }

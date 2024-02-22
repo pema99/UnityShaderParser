@@ -395,7 +395,7 @@ namespace UnityShaderParser.HLSL
                 case "RenderTargetView": token = TokenKind.RenderTargetViewKeyword; return true;
                 case "stateblock_state": token = TokenKind.StateblockStateKeyword; return true;
                 case "stateblock": token = TokenKind.StateblockKeyword; return true;
-                default: token = TokenKind.None; return false;
+                default: token = TokenKind.InvalidToken; return false;
             }
         }
 

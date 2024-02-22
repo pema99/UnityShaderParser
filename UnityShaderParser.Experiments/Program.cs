@@ -9,7 +9,7 @@ Console.WriteLine($"Before:\n{shaderSource}\n");
 // Ignore macros for the purpose of editing
 var config = new HLSLParserConfig() { PreProcessorMode = PreProcessorMode.StripDirectives };
 
-List<HLSLSyntaxNode> decls = ShaderParser.ParseTopLevelDeclarations(shaderSource, config);
+List<HLSLSyntaxNode> decls = ShaderParser.ParseTopLevelDeclarations(shaderSource, config, out var diags, out var prags);
 
 string editedShaderSource = HLSLEditor.RunEditor<IfConditionReplacer>(shaderSource, decls);
 Console.WriteLine($"After:\n{editedShaderSource}\n");

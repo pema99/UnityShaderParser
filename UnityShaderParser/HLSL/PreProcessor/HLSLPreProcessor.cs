@@ -31,6 +31,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
         protected override TokenKind IntegerLiteralTokenKind => TokenKind.IntegerLiteralToken;
         protected override TokenKind FloatLiteralTokenKind => TokenKind.FloatLiteralToken;
         protected override TokenKind IdentifierTokenKind => TokenKind.IdentifierToken;
+        protected override TokenKind InvalidTokenKind => TokenKind.InvalidToken;
         protected override ParserStage Stage => ParserStage.HLSLPreProcessing;
 
         protected string basePath;

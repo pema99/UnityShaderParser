@@ -7,7 +7,7 @@ using UnityShaderParser.HLSL.PreProcessor;
 
 namespace UnityShaderParser.ShaderLab.Tests
 {
-    public class Tests
+    public class PositiveTests
     {
         public static string[] GetBuiltinUnityShaders()
         {

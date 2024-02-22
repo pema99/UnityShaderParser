@@ -5,7 +5,7 @@ using UnityShaderParser.HLSL;
 
 namespace UnityShaderParser.Tests
 {
-    public class ShaderParserTests
+    public class PositiveTests
     {
         public void CheckParents<T>(SyntaxNode<T> parent)
             where T : SyntaxNode<T>

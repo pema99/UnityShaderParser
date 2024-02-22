@@ -10,7 +10,7 @@ using UnityShaderParser.HLSL.PreProcessor;
 
 namespace UnityShaderParser.HLSL.Tests
 {
-    public class Tests
+    public class PositiveTests
     {
         public static string[] GetTestShaders()
         {
@@ -177,6 +177,29 @@ namespace UnityShaderParser.HLSL.Tests
             Assert.That(JsonConvert.SerializeObject(redecls, settings), Is.EqualTo(JsonConvert.SerializeObject(decls, settings)).NoClip);
             
             Assert.AreEqual(prettyPrinted, roundtripped);
+        }
+    }
+
+    public class NegativeTests
+    {
+        [Test]
+        public void SimpleErrorRecoversAndEmitsAllDiagnostics()
+        {
+            var decl = ShaderParser.ParseTopLevelDeclaration(@"
+                void foo()
+                {
+                    int a a a a a a;
+                    int bar = 2;
+                    int b b b b b b;
+                }
+            ", out var diags, out var prags) as FunctionDefinitionNode;
+
+            Assert.AreEqual(2, diags.Count);
+            Assert.AreEqual(3, decl!.Body.Children.Count);
+            Assert.IsTrue(decl.Body.Children[1] is VariableDeclarationStatementNode node &&
+                node.Declarators[0].Name == "bar" &&
+                node.Declarators[0].Initializer is ValueInitializerNode init &&
+                init.Expression is LiteralExpressionNode);
         }
     }
 }

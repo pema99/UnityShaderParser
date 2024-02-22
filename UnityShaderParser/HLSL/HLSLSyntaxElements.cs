@@ -10,7 +10,7 @@ namespace UnityShaderParser.HLSL
     #region Common types
     public enum TokenKind
     {
-        None,
+        InvalidToken,
 
         AppendStructuredBufferKeyword,
         BlendStateKeyword,

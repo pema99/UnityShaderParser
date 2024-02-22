@@ -11,7 +11,7 @@ namespace UnityShaderParser.ShaderLab
     #region Tokens
     public enum TokenKind
     {
-        None,
+        InvalidToken,
 
         OpenParenToken,
         CloseParenToken,

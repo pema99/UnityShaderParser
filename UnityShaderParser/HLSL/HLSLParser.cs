@@ -51,6 +51,7 @@ namespace UnityShaderParser.HLSL
         protected override TokenKind IntegerLiteralTokenKind => TokenKind.IntegerLiteralToken;
         protected override TokenKind FloatLiteralTokenKind => TokenKind.FloatLiteralToken;
         protected override TokenKind IdentifierTokenKind => TokenKind.IdentifierToken;
+        protected override TokenKind InvalidTokenKind => TokenKind.InvalidToken;
         protected override ParserStage Stage => ParserStage.HLSLParsing;
 
         public static List<HLSLSyntaxNode> ParseTopLevelDeclarations(List<HLSLToken> tokens, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
@@ -80,7 +81,7 @@ namespace UnityShaderParser.HLSL
         {
             HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError, config.DiagnosticFilter);
             parser.RunPreProcessor(config, out pragmas);
-            var result = parser.ParseMany0(() => !parser.IsAtEnd(), () => parser.ParseStatement());
+            var result = parser.ParseMany0(() => !parser.LoopShouldContinue(), () => parser.ParseStatement());
             foreach (var stmt in result)
             {
                 stmt.ComputeParents();
@@ -134,7 +135,7 @@ namespace UnityShaderParser.HLSL
         {
             List<HLSLSyntaxNode> result = new List<HLSLSyntaxNode>();
 
-            while (!IsAtEnd())
+            while (LoopShouldContinue())
             {
                 result.Add(ParseTopLevelDeclaration());
             }
@@ -551,7 +552,7 @@ namespace UnityShaderParser.HLSL
                     break;
             }
 
-            while (true)
+            while (LoopShouldContinue())
             {
                 switch (Peek().Kind)
                 {
@@ -592,6 +593,8 @@ namespace UnityShaderParser.HLSL
                         return higher;
                 }
             }
+
+            return higher;
         }
 
         private NamedExpressionNode ParseNamedExpression()
@@ -725,6 +728,7 @@ namespace UnityShaderParser.HLSL
                     Semantic = semantic
                 };
             }
+            RecoverTo(TokenKind.SemiToken, TokenKind.CloseBraceToken);
 
             // Otherwise, full function
             BlockNode body = ParseBlock(new List<AttributeNode>());
@@ -755,6 +759,7 @@ namespace UnityShaderParser.HLSL
                 }
 
                 var semiTok = Eat(TokenKind.SemiToken);
+                RecoverTo(TokenKind.SemiToken);
                 return new StructDefinitionNode(Range(firstTok, semiTok))
                 {
                     Attributes = attributes,
@@ -766,6 +771,7 @@ namespace UnityShaderParser.HLSL
             {
                 List<VariableDeclaratorNode> variables = ParseSeparatedList1(TokenKind.CommaToken, () => ParseVariableDeclarator());
                 var semiTok = Eat(TokenKind.SemiToken);
+                RecoverTo(TokenKind.SemiToken);
                 return new VariableDeclarationStatementNode(Range(firstTok, semiTok))
                 {
                     Modifiers = modifiers,
@@ -803,6 +809,7 @@ namespace UnityShaderParser.HLSL
 
             Eat(TokenKind.CloseBraceToken);
             var semiTok = Eat(TokenKind.SemiToken);
+            RecoverTo(TokenKind.SemiToken);
 
             return new InterfaceDefinitionNode(Range(keywordTok, semiTok))
             {
@@ -819,6 +826,7 @@ namespace UnityShaderParser.HLSL
             Eat(TokenKind.OpenBraceToken);
             var decls = ParseMany0(() => !Match(TokenKind.CloseBraceToken), ParseTopLevelDeclaration);
             var closeTok = Eat(TokenKind.CloseBraceToken);
+            RecoverTo(TokenKind.CloseBraceToken);
 
             return new NamespaceNode(Range(keywordTok, closeTok))
             {
@@ -849,6 +857,7 @@ namespace UnityShaderParser.HLSL
             {
                 Eat(TokenKind.SemiToken);
             }
+            RecoverTo(TokenKind.SemiToken, TokenKind.CloseBraceToken);
 
             return new ConstantBufferNode(Range(buffer, Previous()))
             {
@@ -876,6 +885,7 @@ namespace UnityShaderParser.HLSL
             var names = ParseSeparatedList1(TokenKind.CommaToken, ParseUserDefinedNamedType);
 
             var semiTok = Eat(TokenKind.SemiToken);
+            RecoverTo(TokenKind.SemiToken);
 
             return new TypedefNode(Range(firstTok, semiTok))
             {
@@ -942,7 +952,7 @@ namespace UnityShaderParser.HLSL
 
             List<VariableDeclarationStatementNode> decls = new List<VariableDeclarationStatementNode>();
             List<FunctionNode> methods = new List<FunctionNode>();
-            while (!IsAtEnd() && !Match(TokenKind.CloseBraceToken))
+            while (LoopShouldContinue() && !Match(TokenKind.CloseBraceToken))
             {
                 if (IsNextPossiblyFunctionDeclaration())
                 {
@@ -1263,6 +1273,7 @@ namespace UnityShaderParser.HLSL
             var firstTok = attributes.FirstOrDefault()?.Tokens.FirstOrDefault() ?? openTok;
             List<StatementNode> statements = ParseMany0(() => !Match(TokenKind.CloseBraceToken), ParseStatement);
             var closeTok = Eat(TokenKind.CloseBraceToken);
+            RecoverTo(TokenKind.CloseBraceToken);
 
             return new BlockNode(Range(firstTok, closeTok))
             {
@@ -1309,6 +1320,7 @@ namespace UnityShaderParser.HLSL
                         returnExpr = ParseExpression();
                     }
                     var returnSemiTok = Eat(TokenKind.SemiToken);
+                    RecoverTo(TokenKind.SemiToken);
                     return new ReturnStatementNode(Range(firstTok, returnSemiTok)) { Attributes = attributes, Expression = returnExpr };
 
                 case TokenKind.ForKeyword:
@@ -1332,16 +1344,19 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.BreakKeyword:
                     Advance();
                     var breakTok = Eat(TokenKind.SemiToken);
+                    RecoverTo(TokenKind.SemiToken);
                     return new BreakStatementNode(Range(firstTok, breakTok)) { Attributes = attributes };
 
                 case TokenKind.ContinueKeyword:
                     Advance();
                     var continueTok = Eat(TokenKind.SemiToken);
+                    RecoverTo(TokenKind.SemiToken);
                     return new ContinueStatementNode(Range(firstTok, continueTok)) { Attributes = attributes };
 
                 case TokenKind.DiscardKeyword:
                     Advance();
                     var discardTok = Eat(TokenKind.SemiToken);
+                    RecoverTo(TokenKind.SemiToken);
                     return new DiscardStatementNode(Range(firstTok, discardTok)) { Attributes = attributes };
 
                 case TokenKind.InterfaceKeyword:
@@ -1357,6 +1372,7 @@ namespace UnityShaderParser.HLSL
                 default:
                     ExpressionNode expr = ParseExpression();
                     var exprSemiTok = Eat(TokenKind.SemiToken);
+                    RecoverTo(TokenKind.SemiToken);
                     return new ExpressionStatementNode(Range(firstTok, exprSemiTok)) { Attributes = attributes, Expression = expr };
             }
         }
@@ -1390,6 +1406,7 @@ namespace UnityShaderParser.HLSL
             TypeNode kind = ParseType();
             List<VariableDeclaratorNode> variables = ParseSeparatedList1(TokenKind.CommaToken, () => ParseVariableDeclarator());
             var semiTok = Eat(TokenKind.SemiToken);
+            RecoverTo(TokenKind.SemiToken);
 
             return new VariableDeclarationStatementNode(Range(firstTok, semiTok))
             {
@@ -1442,6 +1459,7 @@ namespace UnityShaderParser.HLSL
             Eat(TokenKind.CloseParenToken);
 
             var body = ParseStatement();
+            RecoverTo(TokenKind.SemiToken, TokenKind.CloseBraceToken);
 
             return new ForStatementNode(Range(firstTok, Previous()))
             {
@@ -1464,6 +1482,7 @@ namespace UnityShaderParser.HLSL
             Eat(TokenKind.CloseParenToken);
 
             var body = ParseStatement();
+            RecoverTo(TokenKind.SemiToken, TokenKind.CloseBraceToken);
 
             return new WhileStatementNode(Range(firstTok, Previous()))
             {
@@ -1486,6 +1505,7 @@ namespace UnityShaderParser.HLSL
 
             Eat(TokenKind.CloseParenToken);
             var semiTok = Eat(TokenKind.SemiToken);
+            RecoverTo(TokenKind.SemiToken);
 
             return new DoWhileStatementNode(Range(firstTok, semiTok))
             {
@@ -1513,6 +1533,7 @@ namespace UnityShaderParser.HLSL
                 Eat(TokenKind.ElseKeyword);
                 elseClause = ParseStatement();
             }
+            RecoverTo(TokenKind.SemiToken, TokenKind.CloseBraceToken);
 
             return new IfStatementNode(Range(firstTok, Previous()))
             {
@@ -1561,6 +1582,7 @@ namespace UnityShaderParser.HLSL
             }
 
             var closeTok = Eat(TokenKind.CloseBraceToken);
+            RecoverTo(TokenKind.CloseBraceToken);
 
             return new SwitchStatementNode(Range(firstTok, closeTok))
             {
@@ -1597,6 +1619,7 @@ namespace UnityShaderParser.HLSL
             {
                 Eat(TokenKind.SemiToken);
             }
+            RecoverTo(TokenKind.SemiToken, TokenKind.CloseBraceToken);
 
             return new TechniqueNode(Range(keywordTok, Previous()))
             {

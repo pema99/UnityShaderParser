@@ -39,6 +39,7 @@ namespace UnityShaderParser.ShaderLab
         protected override TokenKind IntegerLiteralTokenKind => TokenKind.IntegerLiteralToken;
         protected override TokenKind FloatLiteralTokenKind => TokenKind.FloatLiteralToken;
         protected override TokenKind IdentifierTokenKind => TokenKind.IdentifierToken;
+        protected override TokenKind InvalidTokenKind => TokenKind.InvalidToken;
         protected override ParserStage Stage => ParserStage.ShaderLabParsing;
 
         protected ShaderLabParserConfig config = default;
