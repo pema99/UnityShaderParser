@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Linq;
 using UnityShaderParser.Common;
 
-// TODO: Namespace nodes
 namespace UnityShaderParser.HLSL
 {
     using HLSLToken = Token<TokenKind>;

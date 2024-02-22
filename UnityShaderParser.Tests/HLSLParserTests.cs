@@ -129,7 +129,6 @@ namespace UnityShaderParser.HLSL.Tests
             }
         }
 
-        // TODO: Test via serialization
         [Test, TestCaseSource(nameof(GetTestShaders))]
         public void RoundTripTestShaders(string path)
         {
