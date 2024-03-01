@@ -686,6 +686,11 @@ namespace UnityShaderParser.HLSL
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private SourceSpan span;
 
+        public override SourceSpan OriginalSpan => originalSpan;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private SourceSpan originalSpan;
+
         public List<HLSLToken> Tokens => tokens;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -701,7 +706,11 @@ namespace UnityShaderParser.HLSL
 
         public HLSLSyntaxNode(List<HLSLToken> tokens)
         {
-            this.span = new SourceSpan(tokens.FirstOrDefault().Span.Start, tokens.LastOrDefault().Span.End);
+            if (tokens.Count > 0)
+            {
+                this.span = SourceSpan.Between(tokens.First().Span, tokens.Last().Span);
+                this.originalSpan = SourceSpan.Between(tokens.First().OriginalSpan, tokens.Last().OriginalSpan);
+            }
             this.tokens = tokens;
         }
     }

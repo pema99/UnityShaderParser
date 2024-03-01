@@ -72,6 +72,8 @@ namespace UnityShaderParser.Common
     // TODO: Filename
     public struct SourceSpan
     {
+        public string BasePath { get; }
+        public string FileName { get; }
         public SourceLocation Start { get; }
         public SourceLocation End { get; }
 
@@ -79,8 +81,10 @@ namespace UnityShaderParser.Common
         public int EndIndex => End.Index;
         public int Length => EndIndex - StartIndex;
 
-        public SourceSpan(SourceLocation start, SourceLocation end)
+        public SourceSpan(string basePath, string fileName, SourceLocation start, SourceLocation end)
         {
+            BasePath = basePath;
+            FileName = fileName;
             Start = start;
             End = end;
         }
@@ -101,22 +105,36 @@ namespace UnityShaderParser.Common
         }
 
         public static SourceSpan BetweenTokens<T>(Token<T> first, Token<T> last)
-            where T : struct => new SourceSpan(first.Span.Start, last.Span.End);
+            where T : struct => new SourceSpan(first.Span.BasePath, first.Span.FileName, first.Span.Start, last.Span.End);
+
+        public static SourceSpan Between(SourceSpan first, SourceSpan last)
+            => new SourceSpan(first.BasePath, first.FileName, first.Start, last.End);
     }
 
-    public struct Token<T>
+    public class Token<T>
         where T : struct
     {
-        public T Kind { get; }
-        public string Identifier { get; } // Optional
-        public SourceSpan Span { get; }   // Location in source code
-        public int Position { get; }      // Location in token stream
+        public T Kind { get; private set; }
+        public string Identifier { get; private set; }       // Optional
+        public SourceSpan Span { get; private set; }         // Location in source code
+        public SourceSpan OriginalSpan { get; private set; }
+        public int Position { get; private set; }            // Location in token stream
 
         public Token(T kind, string identifier, SourceSpan span, int position)
         {
             Kind = kind;
             Identifier = identifier;
             Span = span;
+            OriginalSpan = span;
+            Position = position;
+        }
+
+        public Token(T kind, string identifier, SourceSpan span, SourceSpan originalSpan, int position)
+        {
+            Kind = kind;
+            Identifier = identifier;
+            Span = span;
+            OriginalSpan = originalSpan;
             Position = position;
         }
 
@@ -161,6 +179,7 @@ namespace UnityShaderParser.Common
         public List<TSelf> Children => GetChildren.ToList();
         public TSelf Parent => parent;
         public abstract SourceSpan Span { get; }
+        public abstract SourceSpan OriginalSpan { get; }
     }
 
     public enum PrettyEnumStyle

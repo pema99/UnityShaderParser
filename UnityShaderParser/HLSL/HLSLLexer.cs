@@ -10,17 +10,17 @@ namespace UnityShaderParser.HLSL
     {
         protected override ParserStage Stage => ParserStage.HLSLLexing;
 
-        public HLSLLexer(string source, bool throwExceptionOnError, SourceLocation offset)
-            : base(source, throwExceptionOnError, offset) { }
+        public HLSLLexer(string source, string fileName, bool throwExceptionOnError, SourceLocation offset)
+            : base(source, fileName, throwExceptionOnError, offset) { }
 
-        public static List<HLSLToken> Lex(string source, bool throwExceptionOnError, out List<Diagnostic> diagnostics)
+        public static List<HLSLToken> Lex(string source, string fileName, bool throwExceptionOnError, out List<Diagnostic> diagnostics)
         {
-            return Lex(source, throwExceptionOnError, new SourceLocation(1, 1, 0), out diagnostics);
+            return Lex(source, fileName, throwExceptionOnError, new SourceLocation(1, 1, 0), out diagnostics);
         }
 
-        public static List<HLSLToken> Lex(string source, bool throwExceptionOnError, SourceLocation offset, out List<Diagnostic> diagnostics)
+        public static List<HLSLToken> Lex(string source, string fileName, bool throwExceptionOnError, SourceLocation offset, out List<Diagnostic> diagnostics)
         {
-            HLSLLexer lexer = new HLSLLexer(source, throwExceptionOnError, offset);
+            HLSLLexer lexer = new HLSLLexer(source, fileName, throwExceptionOnError, offset);
 
             lexer.Lex();
 

@@ -16,7 +16,17 @@ namespace UnityShaderParser.HLSL.PreProcessor
 
         public DefaultPreProcessorIncludeResolver(List<string> includePaths)
         {
-            this.includePaths = includePaths;
+            foreach (var includePath in includePaths)
+            {
+                if (!Directory.Exists(includePath))
+                {
+                    this.includePaths.Add(Path.GetFullPath(includePath));
+                }
+                else
+                {
+                    this.includePaths.Add(includePath);
+                }
+            }
         }
 
         public string ReadFile(string basePath, string filePath)

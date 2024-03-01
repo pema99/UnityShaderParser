@@ -22,7 +22,7 @@ namespace UnityShaderParser.ShaderLab.Tests
         {
             string source = File.ReadAllText(path);
 
-            var tokens = ShaderLabLexer.Lex(source, false, out var lexerDiags);
+            var tokens = ShaderLabLexer.Lex(source, null, false, out var lexerDiags);
             Assert.IsEmpty(lexerDiags, lexerDiags.FirstOrDefault().ToString());
 
             var config = new ShaderLabParserConfig
@@ -40,7 +40,7 @@ namespace UnityShaderParser.ShaderLab.Tests
         {
             string source = File.ReadAllText(path);
 
-            var tokens = ShaderLabLexer.Lex(source, false, out var lexerDiags);
+            var tokens = ShaderLabLexer.Lex(source, null, false, out var lexerDiags);
             Assert.IsEmpty(lexerDiags, lexerDiags.FirstOrDefault().ToString());
 
             string cgIncludesPath = Path.Combine(Directory.GetCurrentDirectory(), "TestShaders/UnityBuiltinShaders/CGIncludes");

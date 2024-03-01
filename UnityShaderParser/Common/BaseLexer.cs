@@ -22,7 +22,7 @@ namespace UnityShaderParser.Common
         protected List<Token<T>> tokens = new List<Token<T>>();
         protected List<Diagnostic> diagnostics = new List<Diagnostic>();
 
-        public BaseLexer(string source, bool throwExceptionOnError, SourceLocation offset)
+        public BaseLexer(string source, string fileName, bool throwExceptionOnError, SourceLocation offset)
         {
             this.source = source;
             this.throwExceptionOnError = throwExceptionOnError;
@@ -78,7 +78,8 @@ namespace UnityShaderParser.Common
 
         protected SourceSpan GetCurrentSpan()
         {
-            return new SourceSpan(new SourceLocation(anchorLine, anchorColumn, anchorPosition), new SourceLocation(line, column, position));
+            // TODO: File path
+            return new SourceSpan("", "", new SourceLocation(anchorLine, anchorColumn, anchorPosition), new SourceLocation(line, column, position));
         }
 
         protected string EatStringLiteral(char start, char end)

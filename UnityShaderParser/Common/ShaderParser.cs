@@ -12,7 +12,7 @@ namespace UnityShaderParser.Common
 
         public static ShaderNode ParseUnityShader(string source, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
         {
-            var tokens = ShaderLabLexer.Lex(source, config.ThrowExceptionOnError, out var lexerDiags);
+            var tokens = ShaderLabLexer.Lex(source, config.FileName, config.ThrowExceptionOnError, out var lexerDiags);
             var rootNode = ShaderLabParser.Parse(tokens, config, out var parserDiags);
             diagnostics = lexerDiags.Concat(parserDiags).ToList();
             return rootNode;
@@ -23,7 +23,7 @@ namespace UnityShaderParser.Common
 
         public static List<HLSLSyntaxNode> ParseTopLevelDeclarations(string source, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
         {
-            var tokens = HLSLLexer.Lex(source, config.ThrowExceptionOnError, out var lexerDiags);
+            var tokens = HLSLLexer.Lex(source, config.FileName, config.ThrowExceptionOnError, out var lexerDiags);
             var decls = HLSLParser.ParseTopLevelDeclarations(tokens, config, out var parserDiags, out pragmas);
             diagnostics = lexerDiags.Concat(parserDiags).ToList();
             return decls;
@@ -34,7 +34,7 @@ namespace UnityShaderParser.Common
 
         public static HLSLSyntaxNode ParseTopLevelDeclaration(string source, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
         {
-            var tokens = HLSLLexer.Lex(source, config.ThrowExceptionOnError, out var lexerDiags);
+            var tokens = HLSLLexer.Lex(source, config.FileName, config.ThrowExceptionOnError, out var lexerDiags);
             var decl = HLSLParser.ParseTopLevelDeclaration(tokens, config, out var parserDiags, out pragmas);
             diagnostics = lexerDiags.Concat(parserDiags).ToList();
             return decl;
@@ -45,7 +45,7 @@ namespace UnityShaderParser.Common
 
         public static List<StatementNode> ParseStatements(string source, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
         {
-            var tokens = HLSLLexer.Lex(source, config.ThrowExceptionOnError, out var lexerDiags);
+            var tokens = HLSLLexer.Lex(source, config.FileName, config.ThrowExceptionOnError, out var lexerDiags);
             var stmt = HLSLParser.ParseStatements(tokens, config, out var parserDiags, out pragmas);
             diagnostics = lexerDiags.Concat(parserDiags).ToList();
             return stmt;
@@ -56,7 +56,7 @@ namespace UnityShaderParser.Common
 
         public static StatementNode ParseStatement(string source, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
         {
-            var tokens = HLSLLexer.Lex(source, config.ThrowExceptionOnError, out var lexerDiags);
+            var tokens = HLSLLexer.Lex(source, config.FileName, config.ThrowExceptionOnError, out var lexerDiags);
             var stmt = HLSLParser.ParseStatement(tokens, config, out var parserDiags, out pragmas);
             diagnostics = lexerDiags.Concat(parserDiags).ToList();
             return stmt;
@@ -67,7 +67,7 @@ namespace UnityShaderParser.Common
 
         public static ExpressionNode ParseExpression(string source, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
         {
-            var tokens = HLSLLexer.Lex(source, config.ThrowExceptionOnError, out var lexerDiags);
+            var tokens = HLSLLexer.Lex(source, config.FileName, config.ThrowExceptionOnError, out var lexerDiags);
             var expr = HLSLParser.ParseExpression(tokens, config, out var parserDiags, out pragmas);
             diagnostics = lexerDiags.Concat(parserDiags).ToList();
             return expr;

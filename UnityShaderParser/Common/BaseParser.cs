@@ -15,6 +15,8 @@ namespace UnityShaderParser.Common
         protected abstract T InvalidTokenKind { get; }
         protected abstract ParserStage Stage { get; }
 
+        protected Token<T> InvalidToken => new Token<T>(InvalidTokenKind, null, anchorSpan, position);
+
         protected List<Token<T>> tokens = new List<Token<T>>();
         protected int position = 0;
         protected SourceSpan anchorSpan = default;
@@ -99,11 +101,11 @@ namespace UnityShaderParser.Common
 
         protected Token<T> LookAhead(int offset = 1)
         {
-            if (IsAtEnd())
-                return default;
+            if (IsAtEnd(offset))
+                return InvalidToken;
             // If we are currently recovering from an error, return an error token.
             else if (isRecovering)
-                return new Token<T>(InvalidTokenKind, null, anchorSpan, position);
+                return InvalidToken;
             else
                 return tokens[position + offset];
         }
@@ -138,10 +140,10 @@ namespace UnityShaderParser.Common
         protected Token<T> Advance(int amount = 1)
         {
             if (IsAtEnd(amount - 1))
-                return default; 
+                return InvalidToken; 
             // If we are currently recovering from an error, don't keep eating tokens, and instead return an error token.
             else if (isRecovering)
-                return new Token<T>(InvalidTokenKind, null, anchorSpan, position);
+                return InvalidToken;
             Token<T> result = tokens[position];
             position += amount;
             anchorSpan = Peek().Span;
@@ -184,6 +186,7 @@ namespace UnityShaderParser.Common
 
         protected List<Token<T>> Range(Token<T> first, Token<T> last)
         {
+            if (first == null || last == null) return new List<Token<T>>();
             int count = last.Position - first.Position + 1;
             if (count < 0) count = 0;
             if (first.Position + count > tokens.Count) count = tokens.Count - first.Position;

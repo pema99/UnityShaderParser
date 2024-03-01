@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityShaderParser.Common;
 
@@ -35,6 +36,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
         protected override ParserStage Stage => ParserStage.HLSLPreProcessing;
 
         protected string basePath;
+        protected string fileName;
         protected IPreProcessorIncludeResolver includeResolver;
 
         protected int lineOffset = 0;
@@ -43,21 +45,25 @@ namespace UnityShaderParser.HLSL.PreProcessor
         protected List<HLSLToken> outputTokens = new List<HLSLToken>();
         protected List<string> outputPragmas = new List<string>();
 
-        protected void Add(HLSLToken token)
+        protected SourceSpan AddFileContext(SourceSpan span)
         {
-            // TODO: Fix this
-            var newSpan = new SourceSpan(
-                new SourceLocation(token.Span.Start.Line + lineOffset, token.Span.Start.Column, token.Span.Start.Index),
-                new SourceLocation(token.Span.End.Line + lineOffset, token.Span.End.Column, token.Span.End.Index));
-            var newToken = new HLSLToken(token.Kind, token.Identifier, newSpan, token.Position);
-            outputTokens.Add(newToken);
+            string newBasePath = span.BasePath;
+            string newFilePath = span.FileName;
+            if (string.IsNullOrEmpty(newBasePath)) newBasePath = basePath;
+            if (string.IsNullOrEmpty(newFilePath)) newFilePath = fileName;
+
+            return new SourceSpan(
+                newBasePath,
+                newFilePath,
+                new SourceLocation(span.Start.Line + lineOffset, span.Start.Column, span.Start.Index),
+                new SourceLocation(span.End.Line + lineOffset, span.End.Column, span.End.Index));
         }
-        protected void Add(IEnumerable<HLSLToken> tokens)
+
+        protected void Passthrough()
         {
-            foreach (var token in tokens)
-            {
-                Add(token);
-            }
+            var token = Advance();
+            var newToken = new HLSLToken(token.Kind, token.Identifier, AddFileContext(token.Span), token.OriginalSpan, outputTokens.Count);
+            outputTokens.Add(newToken);
         }
 
         public HLSLPreProcessor(List<HLSLToken> tokens, bool throwExceptionOnError, DiagnosticFlags diagnosticFilter, string basePath, IPreProcessorIncludeResolver includeResolver, Dictionary<string, string> defines)
@@ -68,7 +74,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
 
             foreach (var kvp in defines)
             {
-                var localTokens = HLSLLexer.Lex(kvp.Value, false, out var localLexerDiags);
+                var localTokens = HLSLLexer.Lex(kvp.Value, null, false, out var localLexerDiags);
                 if (localLexerDiags.Count > 0)
                 {
                     Error(DiagnosticFlags.SyntaxError, $"Invalid define '{kvp.Key}' passed.");
@@ -147,22 +153,78 @@ namespace UnityShaderParser.HLSL.PreProcessor
             }
         }
 
-        private void ExpandInclude()
+        protected struct PreProcessorSnapshot
         {
-            Eat(TokenKind.IncludeDirectiveKeyword);
-            var pathToken = Eat(TokenKind.SystemIncludeLiteralToken, TokenKind.StringLiteralToken);
-            Eat(TokenKind.EndDirectiveToken);
-            string filePath = pathToken.Identifier ?? string.Empty;
-            string source = includeResolver.ReadFile(basePath, filePath);
-            var tokensToAdd = HLSLLexer.Lex(source, throwExceptionOnError, out var diagnosticsToAdd);
+            public List<HLSLToken> Tokens;
+            public int LineOffset;
+            public string BasePath;
+            public int ExitPosition;
+            public SourceSpan IncludeSpan;
+            public string FileName;
+        }
+
+        protected Stack<PreProcessorSnapshot> fileSnapshots = new Stack<PreProcessorSnapshot>();
+
+        protected void EnterFile(SourceSpan includeSpan, string newFileName)
+        {
+            string source = includeResolver.ReadFile(basePath, newFileName);
+            var sourceTokens = HLSLLexer.Lex(source, fileName, throwExceptionOnError, out var diagnosticsToAdd);
             diagnostics.AddRange(diagnosticsToAdd);
-            tokens.InsertRange(position, tokensToAdd);
+
+            fileSnapshots.Push(new PreProcessorSnapshot
+            {
+                Tokens = tokens,
+                LineOffset = lineOffset,
+                BasePath = basePath,
+                ExitPosition = position,
+                IncludeSpan = includeSpan,
+                FileName = fileName,
+            });
+
+            position = 0;
+            lineOffset = 0;
+            tokens = sourceTokens;
+
+            string[] pathParts = newFileName.Split('/', '\\');
+            if (pathParts.Length > 1)
+            {
+                basePath = Path.Combine(basePath, string.Join("/", pathParts.Take(pathParts.Length - 1)));
+            }
+            fileName = pathParts.LastOrDefault();
+        }
+
+        protected void ExitFile()
+        {
+            var snapshot = fileSnapshots.Pop();
+            tokens = snapshot.Tokens;
+            lineOffset = snapshot.LineOffset;
+            basePath = snapshot.BasePath;
+            fileName = snapshot.FileName;
+            position = snapshot.ExitPosition;
+        }
+
+        private void ExpandInclude(bool expandIncludesOnly)
+        {
+            var keywordTok = Eat(TokenKind.IncludeDirectiveKeyword);
+            var pathToken = Eat(TokenKind.SystemIncludeLiteralToken, TokenKind.StringLiteralToken);
+            var endTok = Eat(TokenKind.EndDirectiveToken);
+            var includeSpan = SourceSpan.Between(keywordTok.Span, endTok.Span);
+            string newFileName = pathToken.Identifier ?? string.Empty;
+
+            EnterFile(includeSpan, newFileName);
+
+            if (expandIncludesOnly)
+                ExpandIncludesOnly();
+            else
+                ExpandDirectives();
+
+            ExitFile();
         }
 
         // Glues tokens together with ## and evaluates defined(x) between each expansion
         private void ReplaceBetweenExpansions(List<HLSLToken> tokens)
         {
-            HLSLToken LocalPeek(int i) => i < tokens.Count ? tokens[i] : default;
+            HLSLToken LocalPeek(int i) => i < tokens.Count ? tokens[i] : InvalidToken;
 
             List<HLSLToken> result = new List<HLSLToken>();
             for (int i = 0; i < tokens.Count; i++)
@@ -171,7 +233,9 @@ namespace UnityShaderParser.HLSL.PreProcessor
                 if (HLSLSyntaxFacts.TryConvertIdentifierOrKeywordToString(token, out string gluedIdentifier) && LocalPeek(i + 1).Kind == TokenKind.HashHashToken)
                 {
                     SourceSpan startSpan = token.Span;
+                    SourceSpan startSpanOriginal = token.OriginalSpan;
                     SourceSpan endSpan = token.Span;
+                    SourceSpan endSpanOriginal = token.OriginalSpan;
                     int startPosition = token.Position;
 
                     i++; // identifier
@@ -182,9 +246,15 @@ namespace UnityShaderParser.HLSL.PreProcessor
                         var nextToken = LocalPeek(i++); // identifier
                         gluedIdentifier += nextIdentifier;
                         endSpan = nextToken.Span;
+                        endSpanOriginal = nextToken.OriginalSpan;
                     }
 
-                    var gluedToken = new HLSLToken(TokenKind.IdentifierToken, gluedIdentifier, new SourceSpan(startSpan.Start, endSpan.End), startPosition);
+                    var gluedToken = new HLSLToken(
+                        TokenKind.IdentifierToken,
+                        gluedIdentifier,
+                        SourceSpan.Between(startSpan, endSpan),
+                        SourceSpan.Between(startSpanOriginal, endSpanOriginal),
+                        startPosition);
                     i--; // For loop continues
 
                     result.Add(gluedToken);
@@ -192,6 +262,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                 else if (token.Kind == TokenKind.IdentifierToken && token.Identifier == "defined")
                 {
                     SourceSpan startSpan = token.Span;
+                    SourceSpan startSpanOriginal = token.OriginalSpan;
                     int startPosition = token.Position;
 
                     i++; // defined
@@ -199,12 +270,19 @@ namespace UnityShaderParser.HLSL.PreProcessor
                     if (hasParen) i++;
                     HLSLToken identifier = LocalPeek(i++);
                     SourceSpan endSpan = identifier.Span;
-                    if (hasParen) endSpan = LocalPeek(i++).Span;
+                    SourceSpan endSpanOriginal = identifier.OriginalSpan;
+                    if (hasParen)
+                    {
+                        var closeParen = LocalPeek(i++);
+                        endSpan = closeParen.Span;
+                        endSpanOriginal = closeParen.OriginalSpan;
+                    }
 
                     var replacedToken = new HLSLToken(
                         TokenKind.IntegerLiteralToken,
                         defines.ContainsKey(HLSLSyntaxFacts.IdentifierOrKeywordToString(identifier)) ? "1" : "0",
-                        new SourceSpan(startSpan.Start, endSpan.End),
+                        SourceSpan.Between(startSpan, endSpan),
+                        SourceSpan.Between(startSpanOriginal, endSpanOriginal),
                         startPosition);
                     i--; // For loop continues
 
@@ -226,8 +304,8 @@ namespace UnityShaderParser.HLSL.PreProcessor
 
             // Setup local parser functionality (we want to parse on a secondary token stream)
             bool LocalIsAtEnd() => localOffset >= tokenStream.Count;
-            HLSLToken LocalAdvance() => LocalIsAtEnd() ? default : tokenStream[localOffset++];
-            HLSLToken LocalPeek() => LocalIsAtEnd() ? default : tokenStream[localOffset];
+            HLSLToken LocalAdvance() => LocalIsAtEnd() ? InvalidToken : tokenStream[localOffset++];
+            HLSLToken LocalPeek() => LocalIsAtEnd() ? InvalidToken : tokenStream[localOffset];
             bool LocalMatch(TokenKind kind) => LocalIsAtEnd() ? false : kind == tokenStream[localOffset].Kind;
             HLSLToken LocalEat(TokenKind kind)
             {
@@ -370,7 +448,10 @@ namespace UnityShaderParser.HLSL.PreProcessor
                                 if (paramIndex >= 0 && paramIndex < parameters.Count)
                                 {
                                     var parameter = parameters[paramIndex];
-                                    next.AddRange(parameter);
+                                    foreach (var parameterToken in parameter)
+                                    {
+                                        next.Add(new HLSLToken(parameterToken.Kind, parameterToken.Identifier, macroToken.Span, parameterToken.Span, parameterToken.Position));
+                                    }
                                 }
                                 else
                                 {
@@ -415,7 +496,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
             for (int i = 0; i < tokens.Count; i++)
             {
                 var token = tokens[i];
-                var newToken = new HLSLToken(token.Kind, token.Identifier, token.Span, start + i);
+                var newToken = new HLSLToken(token.Kind, token.Identifier, token.Span, token.OriginalSpan, start + i);
                 tokens[i] = newToken;
             }
         }
@@ -537,7 +618,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                         var token = expandedConditionTokens[i];
                         if (token.Kind == TokenKind.IdentifierToken)
                         {
-                            var newToken = new HLSLToken(TokenKind.IntegerLiteralToken, "0", token.Span, token.Position);
+                            var newToken = new HLSLToken(TokenKind.IntegerLiteralToken, "0", token.Span, token.OriginalSpan, token.Position);
                             expandedConditionTokens[i] = newToken;
                         }
                     }
@@ -599,6 +680,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
         private void GlueStringLiteralsPass()
         {
             position = 0;
+            lineOffset = 0;
             tokens = new List<HLSLToken>(outputTokens);
             outputTokens.Clear();
             while (LoopShouldContinue())
@@ -608,20 +690,25 @@ namespace UnityShaderParser.HLSL.PreProcessor
                     var strTok = Eat(TokenKind.StringLiteralToken);
                     string glued = strTok.Identifier ?? string.Empty;
                     SourceSpan spanStart = strTok.Span;
+                    SourceSpan spanStartOriginal = strTok.OriginalSpan;
                     SourceSpan spanEnd = strTok.Span;
+                    SourceSpan spanEndOriginal = strTok.OriginalSpan;
                     int positionStart = strTok.Position;
                     while (Match(TokenKind.StringLiteralToken))
                     {
                         var nextStrTok = Eat(TokenKind.StringLiteralToken);
                         glued += nextStrTok.Identifier ?? string.Empty;
-                        spanEnd = strTok.Span;
+                        spanEnd = nextStrTok.Span;
+                        spanEndOriginal = nextStrTok.OriginalSpan;
                     }
-                    var gluedToken = new HLSLToken(TokenKind.StringLiteralToken, glued, new SourceSpan(spanStart.Start, spanEnd.End), positionStart);
-                    Add(gluedToken);
+                    var gluedSpan = SourceSpan.Between(spanStart, spanEnd);
+                    var gluedSpanOriginal = SourceSpan.Between(spanStartOriginal, spanEndOriginal);
+                    var gluedToken = new HLSLToken(TokenKind.StringLiteralToken, glued, gluedSpan, gluedSpanOriginal, positionStart);
+                    outputTokens.Add(gluedToken);
                 }
                 else
                 {
-                    Add(Advance());
+                    Passthrough();
                 }
             }
         }
@@ -636,7 +723,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                     case TokenKind.IncludeDirectiveKeyword:
                         if (expandIncludes)
                         {
-                            ExpandInclude();
+                            ExpandInclude(false);
                         }
                         else
                         {
@@ -651,7 +738,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                         int tokenLine = next.Span.Start.Line; // where we actually are
                         Eat(TokenKind.LineDirectiveKeyword);
                         int targetLine = ParseIntegerLiteral(); // where we want to be
-                        lineOffset = targetLine - tokenLine; // calculate the offset
+                        lineOffset = targetLine - tokenLine - 1; // calculate the offset
                         if (Match(TokenKind.StringLiteralToken))
                         {
                             Advance();
@@ -717,20 +804,31 @@ namespace UnityShaderParser.HLSL.PreProcessor
                         break;
 
                     case TokenKind.IdentifierToken:
-                        Add(ApplyMacros());
+                        var startSpan = Peek().Span;
+                        var expanded = ApplyMacros();
+                        var endSpan = Previous().Span;
+                        var newSpan = SourceSpan.Between(startSpan, endSpan);
+                        foreach (var token in expanded)
+                        {
+                            var newToken = new HLSLToken(token.Kind, token.Identifier, AddFileContext(newSpan), token.Span, outputTokens.Count);
+                            outputTokens.Add(newToken);
+                        }
                         break;
 
                     default:
-                        Add(Advance());
+                        Passthrough();
                         break;
                 }
             }
 
-            // C spec says we need to glue adjacent string literals
-            GlueStringLiteralsPass();
+            if (fileSnapshots.Count == 0)
+            {
+                // C spec says we need to glue adjacent string literals
+                GlueStringLiteralsPass();
 
-            // Fix up token positions
-            ShiftPositionsToStartFrom(0, outputTokens);
+                // Fix up token positions
+                ShiftPositionsToStartFrom(0, outputTokens);
+            }
         }
 
         public void ExpandIncludesOnly()
@@ -740,16 +838,17 @@ namespace UnityShaderParser.HLSL.PreProcessor
                 HLSLToken next = Peek();
                 if (next.Kind == TokenKind.IncludeDirectiveKeyword)
                 {
-                    ExpandInclude();
+                    ExpandInclude(true);
                 }
                 else
                 {
-                    Add(Advance());
+                    Passthrough();
                 }
             }
 
             // Fix up token positions
-            ShiftPositionsToStartFrom(0, outputTokens);
+            if (fileSnapshots.Count == 0)
+                ShiftPositionsToStartFrom(0, outputTokens);
         }
 
         public void StripDirectives(bool expandIncludes = true)
@@ -782,7 +881,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                         break;
 
                     default:
-                        Add(Advance());
+                        Passthrough();
                         break;
                 }
             }

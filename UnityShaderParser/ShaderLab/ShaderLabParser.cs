@@ -81,7 +81,7 @@ namespace UnityShaderParser.ShaderLab
                 {
                     if (lexEmbeddedHLSL)
                     {
-                        tokenStream.AddRange(HLSLLexer.Lex(includeBlock.Code, config.ThrowExceptionOnError, includeBlock.Location, out var includeLexerDiags));
+                        tokenStream.AddRange(HLSLLexer.Lex(includeBlock.Code, config.FileName, config.ThrowExceptionOnError, includeBlock.Location, out var includeLexerDiags));
                         diagnostics.AddRange(includeLexerDiags);
                     }
                     sb.Append(includeBlock.Code);
@@ -89,7 +89,7 @@ namespace UnityShaderParser.ShaderLab
             }
             if (lexEmbeddedHLSL)
             {
-                tokenStream.AddRange(HLSLLexer.Lex(programToken.Identifier, config.ThrowExceptionOnError, programToken.Span.Start, out var lexerDiags));
+                tokenStream.AddRange(HLSLLexer.Lex(programToken.Identifier, config.FileName, config.ThrowExceptionOnError, programToken.Span.Start, out var lexerDiags));
                 diagnostics.AddRange(lexerDiags);
             }
             sb.Append(programToken.Identifier);
@@ -157,7 +157,7 @@ namespace UnityShaderParser.ShaderLab
             }
 
             // Lex preamble
-            var premableTokens = HLSLLexer.Lex(preamble, config.ThrowExceptionOnError, out var lexerDiags);
+            var premableTokens = HLSLLexer.Lex(preamble, config.FileName, config.ThrowExceptionOnError, out var lexerDiags);
             diagnostics.InsertRange(0, lexerDiags);
             tokenStream.InsertRange(0, premableTokens);
 

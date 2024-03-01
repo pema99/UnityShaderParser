@@ -13,6 +13,7 @@ namespace UnityShaderParser.HLSL
     {
         public PreProcessorMode PreProcessorMode { get; set; }
         public string BasePath { get; set; }
+        public string FileName { get; set; }
         public IPreProcessorIncludeResolver IncludeResolver { get; set; }
         public Dictionary<string, string> Defines { get; set; }
         public bool ThrowExceptionOnError { get; set; }
@@ -22,6 +23,7 @@ namespace UnityShaderParser.HLSL
         {
             PreProcessorMode = PreProcessorMode.ExpandAll;
             BasePath = Directory.GetCurrentDirectory();
+            FileName = null;
             IncludeResolver = new DefaultPreProcessorIncludeResolver();
             Defines = new Dictionary<string, string>();
             ThrowExceptionOnError = false;
@@ -32,6 +34,7 @@ namespace UnityShaderParser.HLSL
         {
             PreProcessorMode = config.PreProcessorMode;
             BasePath = config.BasePath;
+            FileName = config.FileName;
             IncludeResolver = config.IncludeResolver;
             Defines = config.Defines;
             ThrowExceptionOnError = config.ThrowExceptionOnError;
