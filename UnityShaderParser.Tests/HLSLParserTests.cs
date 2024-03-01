@@ -62,6 +62,14 @@ namespace UnityShaderParser.HLSL.Tests
             return GetTestShaders().Where(path => File.ReadAllText(path).Contains("#")).ToArray();
         }
 
+        private void CheckPositions(List<Token<HLSL.TokenKind>> tokens)
+        {
+            for (int i = 0; i < tokens.Count; i++)
+            {
+                Assert.AreEqual(i, tokens[i].Position);
+            }
+        }
+
         [Test, TestCaseSource(nameof(GetTestShadersContainingMacros))]
         public void ParseTestShadersContainingMacros(string path)
         {
@@ -84,6 +92,9 @@ namespace UnityShaderParser.HLSL.Tests
                 }),
             };
             var nodes = HLSLParser.ParseTopLevelDeclarations(tokens, config, out var parserDiags, out _);
+
+            CheckPositions(nodes.SelectMany(x => x.Tokens).ToList());
+
             Assert.IsEmpty(parserDiags, $"Expected no parser errors, got: {parserDiags.FirstOrDefault()}");
         }
 

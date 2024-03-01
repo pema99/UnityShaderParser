@@ -692,7 +692,6 @@ namespace UnityShaderParser.HLSL.PreProcessor
                     SourceSpan spanStartOriginal = strTok.OriginalSpan;
                     SourceSpan spanEnd = strTok.Span;
                     SourceSpan spanEndOriginal = strTok.OriginalSpan;
-                    int positionStart = strTok.Position;
                     while (Match(TokenKind.StringLiteralToken))
                     {
                         var nextStrTok = Eat(TokenKind.StringLiteralToken);
@@ -702,7 +701,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                     }
                     var gluedSpan = SourceSpan.Between(spanStart, spanEnd);
                     var gluedSpanOriginal = SourceSpan.Between(spanStartOriginal, spanEndOriginal);
-                    var gluedToken = new HLSLToken(TokenKind.StringLiteralToken, glued, gluedSpan, gluedSpanOriginal, positionStart);
+                    var gluedToken = new HLSLToken(TokenKind.StringLiteralToken, glued, gluedSpan, gluedSpanOriginal, outputTokens.Count);
                     outputTokens.Add(gluedToken);
                 }
                 else
@@ -824,9 +823,6 @@ namespace UnityShaderParser.HLSL.PreProcessor
             {
                 // C spec says we need to glue adjacent string literals
                 GlueStringLiteralsPass();
-
-                // Fix up token positions
-                ShiftPositionsToStartFrom(0, outputTokens);
             }
         }
 
@@ -844,10 +840,6 @@ namespace UnityShaderParser.HLSL.PreProcessor
                     Passthrough();
                 }
             }
-
-            // Fix up token positions
-            if (fileSnapshots.Count == 0)
-                ShiftPositionsToStartFrom(0, outputTokens);
         }
 
         public void StripDirectives(bool expandIncludes = true)
@@ -887,9 +879,6 @@ namespace UnityShaderParser.HLSL.PreProcessor
 
             // C spec says we need to glue adjacent string literals
             GlueStringLiteralsPass();
-
-            // Fix up token positions
-            ShiftPositionsToStartFrom(0, outputTokens);
         }
     }
 }
