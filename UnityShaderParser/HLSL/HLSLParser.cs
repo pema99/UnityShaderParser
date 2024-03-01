@@ -177,7 +177,11 @@ namespace UnityShaderParser.HLSL
                     return new EmptyStatementNode(Range(semiTok, semiTok)) { Attributes = new List<AttributeNode>() };
 
                 default:
-                    if (IsNextPossiblyFunctionDeclaration())
+                    if (IsNextPreProcessorDirective())
+                    {
+                        return ParsePreProcessorDirective(ParseTopLevelDeclaration);
+                    }
+                    else if (IsNextPossiblyFunctionDeclaration())
                     {
                         return ParseFunction();
                     }
@@ -448,7 +452,6 @@ namespace UnityShaderParser.HLSL
             };
         }
         
-
         private ExpressionNode ParseBinaryExpression(int level = 0)
         {
             if (level >= operatorGroups.Count)
@@ -1372,6 +1375,9 @@ namespace UnityShaderParser.HLSL
                 case TokenKind kind when IsVariableDeclarationStatement(kind):
                     return ParseVariableDeclarationStatement(attributes);
 
+                case var _ when IsNextPreProcessorDirective():
+                    return ParsePreProcessorDirective(ParseStatement);
+
                 default:
                     ExpressionNode expr = ParseExpression();
                     var exprSemiTok = Eat(TokenKind.SemiToken);
@@ -1664,6 +1670,7 @@ namespace UnityShaderParser.HLSL
                 }
             });
             var closeTok = Eat(TokenKind.CloseBraceToken);
+            RecoverTo(TokenKind.CloseBraceToken);
 
             return new PassNode(Range(keywordTok, closeTok))
             {
@@ -1671,6 +1678,199 @@ namespace UnityShaderParser.HLSL
                 Annotations = annotations,
                 Statements = statements
             };
+        }
+
+        private bool IsNextPreProcessorDirective()
+        {
+            switch (Peek().Kind)
+            {
+                case TokenKind.DefineDirectiveKeyword:
+                case TokenKind.IncludeDirectiveKeyword:
+                case TokenKind.LineDirectiveKeyword:
+                case TokenKind.UndefDirectiveKeyword:
+                case TokenKind.ErrorDirectiveKeyword:
+                case TokenKind.PragmaDirectiveKeyword:
+                case TokenKind.IfDirectiveKeyword:
+                case TokenKind.IfdefDirectiveKeyword:
+                case TokenKind.IfndefDirectiveKeyword:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private PreProcessorDirectiveNode ParsePreProcessorDirective(Func<HLSLSyntaxNode> recurse)
+        {
+            var next = Peek();
+            switch (next.Kind)
+            {
+                case TokenKind.DefineDirectiveKeyword:
+                    return ParseDefineDirective();
+                case TokenKind.IncludeDirectiveKeyword:
+                    return ParseIncludeDirective();
+                case TokenKind.LineDirectiveKeyword:
+                    return ParseLineDirective();
+                case TokenKind.UndefDirectiveKeyword:
+                    return ParseUndefDirective();
+                case TokenKind.ErrorDirectiveKeyword:
+                    return ParseErrorDirective();
+                case TokenKind.PragmaDirectiveKeyword:
+                    return ParsePragmaDirective();
+                case TokenKind.IfDirectiveKeyword:
+                    return ParseIfDirective(recurse, false);
+                case TokenKind.IfdefDirectiveKeyword:
+                    return ParseIfDefDirective(recurse);
+                case TokenKind.IfndefDirectiveKeyword:
+                    return ParseIfNotDefDirective(recurse);
+                default:
+                    Error("a valid preprocessor directive", next);
+                    return null;
+            }
+        }
+
+        private PreProcessorDirectiveNode ParseDefineDirective()
+        {
+            var keywordTok = Eat(TokenKind.DefineDirectiveKeyword);
+            string ident = ParseIdentifier();
+            
+            // Function like
+            if (Match(TokenKind.OpenFunctionLikeMacroParenToken))
+            {
+                Eat(TokenKind.OpenFunctionLikeMacroParenToken);
+                var args = ParseSeparatedList0(TokenKind.CloseParenToken, TokenKind.CommaToken, ParseIdentifier);
+                Eat(TokenKind.CloseParenToken);
+                var tokens = ParseMany0(() => !Match(TokenKind.EndDirectiveToken), () => Advance());
+                var endTok = Eat(TokenKind.EndDirectiveToken);
+                return new FunctionLikeMacroNode(Range(keywordTok, endTok))
+                {
+                    Name = ident,
+                    Arguments = args,
+                    Value = tokens,
+                };
+            }
+            else
+            {
+                var tokens = ParseMany0(() => !Match(TokenKind.EndDirectiveToken), () => Advance());
+                var endTok = Eat(TokenKind.EndDirectiveToken);
+                return new ObjectLikeMacroNode(Range(keywordTok, endTok))
+                {
+                    Name = ident,
+                    Value = tokens,
+                };
+            }
+        }
+
+        private IncludeDirectiveNode ParseIncludeDirective()
+        {
+            var keywordTok = Eat(TokenKind.IncludeDirectiveKeyword);
+            string ident = Eat(TokenKind.StringLiteralToken, TokenKind.SystemIncludeLiteralToken).Identifier;
+            var endTok = Eat(TokenKind.EndDirectiveToken);
+            return new IncludeDirectiveNode(Range(keywordTok, endTok)) { Path = ident };
+        }
+
+        private LineDirectiveNode ParseLineDirective()
+        {
+            var keywordTok = Eat(TokenKind.LineDirectiveKeyword);
+            int line = ParseIntegerLiteral();
+            var endTok = Eat(TokenKind.EndDirectiveToken);
+            return new LineDirectiveNode(Range(keywordTok, endTok)) { Line = line };
+        }
+
+        private UndefDirectiveNode ParseUndefDirective()
+        {
+            var keywordTok = Eat(TokenKind.UndefDirectiveKeyword);
+            string ident = ParseIdentifier();
+            var endTok = Eat(TokenKind.EndDirectiveToken);
+            return new UndefDirectiveNode(Range(keywordTok, endTok)) { Name = ident };
+        }
+
+        private ErrorDirectiveNode ParseErrorDirective()
+        {
+            var keywordTok = Eat(TokenKind.ErrorDirectiveKeyword);
+            var tokens = ParseMany0(() => !Match(TokenKind.EndDirectiveToken), () => Advance());
+            var endTok = Eat(TokenKind.EndDirectiveToken);
+            return new ErrorDirectiveNode(Range(keywordTok, endTok)) { Value = tokens };
+        }
+
+        private PragmaDirectiveNode ParsePragmaDirective()
+        {
+            var keywordTok = Eat(TokenKind.PragmaDirectiveKeyword);
+            var tokens = ParseMany0(() => !Match(TokenKind.EndDirectiveToken), () => Advance());
+            var endTok = Eat(TokenKind.EndDirectiveToken);
+            return new PragmaDirectiveNode(Range(keywordTok, endTok)) { Value = tokens };
+        }
+
+        private IfDirectiveNode ParseIfDirective(Func<HLSLSyntaxNode> recurse, bool elif)
+        {
+            var keywordTok = elif ? Eat(TokenKind.ElifDirectiveKeyword) : Eat(TokenKind.IfDirectiveKeyword);
+            var expr = ParseExpression();
+            var endTok = Eat(TokenKind.EndDirectiveToken);
+            var body = ParseMany0(() => !Match(TokenKind.ElseDirectiveKeyword, TokenKind.ElifDirectiveKeyword, TokenKind.EndifDirectiveKeyword), recurse);
+            var elseClause = ParseDirectiveConditionalRemainder(recurse);
+            return new IfDirectiveNode(Range(keywordTok, Previous()))
+            {
+                Condition = expr,
+                Body = body,
+                ElseClause = elseClause,
+            };
+        }
+
+        private IfDefDirectiveNode ParseIfDefDirective(Func<HLSLSyntaxNode> recurse)
+        {
+            var keywordTok = Eat(TokenKind.IfdefDirectiveKeyword);
+            string ident = ParseIdentifier();
+            var endTok = Eat(TokenKind.EndDirectiveToken);
+            var body = ParseMany0(() => !Match(TokenKind.ElseDirectiveKeyword, TokenKind.ElifDirectiveKeyword, TokenKind.EndifDirectiveKeyword), recurse);
+            var elseClause = ParseDirectiveConditionalRemainder(recurse);
+            return new IfDefDirectiveNode(Range(keywordTok, Previous()))
+            {
+                Condition = ident,
+                Body = body,
+                ElseClause = elseClause,
+            };
+        }
+
+        private IfNotDefDirectiveNode ParseIfNotDefDirective(Func<HLSLSyntaxNode> recurse)
+        {
+            var keywordTok = Eat(TokenKind.IfndefDirectiveKeyword);
+            string ident = ParseIdentifier();
+            var endTok = Eat(TokenKind.EndDirectiveToken);
+            var body = ParseMany0(() => !Match(TokenKind.ElseDirectiveKeyword, TokenKind.ElifDirectiveKeyword, TokenKind.EndifDirectiveKeyword), recurse);
+            var elseClause = ParseDirectiveConditionalRemainder(recurse);
+            return new IfNotDefDirectiveNode(Range(keywordTok, Previous()))
+            {
+                Condition = ident,
+                Body = body,
+                ElseClause = elseClause,
+            };
+        }
+
+        private PreProcessorDirectiveNode ParseDirectiveConditionalRemainder(Func<HLSLSyntaxNode> recurse)
+        {
+            PreProcessorDirectiveNode elseClause = null;
+            var next = Peek();
+            switch (next.Kind)
+            {
+                case TokenKind.ElseDirectiveKeyword:
+                    var keywordTok = Eat(TokenKind.ElseDirectiveKeyword);
+                    Eat(TokenKind.EndDirectiveToken);
+                    var body = ParseMany0(() => !Match(TokenKind.EndifDirectiveKeyword), recurse);
+                    Eat(TokenKind.EndifDirectiveKeyword);
+                    var endTokElse = Eat(TokenKind.EndDirectiveToken);
+                    elseClause = new ElseDirectiveNode(Range(keywordTok, endTokElse)) { Body = body };
+                    break;
+                case TokenKind.ElifDirectiveKeyword:
+                    elseClause = ParseIfDirective(recurse, true);
+                    break;
+                case TokenKind.EndifDirectiveKeyword:
+                    Eat(TokenKind.EndifDirectiveKeyword);
+                    var endTok = Eat(TokenKind.EndDirectiveToken);
+                    break;
+                default:
+                    Error("a valid preprocessor directive", next);
+                    break;
+            }
+            return elseClause;
         }
     }
 }

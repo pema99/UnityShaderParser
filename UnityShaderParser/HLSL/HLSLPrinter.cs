@@ -733,5 +733,7 @@ namespace UnityShaderParser.HLSL
             PopIndent();
             EmitIndentedLine("}");
         }
+
+        // TODO: Handle macros
     }
 }

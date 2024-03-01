@@ -1672,5 +1672,163 @@ namespace UnityShaderParser.HLSL
 
         public PassNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
+
+    public abstract class PreProcessorDirectiveNode : StatementNode
+    {
+        protected PreProcessorDirectiveNode(List<HLSLToken> tokens) : base(tokens) { }
+    }
+
+    public class ObjectLikeMacroNode : PreProcessorDirectiveNode
+    {
+        public string Name { get; set; }
+        public List<HLSLToken> Value { get; set; }
+
+        protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
+            Enumerable.Empty<HLSLSyntaxNode>();
+
+        public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitObjectLikeMacroNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitObjectLikeMacroNode(this);
+
+        public ObjectLikeMacroNode(List<HLSLToken> tokens) : base(tokens) { }
+    }
+
+    public class FunctionLikeMacroNode : PreProcessorDirectiveNode
+    {
+        public string Name { get; set; }
+        public List<string> Arguments { get; set; }
+        public List<HLSLToken> Value { get; set; }
+
+        protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
+            Enumerable.Empty<HLSLSyntaxNode>();
+
+        public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitFunctionLikeMacroNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitFunctionLikeMacroNode(this);
+
+        public FunctionLikeMacroNode(List<HLSLToken> tokens) : base(tokens) { }
+    }
+
+    public class IncludeDirectiveNode : PreProcessorDirectiveNode
+    {
+        public string Path { get; set; }
+
+        protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
+            Enumerable.Empty<HLSLSyntaxNode>();
+
+        public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitIncludeDirectiveNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitIncludeDirectiveNode(this);
+
+        public IncludeDirectiveNode(List<HLSLToken> tokens) : base(tokens) { }
+    }
+
+    public class LineDirectiveNode : PreProcessorDirectiveNode
+    {
+        public int Line { get; set; }
+
+        protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
+            Enumerable.Empty<HLSLSyntaxNode>();
+
+        public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitLineDirectiveNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitLineDirectiveNode(this);
+
+        public LineDirectiveNode(List<HLSLToken> tokens) : base(tokens) { }
+    }
+
+    public class UndefDirectiveNode : PreProcessorDirectiveNode
+    {
+        public string Name { get; set; }
+
+        protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
+            Enumerable.Empty<HLSLSyntaxNode>();
+
+        public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitUndefDirectiveNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitUndefDirectiveNode(this);
+
+        public UndefDirectiveNode(List<HLSLToken> tokens) : base(tokens) { }
+    }
+
+    public class ErrorDirectiveNode : PreProcessorDirectiveNode
+    {
+        public List<HLSLToken> Value { get; set; }
+
+        protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
+            Enumerable.Empty<HLSLSyntaxNode>();
+
+        public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitErrorDirectiveNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitErrorDirectiveNode(this);
+
+        public ErrorDirectiveNode(List<HLSLToken> tokens) : base(tokens) { }
+    }
+
+    public class PragmaDirectiveNode : PreProcessorDirectiveNode
+    {
+        public List<HLSLToken> Value { get; set; }
+
+        protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
+            Enumerable.Empty<HLSLSyntaxNode>();
+
+        public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitPragmaDirectiveNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitPragmaDirectiveNode(this);
+
+        public PragmaDirectiveNode(List<HLSLToken> tokens) : base(tokens) { }
+    }
+
+    public class IfDefDirectiveNode : PreProcessorDirectiveNode
+    {
+        public string Condition { get; set; }
+        public List<HLSLSyntaxNode> Body { get; set; }
+        public PreProcessorDirectiveNode ElseClause { get; set; }
+
+        protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
+            Enumerable.Empty<HLSLSyntaxNode>();
+
+        public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitIfDefDirectiveNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitIfDefDirectiveNode(this);
+
+        public IfDefDirectiveNode(List<HLSLToken> tokens) : base(tokens) { }
+    }
+
+    public class IfNotDefDirectiveNode : PreProcessorDirectiveNode
+    {
+        public string Condition { get; set; }
+        public List<HLSLSyntaxNode> Body { get; set; }
+        public PreProcessorDirectiveNode ElseClause { get; set; }
+
+        protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
+            Enumerable.Empty<HLSLSyntaxNode>();
+
+        public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitIfNotDefDirectiveNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitIfNotDefDirectiveNode(this);
+
+        public IfNotDefDirectiveNode(List<HLSLToken> tokens) : base(tokens) { }
+    }
+
+    public class IfDirectiveNode : PreProcessorDirectiveNode
+    {
+        public ExpressionNode Condition { get; set; }
+        public List<HLSLSyntaxNode> Body { get; set; }
+        public PreProcessorDirectiveNode ElseClause { get; set; }
+
+        protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
+            Enumerable.Empty<HLSLSyntaxNode>();
+
+        public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitIfDirectiveNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitIfDirectiveNode(this);
+
+        public IfDirectiveNode(List<HLSLToken> tokens) : base(tokens) { }
+    }
+
+    // The remainder of an if-directive
+    public class ElseDirectiveNode : PreProcessorDirectiveNode
+    {
+        public List<HLSLSyntaxNode> Body { get; set; }
+
+        protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
+            Enumerable.Empty<HLSLSyntaxNode>();
+
+        public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitElseDirectiveNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitElseDirectiveNode(this);
+
+        public ElseDirectiveNode(List<HLSLToken> tokens) : base(tokens) { }
+    }
     #endregion
 }

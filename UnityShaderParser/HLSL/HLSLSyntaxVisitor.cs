@@ -95,6 +95,17 @@ namespace UnityShaderParser.HLSL
         public virtual void VisitLiteralTemplateArgumentType(LiteralTemplateArgumentType node) => DefaultVisit(node);
         public virtual void VisitStatePropertyNode(StatePropertyNode node) => DefaultVisit(node);
         public virtual void VisitPassNode(PassNode node) => DefaultVisit(node);
+        public virtual void VisitObjectLikeMacroNode(ObjectLikeMacroNode node) => DefaultVisit(node);
+        public virtual void VisitFunctionLikeMacroNode(FunctionLikeMacroNode node) => DefaultVisit(node);
+        public virtual void VisitIncludeDirectiveNode(IncludeDirectiveNode node) => DefaultVisit(node);
+        public virtual void VisitLineDirectiveNode(LineDirectiveNode node) => DefaultVisit(node);
+        public virtual void VisitUndefDirectiveNode(UndefDirectiveNode node) => DefaultVisit(node);
+        public virtual void VisitErrorDirectiveNode(ErrorDirectiveNode node) => DefaultVisit(node);
+        public virtual void VisitPragmaDirectiveNode(PragmaDirectiveNode node) => DefaultVisit(node);
+        public virtual void VisitIfDefDirectiveNode(IfDefDirectiveNode node) => DefaultVisit(node);
+        public virtual void VisitIfNotDefDirectiveNode(IfNotDefDirectiveNode node) => DefaultVisit(node);
+        public virtual void VisitIfDirectiveNode(IfDirectiveNode node) => DefaultVisit(node);
+        public virtual void VisitElseDirectiveNode(ElseDirectiveNode node) => DefaultVisit(node);
     }
 
     public abstract class HLSLSyntaxVisitor<TReturn>
@@ -194,5 +205,16 @@ namespace UnityShaderParser.HLSL
         public virtual TReturn VisitLiteralTemplateArgumentType(LiteralTemplateArgumentType node) => DefaultVisit(node);
         public virtual TReturn VisitStatePropertyNode(StatePropertyNode node) => DefaultVisit(node);
         public virtual TReturn VisitPassNode(PassNode node) => DefaultVisit(node);
+        public virtual TReturn VisitObjectLikeMacroNode(ObjectLikeMacroNode node) => DefaultVisit(node);
+        public virtual TReturn VisitFunctionLikeMacroNode(FunctionLikeMacroNode node) => DefaultVisit(node);
+        public virtual TReturn VisitIncludeDirectiveNode(IncludeDirectiveNode node) => DefaultVisit(node);
+        public virtual TReturn VisitLineDirectiveNode(LineDirectiveNode node) => DefaultVisit(node);
+        public virtual TReturn VisitUndefDirectiveNode(UndefDirectiveNode node) => DefaultVisit(node);
+        public virtual TReturn VisitErrorDirectiveNode(ErrorDirectiveNode node) => DefaultVisit(node);
+        public virtual TReturn VisitPragmaDirectiveNode(PragmaDirectiveNode node) => DefaultVisit(node);
+        public virtual TReturn VisitIfDefDirectiveNode(IfDefDirectiveNode node) => DefaultVisit(node);
+        public virtual TReturn VisitIfNotDefDirectiveNode(IfNotDefDirectiveNode node) => DefaultVisit(node);
+        public virtual TReturn VisitIfDirectiveNode(IfDirectiveNode node) => DefaultVisit(node);
+        public virtual TReturn VisitElseDirectiveNode(ElseDirectiveNode node) => DefaultVisit(node);
     }
 }

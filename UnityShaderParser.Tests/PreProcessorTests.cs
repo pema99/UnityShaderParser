@@ -185,7 +185,7 @@ namespace UnityShaderParser.HLSL.PreProcessor.Tests
         public void PreProcessUnterminatedDirective()
         {
             var decl = ShaderParser.ParseTopLevelDeclaration("#ifdef bla bla bla bla #if #endif", out var diags, out _);
-            Assert.AreEqual(diags.Count, 1);
+            Assert.AreEqual(diags.Count, 2);
         }
     }
 }

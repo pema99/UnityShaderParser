@@ -35,17 +35,18 @@ namespace UnityShaderParser.Common
             this.diagnosticFilter = diagnosticFilter;
         }
 
-        protected Stack<(int position, SourceSpan span, int diagnosticCount)> snapshots = new Stack<(int position, SourceSpan span, int diagnosticCount)>();
+        protected Stack<(int position, bool isRecovering, SourceSpan span, int diagnosticCount)> snapshots = new Stack<(int position, bool isRecovering, SourceSpan span, int diagnosticCount)>();
 
         protected void SnapshotState()
         {
-            snapshots.Push((position, anchorSpan, diagnostics.Count));
+            snapshots.Push((position, isRecovering, anchorSpan, diagnostics.Count));
         }
 
         protected void RestoreState()
         {
             var snapshot = snapshots.Pop();
             position = snapshot.position;
+            isRecovering = snapshot.isRecovering;
             anchorSpan = snapshot.span;
             diagnostics.RemoveRange(snapshot.diagnosticCount, diagnostics.Count - snapshot.diagnosticCount);
         }
