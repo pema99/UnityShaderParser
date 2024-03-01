@@ -82,7 +82,6 @@ namespace UnityShaderParser.Common
 
         protected SourceSpan GetCurrentSpan()
         {
-            // TODO: File path
             return new SourceSpan(basePath, fileName, new SourceLocation(anchorLine, anchorColumn, anchorPosition), new SourceLocation(line, column, position));
         }
 

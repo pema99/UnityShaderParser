@@ -25,7 +25,6 @@ namespace UnityShaderParser.HLSL.PreProcessor
         public List<HLSLToken> Tokens;
     }
 
-    // TODO: Restore proper span after substitution
     public class HLSLPreProcessor : BaseParser<TokenKind>
     {
         protected override TokenKind StringLiteralTokenKind => TokenKind.StringLiteralToken;
