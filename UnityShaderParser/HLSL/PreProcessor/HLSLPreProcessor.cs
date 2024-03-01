@@ -74,7 +74,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
 
             foreach (var kvp in defines)
             {
-                var localTokens = HLSLLexer.Lex(kvp.Value, null, false, out var localLexerDiags);
+                var localTokens = HLSLLexer.Lex(kvp.Value, null, null, false, out var localLexerDiags);
                 if (localLexerDiags.Count > 0)
                 {
                     Error(DiagnosticFlags.SyntaxError, $"Invalid define '{kvp.Key}' passed.");
@@ -168,7 +168,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
         protected void EnterFile(SourceSpan includeSpan, string newFileName)
         {
             string source = includeResolver.ReadFile(basePath, newFileName);
-            var sourceTokens = HLSLLexer.Lex(source, fileName, throwExceptionOnError, out var diagnosticsToAdd);
+            var sourceTokens = HLSLLexer.Lex(source, basePath, fileName, throwExceptionOnError, out var diagnosticsToAdd);
             diagnostics.AddRange(diagnosticsToAdd);
 
             fileSnapshots.Push(new PreProcessorSnapshot

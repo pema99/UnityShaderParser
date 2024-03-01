@@ -17,17 +17,21 @@ namespace UnityShaderParser.Common
         protected int anchorLine = 1;
         protected int anchorColumn = 1;
         protected int anchorPosition = 0;
+        protected string basePath;
+        protected string fileName;
         protected DiagnosticFlags diagnosticFilter = DiagnosticFlags.All;
 
         protected List<Token<T>> tokens = new List<Token<T>>();
         protected List<Diagnostic> diagnostics = new List<Diagnostic>();
 
-        public BaseLexer(string source, string fileName, bool throwExceptionOnError, SourceLocation offset)
+        public BaseLexer(string source, string basePath, string fileName, bool throwExceptionOnError, SourceLocation offset)
         {
             this.source = source;
             this.throwExceptionOnError = throwExceptionOnError;
             this.line = offset.Line;
             this.column = offset.Column;
+            this.basePath = basePath;
+            this.fileName = fileName;
         }
 
         protected char Peek() => IsAtEnd() ? '\0' : source[position];
@@ -79,7 +83,7 @@ namespace UnityShaderParser.Common
         protected SourceSpan GetCurrentSpan()
         {
             // TODO: File path
-            return new SourceSpan("", "", new SourceLocation(anchorLine, anchorColumn, anchorPosition), new SourceLocation(line, column, position));
+            return new SourceSpan(basePath, fileName, new SourceLocation(anchorLine, anchorColumn, anchorPosition), new SourceLocation(line, column, position));
         }
 
         protected string EatStringLiteral(char start, char end)

@@ -69,7 +69,6 @@ namespace UnityShaderParser.Common
         }
     }
 
-    // TODO: Filename
     public struct SourceSpan
     {
         public string BasePath { get; }

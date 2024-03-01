@@ -28,7 +28,7 @@ namespace UnityShaderParser.HLSL.Tests
             string source = File.ReadAllText(path);
 
             // Lex
-            var tokens = HLSLLexer.Lex(source, null, false, out var lexerDiags);
+            var tokens = HLSLLexer.Lex(source, null, null, false, out var lexerDiags);
             Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
         }
 
@@ -44,7 +44,7 @@ namespace UnityShaderParser.HLSL.Tests
             string source = File.ReadAllText(path);
 
             // Lex
-            var tokens = HLSLLexer.Lex(source, null, false, out var lexerDiags);
+            var tokens = HLSLLexer.Lex(source, null, null, false, out var lexerDiags);
             Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
 
             // Parse
@@ -69,7 +69,7 @@ namespace UnityShaderParser.HLSL.Tests
             string source = File.ReadAllText(path);
 
             // Lex
-            var tokens = HLSLLexer.Lex(source, null, false, out var lexerDiags);
+            var tokens = HLSLLexer.Lex(source, null, null, false, out var lexerDiags);
             Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
 
             // Expand and parse
@@ -94,7 +94,7 @@ namespace UnityShaderParser.HLSL.Tests
             string source = File.ReadAllText(path);
 
             // Lex
-            var tokens = HLSLLexer.Lex(source, null, false, out var lexerDiags);
+            var tokens = HLSLLexer.Lex(source, null, null, false, out var lexerDiags);
             Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
 
             var resolver = new DefaultPreProcessorIncludeResolver(new List<string>()
@@ -145,7 +145,7 @@ namespace UnityShaderParser.HLSL.Tests
             string source = File.ReadAllText(path);
 
             // Lex
-            var tokens = HLSLLexer.Lex(source, null, false, out var lexerDiags);
+            var tokens = HLSLLexer.Lex(source, null, null, false, out var lexerDiags);
             Assert.IsEmpty(lexerDiags, $"Expected no lexer errors, got: {lexerDiags.FirstOrDefault()}");
 
             // Parse
@@ -168,7 +168,7 @@ namespace UnityShaderParser.HLSL.Tests
             string prettyPrinted = printer.Text;
 
             // Re-lex
-            tokens = HLSLLexer.Lex(prettyPrinted, null, false, out var relexerDiags);
+            tokens = HLSLLexer.Lex(prettyPrinted, null, null, false, out var relexerDiags);
             Assert.IsEmpty(relexerDiags, $"Expected no lexer errors, got: {relexerDiags.FirstOrDefault()}");
 
             // Re-parse
