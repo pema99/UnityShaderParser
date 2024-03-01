@@ -1,8 +1,9 @@
 # UnityShaderParser
-A library for parsing Unity shaders. Consists of 3 primary components:
+A library for parsing Unity shaders. Consists of a few distinct components:
 - A parser for ShaderLab, Unity's own Shader DSL.
 - A parser for HLSL, the shading language embedded in ShaderLab.
 - A preprocessor for dealing with macros before parsing.
+- A framework for analyzing syntax trees using the visitor pattern, and for making edits to the corresponding source code.
 
 Check [the tests](https://github.com/pema99/UnityShaderParser/tree/master/UnityShaderParser.Tests) for some examples.
 
