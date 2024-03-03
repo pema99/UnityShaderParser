@@ -637,13 +637,14 @@ namespace UnityShaderParser.HLSL
 
         private LiteralExpressionNode ParseLiteralExpression()
         {
-            HLSLToken next = Advance();
+            HLSLToken next = Peek();
             string lexeme = HLSLSyntaxFacts.IdentifierOrKeywordToString(next);
 
             if (!HLSLSyntaxFacts.TryConvertLiteralKind(next.Kind, out var literalKind))
             {
                 Error("a valid literal expression", next);
             }
+            Advance();
 
             return new LiteralExpressionNode(Range(next, next)) { Lexeme = lexeme, Kind = literalKind };
         }
@@ -1741,6 +1742,7 @@ namespace UnityShaderParser.HLSL
                 Eat(TokenKind.CloseParenToken);
                 var tokens = ParseMany0(() => !Match(TokenKind.EndDirectiveToken), () => Advance());
                 var endTok = Eat(TokenKind.EndDirectiveToken);
+                RecoverTo(TokenKind.EndDirectiveToken);
                 return new FunctionLikeMacroNode(Range(keywordTok, endTok))
                 {
                     Name = ident,
@@ -1752,6 +1754,7 @@ namespace UnityShaderParser.HLSL
             {
                 var tokens = ParseMany0(() => !Match(TokenKind.EndDirectiveToken), () => Advance());
                 var endTok = Eat(TokenKind.EndDirectiveToken);
+                RecoverTo(TokenKind.EndDirectiveToken);
                 return new ObjectLikeMacroNode(Range(keywordTok, endTok))
                 {
                     Name = ident,
@@ -1765,6 +1768,7 @@ namespace UnityShaderParser.HLSL
             var keywordTok = Eat(TokenKind.IncludeDirectiveKeyword);
             string ident = Eat(TokenKind.StringLiteralToken, TokenKind.SystemIncludeLiteralToken).Identifier;
             var endTok = Eat(TokenKind.EndDirectiveToken);
+            RecoverTo(TokenKind.EndDirectiveToken);
             return new IncludeDirectiveNode(Range(keywordTok, endTok)) { Path = ident };
         }
 
@@ -1773,6 +1777,7 @@ namespace UnityShaderParser.HLSL
             var keywordTok = Eat(TokenKind.LineDirectiveKeyword);
             int line = ParseIntegerLiteral();
             var endTok = Eat(TokenKind.EndDirectiveToken);
+            RecoverTo(TokenKind.EndDirectiveToken);
             return new LineDirectiveNode(Range(keywordTok, endTok)) { Line = line };
         }
 
@@ -1781,6 +1786,7 @@ namespace UnityShaderParser.HLSL
             var keywordTok = Eat(TokenKind.UndefDirectiveKeyword);
             string ident = ParseIdentifier();
             var endTok = Eat(TokenKind.EndDirectiveToken);
+            RecoverTo(TokenKind.EndDirectiveToken);
             return new UndefDirectiveNode(Range(keywordTok, endTok)) { Name = ident };
         }
 
@@ -1789,6 +1795,7 @@ namespace UnityShaderParser.HLSL
             var keywordTok = Eat(TokenKind.ErrorDirectiveKeyword);
             var tokens = ParseMany0(() => !Match(TokenKind.EndDirectiveToken), () => Advance());
             var endTok = Eat(TokenKind.EndDirectiveToken);
+            RecoverTo(TokenKind.EndDirectiveToken);
             return new ErrorDirectiveNode(Range(keywordTok, endTok)) { Value = tokens };
         }
 
@@ -1797,6 +1804,7 @@ namespace UnityShaderParser.HLSL
             var keywordTok = Eat(TokenKind.PragmaDirectiveKeyword);
             var tokens = ParseMany0(() => !Match(TokenKind.EndDirectiveToken), () => Advance());
             var endTok = Eat(TokenKind.EndDirectiveToken);
+            RecoverTo(TokenKind.EndDirectiveToken);
             return new PragmaDirectiveNode(Range(keywordTok, endTok)) { Value = tokens };
         }
 
@@ -1805,6 +1813,7 @@ namespace UnityShaderParser.HLSL
             var keywordTok = elif ? Eat(TokenKind.ElifDirectiveKeyword) : Eat(TokenKind.IfDirectiveKeyword);
             var expr = ParseExpression();
             var endTok = Eat(TokenKind.EndDirectiveToken);
+            RecoverTo(TokenKind.EndDirectiveToken);
             var body = ParseMany0(() => !Match(TokenKind.ElseDirectiveKeyword, TokenKind.ElifDirectiveKeyword, TokenKind.EndifDirectiveKeyword), recurse);
             var elseClause = ParseDirectiveConditionalRemainder(recurse);
             return new IfDirectiveNode(Range(keywordTok, Previous()))
@@ -1820,6 +1829,7 @@ namespace UnityShaderParser.HLSL
             var keywordTok = Eat(TokenKind.IfdefDirectiveKeyword);
             string ident = ParseIdentifier();
             var endTok = Eat(TokenKind.EndDirectiveToken);
+            RecoverTo(TokenKind.EndDirectiveToken);
             var body = ParseMany0(() => !Match(TokenKind.ElseDirectiveKeyword, TokenKind.ElifDirectiveKeyword, TokenKind.EndifDirectiveKeyword), recurse);
             var elseClause = ParseDirectiveConditionalRemainder(recurse);
             return new IfDefDirectiveNode(Range(keywordTok, Previous()))
@@ -1835,6 +1845,7 @@ namespace UnityShaderParser.HLSL
             var keywordTok = Eat(TokenKind.IfndefDirectiveKeyword);
             string ident = ParseIdentifier();
             var endTok = Eat(TokenKind.EndDirectiveToken);
+            RecoverTo(TokenKind.EndDirectiveToken);
             var body = ParseMany0(() => !Match(TokenKind.ElseDirectiveKeyword, TokenKind.ElifDirectiveKeyword, TokenKind.EndifDirectiveKeyword), recurse);
             var elseClause = ParseDirectiveConditionalRemainder(recurse);
             return new IfNotDefDirectiveNode(Range(keywordTok, Previous()))
@@ -1854,9 +1865,11 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.ElseDirectiveKeyword:
                     var keywordTok = Eat(TokenKind.ElseDirectiveKeyword);
                     Eat(TokenKind.EndDirectiveToken);
+                    RecoverTo(TokenKind.EndDirectiveToken);
                     var body = ParseMany0(() => !Match(TokenKind.EndifDirectiveKeyword), recurse);
                     Eat(TokenKind.EndifDirectiveKeyword);
                     var endTokElse = Eat(TokenKind.EndDirectiveToken);
+                    RecoverTo(TokenKind.EndDirectiveToken);
                     elseClause = new ElseDirectiveNode(Range(keywordTok, endTokElse)) { Body = body };
                     break;
                 case TokenKind.ElifDirectiveKeyword:
@@ -1865,6 +1878,7 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.EndifDirectiveKeyword:
                     Eat(TokenKind.EndifDirectiveKeyword);
                     var endTok = Eat(TokenKind.EndDirectiveToken);
+                    RecoverTo(TokenKind.EndDirectiveToken);
                     break;
                 default:
                     Error("a valid preprocessor directive", next);

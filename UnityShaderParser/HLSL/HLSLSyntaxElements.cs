@@ -1779,7 +1779,7 @@ namespace UnityShaderParser.HLSL
         public PreProcessorDirectiveNode ElseClause { get; set; }
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
-            Enumerable.Empty<HLSLSyntaxNode>();
+            MergeChildren(Body, OptionalChild(ElseClause));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitIfDefDirectiveNode(this);
         public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitIfDefDirectiveNode(this);
@@ -1794,7 +1794,7 @@ namespace UnityShaderParser.HLSL
         public PreProcessorDirectiveNode ElseClause { get; set; }
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
-            Enumerable.Empty<HLSLSyntaxNode>();
+            MergeChildren(Body, OptionalChild(ElseClause));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitIfNotDefDirectiveNode(this);
         public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitIfNotDefDirectiveNode(this);
@@ -1808,8 +1808,22 @@ namespace UnityShaderParser.HLSL
         public List<HLSLSyntaxNode> Body { get; set; }
         public PreProcessorDirectiveNode ElseClause { get; set; }
 
+        public bool IsElif
+        {
+            get
+            {
+                switch (Parent)
+                {
+                    case IfDefDirectiveNode p: return p.ElseClause == this;
+                    case IfNotDefDirectiveNode p: return p.ElseClause == this;
+                    case IfDirectiveNode p: return p.ElseClause == this;
+                    default: return false;
+                }
+            }
+        }
+
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
-            Enumerable.Empty<HLSLSyntaxNode>();
+            MergeChildren(Child(Condition), Body, OptionalChild(ElseClause));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitIfDirectiveNode(this);
         public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitIfDirectiveNode(this);
@@ -1823,7 +1837,7 @@ namespace UnityShaderParser.HLSL
         public List<HLSLSyntaxNode> Body { get; set; }
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
-            Enumerable.Empty<HLSLSyntaxNode>();
+            Body;
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitElseDirectiveNode(this);
         public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitElseDirectiveNode(this);

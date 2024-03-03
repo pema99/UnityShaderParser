@@ -734,6 +734,102 @@ namespace UnityShaderParser.HLSL
             EmitIndentedLine("}");
         }
 
-        // TODO: Handle macros
+        private string TokensToString(IEnumerable<Token<HLSL.TokenKind>> tokens)
+        {
+            return string.Join(" ", tokens.Select(x => HLSLSyntaxFacts.TokenToString(x)));
+        }
+
+        public override void VisitObjectLikeMacroNode(ObjectLikeMacroNode node)
+        {
+            EmitIndentedLine($"#define {node.Name} {TokensToString(node.Value)}");
+        }
+
+        public override void VisitFunctionLikeMacroNode(FunctionLikeMacroNode node)
+        {
+            EmitIndentedLine($"#define {node.Name}({string.Join(", ", node.Arguments)}) {TokensToString(node.Value)}");
+        }
+
+        public override void VisitErrorDirectiveNode(ErrorDirectiveNode node)
+        {
+            EmitIndentedLine($"#error {TokensToString(node.Value)}");
+        }
+
+        public override void VisitIncludeDirectiveNode(IncludeDirectiveNode node)
+        {
+            EmitIndentedLine($"#include \"{node.Path}\"");
+        }
+
+        public override void VisitLineDirectiveNode(LineDirectiveNode node)
+        {
+            EmitIndentedLine($"#line {node.Line}");
+        }
+
+        public override void VisitPragmaDirectiveNode(PragmaDirectiveNode node)
+        {
+            EmitIndentedLine($"#pragma {TokensToString(node.Value)}");
+        }
+
+        public override void VisitUndefDirectiveNode(UndefDirectiveNode node)
+        {
+            EmitIndentedLine($"#undef {node.Name}");
+        }
+
+        public override void VisitIfDirectiveNode(IfDirectiveNode node)
+        {
+            if (node.IsElif)
+            {
+                EmitIndented($"#elif ");
+            }
+            else
+            {
+                EmitIndented($"#if ");
+            }
+            Visit(node.Condition);
+            EmitLine();
+            VisitMany(node.Body);
+            if (node.ElseClause == null)
+            {
+                EmitIndentedLine("#endif");
+            }
+            else
+            {
+                Visit(node.ElseClause);
+            }
+        }
+
+        public override void VisitIfDefDirectiveNode(IfDefDirectiveNode node)
+        {
+            EmitIndentedLine($"#ifdef {node.Condition}");
+            VisitMany(node.Body);
+            if (node.ElseClause == null)
+            {
+                EmitIndentedLine("#endif");
+            }
+            else
+            {
+                Visit(node.ElseClause);
+            }
+        }
+
+        public override void VisitIfNotDefDirectiveNode(IfNotDefDirectiveNode node)
+        {
+            EmitIndentedLine($"#ifndef {node.Condition}");
+            VisitMany(node.Body);
+            if (node.ElseClause == null)
+            {
+                EmitIndentedLine("#endif");
+            }
+            else
+            {
+                Visit(node.ElseClause);
+            }
+        }
+
+        public override void VisitElseDirectiveNode(ElseDirectiveNode node)
+        {
+            EmitIndentedLine("#else");
+            VisitMany(node.Body);
+            EmitIndentedLine("#endif");
+        }
     }
 }
