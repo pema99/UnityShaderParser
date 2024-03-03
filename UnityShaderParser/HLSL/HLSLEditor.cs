@@ -21,6 +21,12 @@ namespace UnityShaderParser.HLSL
         protected void Edit(SourceSpan span, string newText) => Edits.Add((span, newText));
         protected void Edit(Token<TokenKind> token, string newText) => Edit(token.Span, newText);
         protected void Edit(HLSLSyntaxNode node, string newText) => Edit(node.Span, newText);
+        protected void AddBefore(SourceSpan span, string newText) => Edit(new SourceSpan(span.BasePath, span.FileName, span.Start, span.Start), newText);
+        protected void AddBefore(Token<TokenKind> token, string newText) => Edit(new SourceSpan(token.Span.BasePath, token.Span.FileName, token.Span.Start, token.Span.Start), newText);
+        protected void AddBefore(HLSLSyntaxNode node, string newText) => Edit(new SourceSpan(node.Span.BasePath, node.Span.FileName, node.Span.Start, node.Span.Start), newText);
+        protected void AddAfter(SourceSpan span, string newText) => Edit(new SourceSpan(span.BasePath, span.FileName, span.End, span.End), newText);
+        protected void AddAfter(Token<TokenKind> token, string newText) => Edit(new SourceSpan(token.Span.BasePath, token.Span.FileName, token.Span.End, token.Span.End), newText);
+        protected void AddAfter(HLSLSyntaxNode node, string newText) => Edit(new SourceSpan(node.Span.BasePath, node.Span.FileName, node.Span.End, node.Span.End), newText);
 
         public string ApplyCurrentEdits() => PrintingUtil.ApplyEditsToSourceText(Edits, Source);
 
