@@ -812,7 +812,7 @@ namespace UnityShaderParser.ShaderLab
     {
         // TODO: Not the lazy way
         public string TextureName { get; set; }
-        public List<Token<TokenKind>> Body { get; set; }
+        public List<SLToken> Body { get; set; }
 
         public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandSetTextureNode(this);
         public override T Accept<T>(ShaderLabSyntaxVisitor<T> visitor) => visitor.VisitShaderLabCommandSetTextureNode(this);
