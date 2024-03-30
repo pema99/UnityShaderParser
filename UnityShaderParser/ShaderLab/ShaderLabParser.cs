@@ -66,6 +66,95 @@ namespace UnityShaderParser.ShaderLab
             return result;
         }
 
+        public static ShaderNode ParseShader(List<SLToken> tokens, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
+        {
+            return Parse(tokens, config, out diagnostics);
+        }
+
+        public static SubShaderNode ParseSubShader(List<SLToken> tokens, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
+        {
+            ShaderLabParser parser = new ShaderLabParser(tokens, config);
+            var result = parser.ParseSubShader();
+            result.ComputeParents();
+            diagnostics = parser.diagnostics;
+            return result;
+        }
+
+        public static ShaderPassNode ParseShaderPass(List<SLToken> tokens, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
+        {
+            ShaderLabParser parser = new ShaderLabParser(tokens, config);
+            ShaderPassNode result = null;
+            switch (parser.Peek().Kind)
+            {
+                case TokenKind.PassKeyword: result = parser.ParseCodePass(); break;
+                case TokenKind.GrabPassKeyword: result = parser.ParseGrabPass(); break;
+                case TokenKind.UsePassKeyword: result = parser.ParseUsePass(); break;
+            }
+            result.ComputeParents();
+            diagnostics = parser.diagnostics;
+            return result;
+        }
+
+        public static ShaderPropertyNode ParseShaderProperty(List<SLToken> tokens, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
+        {
+            ShaderLabParser parser = new ShaderLabParser(tokens, config);
+            var result = parser.ParseProperty();
+            result.ComputeParents();
+            diagnostics = parser.diagnostics;
+            return result;
+        }
+
+        public static List<ShaderPropertyNode> ParseShaderProperties(List<SLToken> tokens, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
+        {
+            ShaderLabParser parser = new ShaderLabParser(tokens, config);
+            List<ShaderPropertyNode> result = new List<ShaderPropertyNode>();
+            while (parser.Match(TokenKind.IdentifierToken, TokenKind.BracketedStringLiteralToken))
+            {
+                result.Add(parser.ParseProperty());
+            }
+            foreach (var property in result)
+            {
+                property.ComputeParents();
+            }
+            diagnostics = parser.diagnostics;
+            return result;
+        }
+
+        public static List<ShaderPropertyNode> ParseShaderPropertyBlock(List<SLToken> tokens, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
+        {
+            ShaderLabParser parser = new ShaderLabParser(tokens, config);
+            List<ShaderPropertyNode> result = new List<ShaderPropertyNode>();
+            parser.ParsePropertySection(result);
+            foreach (var property in result)
+            {
+                property.ComputeParents();
+            }
+            diagnostics = parser.diagnostics;
+            return result;
+        }
+
+        public static ShaderLabCommandNode ParseShaderLabCommand(List<SLToken> tokens, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
+        {
+            ShaderLabParser parser = new ShaderLabParser(tokens, config);
+            parser.TryParseCommand(out var result);
+            result.ComputeParents();
+            diagnostics = parser.diagnostics;
+            return result;
+        }
+
+        public static List<ShaderLabCommandNode> ParseShaderLabCommands(List<SLToken> tokens, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
+        {
+            ShaderLabParser parser = new ShaderLabParser(tokens, config);
+            List<ShaderLabCommandNode> result = new List<ShaderLabCommandNode>();
+            parser.ParseCommandsIfPresent(result);
+            foreach (var property in result)
+            {
+                property.ComputeParents();
+            }
+            diagnostics = parser.diagnostics;
+            return result;
+        }
+
         protected void ProcessCurrentIncludes(
             SLToken programToken,
             bool lexEmbeddedHLSL,
@@ -586,41 +675,50 @@ namespace UnityShaderParser.ShaderLab
             }
         }
 
+        public bool TryParseCommand(out ShaderLabCommandNode result)
+        {
+            var next = Peek();
+            switch (next.Kind)
+            {
+                case TokenKind.LightingKeyword: result = ParseBasicToggleCommand(next.Kind, (a, b) => new ShaderLabCommandLightingNode(Range(a, b))); return true;
+                case TokenKind.SeparateSpecularKeyword: result = ParseBasicToggleCommand(next.Kind, (a, b) => new ShaderLabCommandSeparateSpecularNode(Range(a, b))); return true;
+                case TokenKind.ZWriteKeyword: result = ParseBasicToggleCommand(next.Kind, (a, b) => new ShaderLabCommandZWriteNode(Range(a, b))); return true;
+                case TokenKind.AlphaToMaskKeyword: result = ParseBasicToggleCommand(next.Kind, (a, b) => new ShaderLabCommandAlphaToMaskNode(Range(a, b))); return true;
+                case TokenKind.ZClipKeyword: result = ParseBasicToggleCommand(next.Kind, (a, b) => new ShaderLabCommandZClipNode(Range(a, b))); return true;
+                case TokenKind.ConservativeKeyword: result = ParseBasicToggleCommand(next.Kind, (a, b) => new ShaderLabCommandConservativeNode(Range(a, b))); return true;
+                case TokenKind.TagsKeyword: result = ParseTagsCommand(); return true;
+                case TokenKind.LodKeyword: result = ParseLodCommand(); return true;
+                case TokenKind.CullKeyword: result = ParseCullCommand(); return true;
+                case TokenKind.ZTestKeyword: result = ParseZTestCommand(); return true;
+                case TokenKind.BlendKeyword: result = ParseBlendCommand(); return true;
+                case TokenKind.OffsetKeyword: result = ParseOffsetCommand(); return true;
+                case TokenKind.ColorMaskKeyword: result = ParseColorMaskCommand(); return true;
+                case TokenKind.AlphaTestKeyword: result = ParseAlphaTestCommand(); return true;
+                case TokenKind.FogKeyword: result = ParseFogCommand(); return true;
+                case TokenKind.NameKeyword: result = ParseNameCommand(); return true;
+                case TokenKind.BindChannelsKeyword: result = ParseBindChannelsCommand(); return true;
+                case TokenKind.ColorKeyword: result = ParseColorCommand(); return true;
+                case TokenKind.BlendOpKeyword: result = ParseBlendOpCommand(); return true;
+                case TokenKind.MaterialKeyword: result = ParseMaterialCommand(); return true;
+                case TokenKind.SetTextureKeyword: result = ParseSetTextureCommand(); return true;
+                case TokenKind.ColorMaterialKeyword: result = ParseColorMaterialNode(); return true;
+                case TokenKind.StencilKeyword: result = ParseStencilNode(); return true;
+                default: result = null; return false;
+            }
+        }
+
         public void ParseCommandsIfPresent(List<ShaderLabCommandNode> outCommands)
         {
             bool run = true;
             while (run)
             {
-                SLToken next = Peek();
-                switch (next.Kind)
+                if (TryParseCommand(out var command))
                 {
-                    case TokenKind.LightingKeyword: outCommands.Add(ParseBasicToggleCommand(next.Kind, (a, b) => new ShaderLabCommandLightingNode(Range(a, b)))); break;
-                    case TokenKind.SeparateSpecularKeyword: outCommands.Add(ParseBasicToggleCommand(next.Kind, (a, b) => new ShaderLabCommandSeparateSpecularNode(Range(a, b)))); break;
-                    case TokenKind.ZWriteKeyword: outCommands.Add(ParseBasicToggleCommand(next.Kind, (a, b) => new ShaderLabCommandZWriteNode(Range(a, b)))); break;
-                    case TokenKind.AlphaToMaskKeyword: outCommands.Add(ParseBasicToggleCommand(next.Kind, (a, b) => new ShaderLabCommandAlphaToMaskNode(Range(a, b)))); break;
-                    case TokenKind.ZClipKeyword: outCommands.Add(ParseBasicToggleCommand(next.Kind, (a, b) => new ShaderLabCommandZClipNode(Range(a, b)))); break;
-                    case TokenKind.ConservativeKeyword: outCommands.Add(ParseBasicToggleCommand(next.Kind, (a, b) => new ShaderLabCommandConservativeNode(Range(a, b)))); break;
-                    case TokenKind.TagsKeyword: outCommands.Add(ParseTagsCommand()); break;
-                    case TokenKind.LodKeyword: outCommands.Add(ParseLodCommand()); break;
-                    case TokenKind.CullKeyword: outCommands.Add(ParseCullCommand()); break;
-                    case TokenKind.ZTestKeyword: outCommands.Add(ParseZTestCommand()); break;
-                    case TokenKind.BlendKeyword: outCommands.Add(ParseBlendCommand()); break;
-                    case TokenKind.OffsetKeyword: outCommands.Add(ParseOffsetCommand()); break;
-                    case TokenKind.ColorMaskKeyword: outCommands.Add(ParseColorMaskCommand()); break;
-                    case TokenKind.AlphaTestKeyword: outCommands.Add(ParseAlphaTestCommand()); break;
-                    case TokenKind.FogKeyword: outCommands.Add(ParseFogCommand()); break;
-                    case TokenKind.NameKeyword: outCommands.Add(ParseNameCommand()); break;
-                    case TokenKind.BindChannelsKeyword: outCommands.Add(ParseBindChannelsCommand()); break;
-                    case TokenKind.ColorKeyword: outCommands.Add(ParseColorCommand()); break;
-                    case TokenKind.BlendOpKeyword: outCommands.Add(ParseBlendOpCommand()); break;
-                    case TokenKind.MaterialKeyword: outCommands.Add(ParseMaterialCommand()); break;
-                    case TokenKind.SetTextureKeyword: outCommands.Add(ParseSetTextureCommand()); break;
-                    case TokenKind.ColorMaterialKeyword: outCommands.Add(ParseColorMaterialNode()); break;
-                    case TokenKind.StencilKeyword: outCommands.Add(ParseStencilNode()); break;
-
-                    default:
-                        run = false;
-                        break;
+                    outCommands.Add(command);
+                }
+                else
+                {
+                    run = false;
                 }
 
                 // If we encountered an error, try to find the next command.

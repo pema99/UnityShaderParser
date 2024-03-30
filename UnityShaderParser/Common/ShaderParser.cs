@@ -13,7 +13,7 @@ namespace UnityShaderParser.Common
         public static ShaderNode ParseUnityShader(string source, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
         {
             var tokens = ShaderLabLexer.Lex(source, config.BasePath, config.FileName, config.ThrowExceptionOnError, out var lexerDiags);
-            var rootNode = ShaderLabParser.Parse(tokens, config, out var parserDiags);
+            var rootNode = ShaderLabParser.ParseShader(tokens, config, out var parserDiags);
             diagnostics = lexerDiags.Concat(parserDiags).ToList();
             return rootNode;
         }
@@ -75,5 +75,82 @@ namespace UnityShaderParser.Common
         public static ExpressionNode ParseExpression(string source, HLSLParserConfig config) => ParseExpression(source, config, out _, out _);
         public static ExpressionNode ParseExpression(string source, out List<Diagnostic> diagnostics, out List<string> pragmas) => ParseExpression(source, DefaultHLSLConfig, out diagnostics, out pragmas);
         public static ExpressionNode ParseExpression(string source) => ParseExpression(source, DefaultHLSLConfig, out _, out _);
+
+        public static SubShaderNode ParseUnitySubShader(string source, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
+        {
+            var tokens = ShaderLabLexer.Lex(source, config.BasePath, config.FileName, config.ThrowExceptionOnError, out var lexerDiags);
+            var rootNode = ShaderLabParser.ParseSubShader(tokens, config, out var parserDiags);
+            diagnostics = lexerDiags.Concat(parserDiags).ToList();
+            return rootNode;
+        }
+        public static SubShaderNode ParseUnitySubShader(string source, ShaderLabParserConfig config) => ParseUnitySubShader(source, config, out _);
+        public static SubShaderNode ParseUnitySubShader(string source, out List<Diagnostic> diagnostics) => ParseUnitySubShader(source, DefaultShaderLabConfig, out diagnostics);
+        public static SubShaderNode ParseUnitySubShader(string source) => ParseUnitySubShader(source, DefaultShaderLabConfig, out _);
+
+        public static ShaderPassNode ParseUnityShaderPass(string source, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
+        {
+            var tokens = ShaderLabLexer.Lex(source, config.BasePath, config.FileName, config.ThrowExceptionOnError, out var lexerDiags);
+            var rootNode = ShaderLabParser.ParseShaderPass(tokens, config, out var parserDiags);
+            diagnostics = lexerDiags.Concat(parserDiags).ToList();
+            return rootNode;
+        }
+        public static ShaderPassNode ParseUnityShaderPass(string source, ShaderLabParserConfig config) => ParseUnityShaderPass(source, config, out _);
+        public static ShaderPassNode ParseUnityShaderPass(string source, out List<Diagnostic> diagnostics) => ParseUnityShaderPass(source, DefaultShaderLabConfig, out diagnostics);
+        public static ShaderPassNode ParseUnityShaderPass(string source) => ParseUnityShaderPass(source, DefaultShaderLabConfig, out _);
+
+        public static ShaderPropertyNode ParseUnityShaderProperty(string source, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
+        {
+            var tokens = ShaderLabLexer.Lex(source, config.BasePath, config.FileName, config.ThrowExceptionOnError, out var lexerDiags);
+            var rootNode = ShaderLabParser.ParseShaderProperty(tokens, config, out var parserDiags);
+            diagnostics = lexerDiags.Concat(parserDiags).ToList();
+            return rootNode;
+        }
+        public static ShaderPropertyNode ParseUnityShaderProperty(string source, ShaderLabParserConfig config) => ParseUnityShaderProperty(source, config, out _);
+        public static ShaderPropertyNode ParseUnityShaderProperty(string source, out List<Diagnostic> diagnostics) => ParseUnityShaderProperty(source, DefaultShaderLabConfig, out diagnostics);
+        public static ShaderPropertyNode ParseUnityShaderProperty(string source) => ParseUnityShaderProperty(source, DefaultShaderLabConfig, out _);
+
+        public static List<ShaderPropertyNode> ParseUnityShaderProperties(string source, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
+        {
+            var tokens = ShaderLabLexer.Lex(source, config.BasePath, config.FileName, config.ThrowExceptionOnError, out var lexerDiags);
+            var rootNode = ShaderLabParser.ParseShaderProperties(tokens, config, out var parserDiags);
+            diagnostics = lexerDiags.Concat(parserDiags).ToList();
+            return rootNode;
+        }
+        public static List<ShaderPropertyNode> ParseUnityShaderProperties(string source, ShaderLabParserConfig config) => ParseUnityShaderProperties(source, config, out _);
+        public static List<ShaderPropertyNode> ParseUnityShaderProperties(string source, out List<Diagnostic> diagnostics) => ParseUnityShaderProperties(source, DefaultShaderLabConfig, out diagnostics);
+        public static List<ShaderPropertyNode> ParseUnityShaderProperties(string source) => ParseUnityShaderProperties(source, DefaultShaderLabConfig, out _);
+
+        public static List<ShaderPropertyNode> ParseUnityShaderPropertyBlock(string source, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
+        {
+            var tokens = ShaderLabLexer.Lex(source, config.BasePath, config.FileName, config.ThrowExceptionOnError, out var lexerDiags);
+            var rootNode = ShaderLabParser.ParseShaderPropertyBlock(tokens, config, out var parserDiags);
+            diagnostics = lexerDiags.Concat(parserDiags).ToList();
+            return rootNode;
+        }
+        public static List<ShaderPropertyNode> ParseUnityShaderPropertyBlock(string source, ShaderLabParserConfig config) => ParseUnityShaderPropertyBlock(source, config, out _);
+        public static List<ShaderPropertyNode> ParseUnityShaderPropertyBlock(string source, out List<Diagnostic> diagnostics) => ParseUnityShaderPropertyBlock(source, DefaultShaderLabConfig, out diagnostics);
+        public static List<ShaderPropertyNode> ParseUnityShaderPropertyBlock(string source) => ParseUnityShaderPropertyBlock(source, DefaultShaderLabConfig, out _);
+
+        public static ShaderLabCommandNode ParseUnityShaderCommand(string source, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
+        {
+            var tokens = ShaderLabLexer.Lex(source, config.BasePath, config.FileName, config.ThrowExceptionOnError, out var lexerDiags);
+            var rootNode = ShaderLabParser.ParseShaderLabCommand(tokens, config, out var parserDiags);
+            diagnostics = lexerDiags.Concat(parserDiags).ToList();
+            return rootNode;
+        }
+        public static ShaderLabCommandNode ParseUnityShaderCommand(string source, ShaderLabParserConfig config) => ParseUnityShaderCommand(source, config, out _);
+        public static ShaderLabCommandNode ParseUnityShaderCommand(string source, out List<Diagnostic> diagnostics) => ParseUnityShaderCommand(source, DefaultShaderLabConfig, out diagnostics);
+        public static ShaderLabCommandNode ParseUnityShaderCommand(string source) => ParseUnityShaderCommand(source, DefaultShaderLabConfig, out _);
+
+        public static List<ShaderLabCommandNode> ParseUnityShaderCommands(string source, ShaderLabParserConfig config, out List<Diagnostic> diagnostics)
+        {
+            var tokens = ShaderLabLexer.Lex(source, config.BasePath, config.FileName, config.ThrowExceptionOnError, out var lexerDiags);
+            var rootNode = ShaderLabParser.ParseShaderLabCommands(tokens, config, out var parserDiags);
+            diagnostics = lexerDiags.Concat(parserDiags).ToList();
+            return rootNode;
+        }
+        public static List<ShaderLabCommandNode> ParseUnityShaderCommands(string source, ShaderLabParserConfig config) => ParseUnityShaderCommands(source, config, out _);
+        public static List<ShaderLabCommandNode> ParseUnityShaderCommands(string source, out List<Diagnostic> diagnostics) => ParseUnityShaderCommands(source, DefaultShaderLabConfig, out diagnostics);
+        public static List<ShaderLabCommandNode> ParseUnityShaderCommands(string source) => ParseUnityShaderCommands(source, DefaultShaderLabConfig, out _);
     }
 }
