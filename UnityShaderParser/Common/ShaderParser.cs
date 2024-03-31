@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using UnityShaderParser.HLSL;
+using UnityShaderParser.HLSL.PreProcessor;
 using UnityShaderParser.ShaderLab;
 
 namespace UnityShaderParser.Common
@@ -152,5 +153,33 @@ namespace UnityShaderParser.Common
         public static List<ShaderLabCommandNode> ParseUnityShaderCommands(string source, ShaderLabParserConfig config) => ParseUnityShaderCommands(source, config, out _);
         public static List<ShaderLabCommandNode> ParseUnityShaderCommands(string source, out List<Diagnostic> diagnostics) => ParseUnityShaderCommands(source, DefaultShaderLabConfig, out diagnostics);
         public static List<ShaderLabCommandNode> ParseUnityShaderCommands(string source) => ParseUnityShaderCommands(source, DefaultShaderLabConfig, out _);
+
+        public static List<Token<HLSL.TokenKind>> PreProcessToTokens(string source, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
+        {
+            var tokens = HLSLLexer.Lex(source, config.BasePath, config.FileName, config.ThrowExceptionOnError, out var lexerDiags);
+            var ppTokens = HLSLPreProcessor.PreProcess(
+                tokens,
+                config.ThrowExceptionOnError,
+                config.DiagnosticFilter,
+                config.PreProcessorMode,
+                config.BasePath,
+                config.IncludeResolver,
+                config.Defines,
+                out pragmas,
+                out var ppDiags);
+            diagnostics = lexerDiags.Concat(ppDiags).ToList();
+            return ppTokens;
+        }
+        public static List<Token<HLSL.TokenKind>> PreProcessToTokens(string source, HLSLParserConfig config) => PreProcessToTokens(source, config, out _, out _);
+        public static List<Token<HLSL.TokenKind>> PreProcessToTokens(string source, out List<Diagnostic> diagnostics, out List<string> pragmas) => PreProcessToTokens(source, DefaultHLSLConfig, out diagnostics, out pragmas);
+        public static List<Token<HLSL.TokenKind>> PreProcessToTokens(string source) => PreProcessToTokens(source, DefaultHLSLConfig, out _, out _);
+
+        public static string PreProcessToString(string source, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas)
+        {
+            return HLSLSyntaxFacts.TokensToString(PreProcessToTokens(source, config, out diagnostics, out pragmas));
+        }
+        public static string PreProcessToString(string source, HLSLParserConfig config) => PreProcessToString(source, config, out _, out _);
+        public static string PreProcessToString(string source, out List<Diagnostic> diagnostics, out List<string> pragmas) => PreProcessToString(source, DefaultHLSLConfig, out diagnostics, out pragmas);
+        public static string PreProcessToString(string source) => PreProcessToString(source, DefaultHLSLConfig, out _, out _);
     }
 }
