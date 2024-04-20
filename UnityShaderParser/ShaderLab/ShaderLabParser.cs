@@ -240,6 +240,7 @@ namespace UnityShaderParser.ShaderLab
                 {
                     CodeWithoutIncludes = program,
                     FullCode = fullCode,
+                    Span = programToken.Span,
                     Pragmas = new List<string>(),
                     TopLevelDeclarations = new List<HLSLSyntaxNode>(),
                 };
