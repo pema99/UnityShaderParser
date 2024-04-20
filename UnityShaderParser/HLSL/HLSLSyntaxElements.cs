@@ -1581,7 +1581,17 @@ namespace UnityShaderParser.HLSL
         public ScalarTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
-    public class MatrixTypeNode : NumericTypeNode
+    public abstract class BaseMatrixTypeNode : NumericTypeNode
+    {
+        public BaseMatrixTypeNode(List<HLSLToken> tokens) : base(tokens) { }
+    }
+
+    public abstract class BaseVectorTypeNode : NumericTypeNode
+    {
+        public BaseVectorTypeNode(List<HLSLToken> tokens) : base(tokens) { }
+    }
+
+    public class MatrixTypeNode : BaseMatrixTypeNode
     {
         public int FirstDimension { get; set; }
         public int SecondDimension { get; set; }
@@ -1595,7 +1605,21 @@ namespace UnityShaderParser.HLSL
         public MatrixTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
     }
 
-    public class VectorTypeNode : NumericTypeNode
+    public class GenericMatrixTypeNode : BaseMatrixTypeNode
+    {
+        public ExpressionNode FirstDimension { get; set; }
+        public ExpressionNode SecondDimension { get; set; }
+
+        protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
+            MergeChildren(Child(FirstDimension), Child(SecondDimension));
+
+        public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitGenericMatrixTypeNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitGenericMatrixTypeNode(this);
+
+        public GenericMatrixTypeNode(List<HLSLToken> tokens) : base(tokens) { }
+    }
+
+    public class VectorTypeNode : BaseVectorTypeNode
     {
         public int Dimension { get; set; }
 
@@ -1606,6 +1630,19 @@ namespace UnityShaderParser.HLSL
         public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitVectorTypeNode(this);
 
         public VectorTypeNode(List<HLSLToken> tokens) : base(tokens) { }   
+    }
+
+    public class GenericVectorTypeNode : BaseVectorTypeNode
+    {
+        public ExpressionNode Dimension { get; set; }
+
+        protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
+            Child(Dimension);
+
+        public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitGenericVectorTypeNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitGenericVectorTypeNode(this);
+
+        public GenericVectorTypeNode(List<HLSLToken> tokens) : base(tokens) { }
     }
 
     // This type mostly exists such that template can receive literal arguments.

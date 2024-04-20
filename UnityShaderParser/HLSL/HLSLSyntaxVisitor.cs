@@ -90,7 +90,9 @@ namespace UnityShaderParser.HLSL
         public virtual void VisitStructTypeNode(StructTypeNode node) => DefaultVisit(node);
         public virtual void VisitScalarTypeNode(ScalarTypeNode node) => DefaultVisit(node);
         public virtual void VisitMatrixTypeNode(MatrixTypeNode node) => DefaultVisit(node);
+        public virtual void VisitGenericMatrixTypeNode(GenericMatrixTypeNode node) => DefaultVisit(node);
         public virtual void VisitVectorTypeNode(VectorTypeNode node) => DefaultVisit(node);
+        public virtual void VisitGenericVectorTypeNode(GenericVectorTypeNode node) => DefaultVisit(node);
         public virtual void VisitTechniqueNode(TechniqueNode node) => DefaultVisit(node);
         public virtual void VisitLiteralTemplateArgumentType(LiteralTemplateArgumentType node) => DefaultVisit(node);
         public virtual void VisitStatePropertyNode(StatePropertyNode node) => DefaultVisit(node);
@@ -200,7 +202,9 @@ namespace UnityShaderParser.HLSL
         public virtual TReturn VisitStructTypeNode(StructTypeNode node) => DefaultVisit(node);
         public virtual TReturn VisitScalarTypeNode(ScalarTypeNode node) => DefaultVisit(node);
         public virtual TReturn VisitMatrixTypeNode(MatrixTypeNode node) => DefaultVisit(node);
+        public virtual TReturn VisitGenericMatrixTypeNode(GenericMatrixTypeNode node) => DefaultVisit(node);
         public virtual TReturn VisitVectorTypeNode(VectorTypeNode node) => DefaultVisit(node);
+        public virtual TReturn VisitGenericVectorTypeNode(GenericVectorTypeNode node) => DefaultVisit(node);
         public virtual TReturn VisitTechniqueNode(TechniqueNode node) => DefaultVisit(node);
         public virtual TReturn VisitLiteralTemplateArgumentType(LiteralTemplateArgumentType node) => DefaultVisit(node);
         public virtual TReturn VisitStatePropertyNode(StatePropertyNode node) => DefaultVisit(node);

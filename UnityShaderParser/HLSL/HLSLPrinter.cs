@@ -680,9 +680,23 @@ namespace UnityShaderParser.HLSL
         {
             Emit($"{PrintingUtil.GetEnumName(node.Kind)}{node.FirstDimension}x{node.SecondDimension}");
         }
+        public override void VisitGenericMatrixTypeNode(GenericMatrixTypeNode node)
+        {
+            Emit($"matrix<{PrintingUtil.GetEnumName(node.Kind)}, ");
+            Visit(node.FirstDimension);
+            Emit(", ");
+            Visit(node.SecondDimension);
+            Emit(">");
+        }
         public override void VisitVectorTypeNode(VectorTypeNode node)
         {
             Emit($"{PrintingUtil.GetEnumName(node.Kind)}{node.Dimension}");
+        }
+        public override void VisitGenericVectorTypeNode(GenericVectorTypeNode node)
+        {
+            Emit($"vector<{PrintingUtil.GetEnumName(node.Kind)}, ");
+            Visit(node.Dimension);
+            Emit(">");
         }
         public override void VisitTechniqueNode(TechniqueNode node)
         {

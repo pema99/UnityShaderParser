@@ -100,5 +100,22 @@ namespace UnityShaderParser.Tests
                 CheckParents(commands);
             }
         }
+
+        [Test]
+        public void ParseGenericVectorAndMatrixTypes()
+        {
+            List<Diagnostic> diags;
+
+            var decl = ShaderParser.ParseTopLevelDeclaration("matrix<float, 2+2, 1+1> a;", out diags, out _);
+            Assert.AreEqual(decl.Children[0].Children.Count, 2);
+            Assert.IsEmpty(diags);
+            Assert.IsTrue(decl.Children[0].Children[0] is ExpressionNode);
+            Assert.IsTrue(decl.Children[0].Children[1] is ExpressionNode);
+
+            decl = ShaderParser.ParseTopLevelDeclaration("vector<float, 2+2> a;", out diags, out _);
+            Assert.AreEqual(decl.Children[0].Children.Count, 1);
+            Assert.IsEmpty(diags);
+            Assert.IsTrue(decl.Children[0].Children[0] is ExpressionNode);
+        }
     }
 }

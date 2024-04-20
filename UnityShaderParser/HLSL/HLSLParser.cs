@@ -1000,9 +1000,9 @@ namespace UnityShaderParser.HLSL
                     Eat(TokenKind.LessThanToken);
                     var genVectorType = ParseNumericType().Kind;
                     Eat(TokenKind.CommaToken);
-                    int genDim = ParseIntegerLiteral();
+                    var genDim = ParseExpression((int)OperatorPrecedence.Comparison + 1);
                     var closeTok = Eat(TokenKind.GreaterThanToken);
-                    return new VectorTypeNode(Range(typeToken, closeTok)) { Kind = genVectorType, Dimension = genDim };
+                    return new GenericVectorTypeNode(Range(typeToken, closeTok)) { Kind = genVectorType, Dimension = genDim };
                 }
 
                 return new VectorTypeNode(Range(typeToken, typeToken)) { Kind = vectorType, Dimension = dimension };
@@ -1015,11 +1015,11 @@ namespace UnityShaderParser.HLSL
                     Eat(TokenKind.LessThanToken);
                     var genMatrixType = ParseNumericType().Kind;
                     Eat(TokenKind.CommaToken);
-                    int genDimX = ParseIntegerLiteral();
+                    var genDimX = ParseExpression((int)OperatorPrecedence.Comparison + 1);
                     Eat(TokenKind.CommaToken);
-                    int genDimY = ParseIntegerLiteral();
+                    var genDimY = ParseExpression((int)OperatorPrecedence.Comparison + 1);
                     var closeTok = Eat(TokenKind.GreaterThanToken);
-                    return new MatrixTypeNode(Range(typeToken, closeTok)) { Kind = genMatrixType, FirstDimension = genDimX, SecondDimension = genDimY };
+                    return new GenericMatrixTypeNode(Range(typeToken, closeTok)) { Kind = genMatrixType, FirstDimension = genDimX, SecondDimension = genDimY };
                 }
 
                 return new MatrixTypeNode(Range(typeToken, typeToken)) { Kind = matrixType, FirstDimension = dimX, SecondDimension = dimY };
