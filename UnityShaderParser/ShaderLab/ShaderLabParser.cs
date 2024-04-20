@@ -170,7 +170,7 @@ namespace UnityShaderParser.ShaderLab
                 {
                     if (lexEmbeddedHLSL)
                     {
-                        tokenStream.AddRange(HLSLLexer.Lex(includeBlock.Code, config.BasePath, config.FileName, config.ThrowExceptionOnError, includeBlock.Location, out var includeLexerDiags));
+                        tokenStream.AddRange(HLSLLexer.Lex(includeBlock.Code, config.BasePath, config.FileName, config.ThrowExceptionOnError, includeBlock.Span.Start, out var includeLexerDiags));
                         diagnostics.AddRange(includeLexerDiags);
                     }
                     sb.Append(includeBlock.Code);
@@ -257,7 +257,7 @@ namespace UnityShaderParser.ShaderLab
             {
                 CodeWithoutIncludes = program,
                 FullCode = fullCode,
-                Location = programToken.Span.Start,
+                Span = programToken.Span,
                 Pragmas = pragmas,
                 TopLevelDeclarations = decls,
             };
@@ -384,7 +384,7 @@ namespace UnityShaderParser.ShaderLab
                 SLToken next = Peek();
                 if (next.Kind == TokenKind.IncludeBlock && !string.IsNullOrEmpty(next.Identifier))
                 {
-                    outIncludeBlocks.Add(new HLSLIncludeBlock { Location = next.Span.Start, Code = next.Identifier });
+                    outIncludeBlocks.Add(new HLSLIncludeBlock { Span = next.Span, Code = next.Identifier });
                     Advance();
                 }
                 else

@@ -389,7 +389,7 @@ namespace UnityShaderParser.ShaderLab
     {
         public string FullCode;
         public string CodeWithoutIncludes;
-        public SourceLocation Location;
+        public SourceSpan Span;
         public List<string> Pragmas;
         public List<HLSLSyntaxNode> TopLevelDeclarations;
     }
@@ -397,7 +397,7 @@ namespace UnityShaderParser.ShaderLab
     public struct HLSLIncludeBlock
     {
         public string Code;
-        public SourceLocation Location;
+        public SourceSpan Span;
     }
 
     public abstract class ShaderLabSyntaxNode : SyntaxNode<ShaderLabSyntaxNode>
