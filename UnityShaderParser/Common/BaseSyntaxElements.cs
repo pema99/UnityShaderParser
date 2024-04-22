@@ -50,14 +50,15 @@ namespace UnityShaderParser.Common
 
     public struct Diagnostic
     {
-        public SourceLocation Location { get; }
+        public SourceLocation Location => Span.Start;
+        public SourceSpan Span { get; }
         public DiagnosticFlags Kind { get; }
         public ParserStage Stage { get; }
         public string Text { get; }
 
-        public Diagnostic(SourceLocation location, DiagnosticFlags kind, ParserStage stage, string text)
+        public Diagnostic(SourceSpan span, DiagnosticFlags kind, ParserStage stage, string text)
         {
-            Location = location;
+            Span = span;
             Kind = kind;
             Stage = stage;
             Text = text;
@@ -65,7 +66,7 @@ namespace UnityShaderParser.Common
 
         public override string ToString()
         {
-            return $"Error during {Stage}, line {Location.Line}, col {Location.Column}: {Text}";
+            return $"Error during {Stage}, file '{Span.FileName}', line {Location.Line}, col {Location.Column}: {Text}";
         }
     }
 

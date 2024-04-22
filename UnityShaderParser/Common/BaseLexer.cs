@@ -70,7 +70,7 @@ namespace UnityShaderParser.Common
             {
                 throw new Exception($"Error at line {line}, column {column} during {Stage}: {err}");
             }
-            diagnostics.Add(new Diagnostic(new SourceLocation(line, column, position), kind, this.Stage, err));
+            diagnostics.Add(new Diagnostic(GetCurrentSpan(), kind, this.Stage, err));
         }
 
         protected void StartCurrentSpan()

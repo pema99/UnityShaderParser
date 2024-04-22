@@ -171,7 +171,7 @@ namespace UnityShaderParser.Common
             }
 
             // Log the diagnostic
-            diagnostics.Add(new Diagnostic(anchorSpan.Start, kind, Stage, msg));
+            diagnostics.Add(new Diagnostic(anchorSpan, kind, Stage, msg));
         }
 
         protected void Error(DiagnosticFlags kind, string msg, SourceSpan span)
