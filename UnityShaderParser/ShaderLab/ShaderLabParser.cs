@@ -561,6 +561,8 @@ namespace UnityShaderParser.ShaderLab
                 if (next.Kind == TokenKind.CloseBraceToken)
                     break;
 
+                int lastPosition = position;
+
                 switch (next.Kind)
                 {
                     case TokenKind.PassKeyword: passes.Add(ParseCodePass()); break;
@@ -571,6 +573,13 @@ namespace UnityShaderParser.ShaderLab
                         ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
                         SetIncludes(includeBlocks);
                         break;
+                }
+
+                // We got stuck, so error and try to recover to something sensible
+                if (position == lastPosition)
+                {
+                    Error("a valid ShaderLab command or program block", next);
+                    RecoverTo(x => x == TokenKind.CloseBraceToken || commandSyncTokens.Contains(x), false);
                 }
             }
 

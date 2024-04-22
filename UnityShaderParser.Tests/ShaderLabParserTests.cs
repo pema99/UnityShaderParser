@@ -85,5 +85,44 @@ namespace UnityShaderParser.ShaderLab.Tests
             Assert.IsTrue(pass!.Commands[1] is ShaderLabCommandZWriteNode zw && zw.Enabled.Value);
             Assert.IsTrue(pass!.Commands[3] is ShaderLabCommandZTestNode zt && zt.Mode.Value == ComparisonMode.Always);
         }
+
+        [Test]
+        public void MalformedPropertyDoesntThrow()
+        {
+            // This tests a malformed property (makes null children)
+            var decl = ShaderParser.ParseUnityShader(@"
+                Shader ""Unlit/NewUnlitShader""
+                {
+                    Properties
+                    {
+                        d _MainTex(""Texture"", 2D) = ""white"" { }
+                    }
+                    SubShader
+                    {
+                        LOD 100
+                    }
+                }
+            ", out var diags);
+            Assert.AreEqual(1, diags.Count);
+        }
+
+        [Test]
+        public void MalformedCommandDoesntThrow()
+        {
+            var decl = ShaderParser.ParseUnityShader(@"
+                Shader ""Unlit/NewUnlitShader""
+                {
+                    Properties
+                    {
+                        _MainTex(""Texture"", 2D) = ""white"" { }
+                    }
+                    SubShader
+                    {
+                        LOsD 100
+                    }
+                }
+            ", out var diags);
+            Assert.AreEqual(1, diags.Count);
+        }
     }
 }

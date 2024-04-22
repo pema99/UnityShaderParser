@@ -170,13 +170,14 @@ namespace UnityShaderParser.Common
         {
             foreach (var child in GetChildren)
             {
+                if (child == null) continue;
                 child.parent = (TSelf)this;
                 child.ComputeParents();
             }
         }
 
         // Public API
-        public List<TSelf> Children => GetChildren.ToList();
+        public List<TSelf> Children => GetChildren.Where(x => x != null).ToList();
         public TSelf Parent => parent;
         public abstract SourceSpan Span { get; }
         public abstract SourceSpan OriginalSpan { get; }
