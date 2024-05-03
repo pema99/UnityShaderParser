@@ -230,6 +230,20 @@ namespace UnityShaderParser.HLSL
                 return false;
             }
 
+            // It could be a generic type
+            if (LookAhead(offset).Kind == TokenKind.LessThanToken)
+            {
+                offset++;
+                while (LookAhead(offset).Kind != TokenKind.GreaterThanToken)
+                {
+                    if (LookAhead(offset).Kind == TokenKind.InvalidToken)
+                        return false;
+
+                    offset++;
+                }
+                offset++;
+            }
+
             // If we had an identifier, check if it is followed by an array type
             while (LookAhead(offset).Kind == TokenKind.OpenBracketToken)
             {
