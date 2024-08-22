@@ -7,6 +7,11 @@ A library for parsing Unity shaders. Consists of a few distinct components:
 
 Check [the tests](https://github.com/pema99/UnityShaderParser/tree/master/UnityShaderParser.Tests) for some examples.
 
+Some other examples:
+- Used in [Slang shading language plugin](https://github.com/pema99/slangunityplugin) for Unity, [here](https://github.com/pema99/SlangUnityPlugin/blob/master/Editor/Scripts/SlangShaderImporter.cs#L39-L537).
+- Used in [Orels' Unity shaders](https://github.com/orels1/orels-Unity-Shaders), in a few places ([example 1](https://github.com/orels1/orels-Unity-Shaders/blob/3ee6a786af8720c6e5f62383a34433844f6f7ac5/Packages/sh.orels.shaders.generator/Editor/ShaderAnalyzers.cs), [example 2](https://github.com/orels1/orels-Unity-Shaders/blob/3ee6a786af8720c6e5f62383a34433844f6f7ac5/Packages/sh.orels.shaders.generator/Editor/ShaderBlockValidations.cs)).
+- Another small example in [this issue](https://github.com/pema99/UnityShaderParser/issues/3#issuecomment-2305855379).
+
 # Acknowledgements
 - http://code.google.com/p/fxdis-d3d1x/ for test data
 - https://github.com/James-Jones/HLSLCrossCompiler for test data
