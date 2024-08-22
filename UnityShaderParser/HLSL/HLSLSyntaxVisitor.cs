@@ -5,7 +5,7 @@ namespace UnityShaderParser.HLSL
 {
     public abstract class HLSLSyntaxVisitor
     {
-        protected void DefaultVisit(HLSLSyntaxNode node)
+        protected virtual void DefaultVisit(HLSLSyntaxNode node)
         {
             foreach (var child in node.Children)
             {
@@ -112,7 +112,7 @@ namespace UnityShaderParser.HLSL
 
     public abstract class HLSLSyntaxVisitor<TReturn>
     {
-        protected TReturn DefaultVisit(HLSLSyntaxNode node)
+        protected virtual TReturn DefaultVisit(HLSLSyntaxNode node)
         {
             foreach (var child in node.Children)
             {

@@ -6,7 +6,7 @@ namespace UnityShaderParser.ShaderLab
 {
     public abstract class ShaderLabSyntaxVisitor
     {
-        protected void DefaultVisit(ShaderLabSyntaxNode node)
+        protected virtual void DefaultVisit(ShaderLabSyntaxNode node)
         {
             foreach (var child in node.Children)
             {
@@ -75,7 +75,7 @@ namespace UnityShaderParser.ShaderLab
 
     public abstract class ShaderLabSyntaxVisitor<TReturn>
     {
-        protected TReturn DefaultVisit(ShaderLabSyntaxNode node)
+        protected virtual TReturn DefaultVisit(ShaderLabSyntaxNode node)
         {
             foreach (var child in node.Children)
             {
