@@ -156,10 +156,8 @@ namespace UnityShaderParser.HLSL.PreProcessor
         {
             public List<HLSLToken> Tokens;
             public int LineOffset;
-            public string BasePath;
             public int ExitPosition;
             public SourceSpan IncludeSpan;
-            public string FileName;
         }
 
         protected Stack<PreProcessorSnapshot> fileSnapshots = new Stack<PreProcessorSnapshot>();
@@ -174,22 +172,15 @@ namespace UnityShaderParser.HLSL.PreProcessor
             {
                 Tokens = tokens,
                 LineOffset = lineOffset,
-                BasePath = basePath,
                 ExitPosition = position,
                 IncludeSpan = includeSpan,
-                FileName = fileName,
             });
 
             position = 0;
             lineOffset = 0;
             tokens = sourceTokens;
 
-            string[] pathParts = newFileName.Split('/', '\\');
-            if (pathParts.Length > 1)
-            {
-                basePath = Path.Combine(basePath, string.Join("/", pathParts.Take(pathParts.Length - 1)));
-            }
-            fileName = pathParts.LastOrDefault();
+            includeResolver.EnterFile(ref basePath, ref fileName, newFileName);
         }
 
         protected void ExitFile()
@@ -197,9 +188,9 @@ namespace UnityShaderParser.HLSL.PreProcessor
             var snapshot = fileSnapshots.Pop();
             tokens = snapshot.Tokens;
             lineOffset = snapshot.LineOffset;
-            basePath = snapshot.BasePath;
-            fileName = snapshot.FileName;
             position = snapshot.ExitPosition;
+
+            includeResolver.ExitFile(ref basePath, ref fileName);
         }
 
         private void ExpandInclude(bool expandIncludesOnly)
