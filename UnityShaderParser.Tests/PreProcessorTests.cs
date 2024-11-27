@@ -28,7 +28,7 @@ namespace UnityShaderParser.HLSL.PreProcessor.Tests
 
             var varDecl = decl as VariableDeclarationStatementNode;
             Assert.IsNotNull(varDecl);
-            Assert.AreEqual("bar", varDecl?.Declarators[0].Name);
+            Assert.AreEqual("bar", varDecl?.Declarators[0].Name.Identifier);
 
             var typeDecl = varDecl?.Kind as PredefinedObjectTypeNode;
             Assert.AreEqual(PredefinedObjectType.Texture2D, typeDecl?.Kind);

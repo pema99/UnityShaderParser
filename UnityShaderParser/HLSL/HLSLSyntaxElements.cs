@@ -715,6 +715,22 @@ namespace UnityShaderParser.HLSL
         }
     }
 
+    public class IdentifierNode : HLSLSyntaxNode
+    {
+        public string Identifier { get; set; }
+
+        public static implicit operator string(IdentifierNode node) => node.Identifier;
+        public override string ToString() => Identifier;
+
+        protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
+            Enumerable.Empty<HLSLSyntaxNode>();
+
+        public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitIdentifierNode(this);
+        public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitIdentifierNode(this);
+
+        public IdentifierNode(List<HLSLToken> tokens) : base(tokens) { }
+    }
+
     public abstract class FunctionNode : HLSLSyntaxNode
     {
         public List<AttributeNode> Attributes { get; set; }
@@ -748,14 +764,14 @@ namespace UnityShaderParser.HLSL
 
     public class VariableDeclaratorNode : HLSLSyntaxNode
     {
-        public string Name { get; set; }
+        public IdentifierNode Name { get; set; }
         public List<ArrayRankNode> ArrayRanks { get; set; }
         public List<VariableDeclaratorQualifierNode> Qualifiers { get; set; }
         public List<VariableDeclarationStatementNode> Annotations { get; set; }
         public InitializerNode Initializer { get; set; } // Optional
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
-            MergeChildren(ArrayRanks, Qualifiers, Annotations, OptionalChild(Initializer));
+            MergeChildren(Child(Name), ArrayRanks, Qualifiers, Annotations, OptionalChild(Initializer));
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitVariableDeclaratorNode(this);
         public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitVariableDeclaratorNode(this);
@@ -923,10 +939,10 @@ namespace UnityShaderParser.HLSL
 
     public class SemanticNode : VariableDeclaratorQualifierNode
     {
-        public string Name { get; set; }
+        public IdentifierNode Name { get; set; }
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
-            Enumerable.Empty<HLSLSyntaxNode>();
+            Child(Name);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitSemanticNode(this);
         public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitSemanticNode(this);
@@ -1192,11 +1208,11 @@ namespace UnityShaderParser.HLSL
 
     public class AttributeNode : HLSLSyntaxNode
     {
-        public string Name { get; set; }
+        public IdentifierNode Name { get; set; }
         public List<LiteralExpressionNode> Arguments { get; set; }
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
-            Arguments;
+            MergeChildren(Child(Name), Arguments);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitAttributeNode(this);
         public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitAttributeNode(this);
@@ -1236,13 +1252,13 @@ namespace UnityShaderParser.HLSL
 
     public class IdentifierExpressionNode : NamedExpressionNode
     {
-        public string Name { get; set; }
+        public IdentifierNode Name { get; set; }
 
-        public override string GetName() => Name;
-        public override string GetUnqualifiedName() => Name;
+        public override string GetName() => Name.Identifier;
+        public override string GetUnqualifiedName() => Name.Identifier;
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
-            Enumerable.Empty<HLSLSyntaxNode>();
+            Child(Name);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitIdentifierExpressionNode(this);
         public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitIdentifierExpressionNode(this);
@@ -1339,10 +1355,10 @@ namespace UnityShaderParser.HLSL
     public class FieldAccessExpressionNode : ExpressionNode
     {
         public ExpressionNode Target { get; set; }
-        public string Name { get; set; }
+        public IdentifierNode Name { get; set; }
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
-            Child(Target);
+            new HLSLSyntaxNode[] { Target, Name };
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitFieldAccessExpressionNode(this);
         public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitFieldAccessExpressionNode(this);
@@ -1353,11 +1369,11 @@ namespace UnityShaderParser.HLSL
     public class MethodCallExpressionNode : ExpressionNode
     {
         public ExpressionNode Target { get; set; }
-        public string Name { get; set; }
+        public IdentifierNode Name { get; set; }
         public List<ExpressionNode> Arguments { get; set; }
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
-            MergeChildren(Child(Target), Arguments);
+            MergeChildren(Child(Name), Child(Target), Arguments);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitMethodCallExpressionNode(this);
         public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitMethodCallExpressionNode(this);
@@ -1467,11 +1483,11 @@ namespace UnityShaderParser.HLSL
     // From FX framework
     public class CompileExpressionNode : ExpressionNode
     {
-        public string Target { get; set; }
+        public IdentifierNode Target { get; set; }
         public FunctionCallExpressionNode Invocation { get; set; }
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
-            Child(Invocation);
+            new HLSLSyntaxNode[] { Target, Invocation };
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitCompileExpressionNode(this);
         public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitCompileExpressionNode(this);
@@ -1518,13 +1534,13 @@ namespace UnityShaderParser.HLSL
 
     public class NamedTypeNode : UserDefinedNamedTypeNode
     {
-        public string Name { get; set; }
+        public IdentifierNode Name { get; set; }
 
-        public override string GetName() => Name;
-        public override string GetUnqualifiedName() => Name;
+        public override string GetName() => Name.Identifier;
+        public override string GetUnqualifiedName() => Name.Identifier;
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
-            Enumerable.Empty<HLSLSyntaxNode>();
+            Child(Name);
 
         public override void Accept(HLSLSyntaxVisitor visitor) => visitor.VisitNamedTypeNode(this);
         public override T Accept<T>(HLSLSyntaxVisitor<T> visitor) => visitor.VisitNamedTypeNode(this);

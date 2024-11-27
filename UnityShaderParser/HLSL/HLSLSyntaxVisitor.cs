@@ -33,6 +33,7 @@ namespace UnityShaderParser.HLSL
         }
 
         public virtual void Visit(HLSLSyntaxNode node) => node?.Accept(this);
+        public virtual void VisitIdentifierNode(IdentifierNode node) => DefaultVisit(node);
         public virtual void VisitFormalParameterNode(FormalParameterNode node) => DefaultVisit(node);
         public virtual void VisitVariableDeclaratorNode(VariableDeclaratorNode node) => DefaultVisit(node);
         public virtual void VisitArrayRankNode(ArrayRankNode node) => DefaultVisit(node);
@@ -145,6 +146,7 @@ namespace UnityShaderParser.HLSL
         }
 
         public virtual TReturn Visit(HLSLSyntaxNode node) => node == null ? default : node.Accept(this);
+        public virtual TReturn VisitIdentifierNode(IdentifierNode node) => DefaultVisit(node);
         public virtual TReturn VisitFormalParameterNode(FormalParameterNode node) => DefaultVisit(node);
         public virtual TReturn VisitVariableDeclaratorNode(VariableDeclaratorNode node) => DefaultVisit(node);
         public virtual TReturn VisitArrayRankNode(ArrayRankNode node) => DefaultVisit(node);

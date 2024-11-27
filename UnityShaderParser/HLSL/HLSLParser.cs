@@ -282,6 +282,15 @@ namespace UnityShaderParser.HLSL
             });
         }
 
+        private new IdentifierNode ParseIdentifier()
+        {
+            string identifier = base.ParseIdentifier();
+            return new IdentifierNode(new List<HLSLToken> { Previous() })
+            {
+                Identifier = identifier,
+            };
+        }
+
         public StatePropertyNode ParseStateProperty()
         {
             var firstTok = Peek();
@@ -290,7 +299,13 @@ namespace UnityShaderParser.HLSL
             if (Match(TokenKind.TextureKeyword))
             {
                 var nameTok = Advance();
-                name = new NamedTypeNode(Range(nameTok, nameTok)) { Name = "texture" };
+                name = new NamedTypeNode(new List<HLSLToken> { nameTok }) 
+                {
+                    Name = new IdentifierNode(new List<HLSLToken> { nameTok })
+                    { 
+                        Identifier = "texture" 
+                    } 
+                };
             }
             else
             {
@@ -359,7 +374,7 @@ namespace UnityShaderParser.HLSL
         public CompileExpressionNode ParseCompileExpression()
         {
             var keywordTok = Eat(TokenKind.CompileKeyword);
-            string target = ParseIdentifier();
+            var target = ParseIdentifier();
 
             var name = ParseNamedExpression();
             var param = ParseParameterList();
@@ -596,7 +611,7 @@ namespace UnityShaderParser.HLSL
 
                     case TokenKind.DotToken:
                         Eat(TokenKind.DotToken);
-                        string identifier = ParseIdentifier();
+                        var identifier = ParseIdentifier();
 
                         if (Match(TokenKind.OpenParenToken))
                         {
@@ -620,7 +635,7 @@ namespace UnityShaderParser.HLSL
         public NamedExpressionNode ParseNamedExpression()
         {
             var firstTok = Peek();
-            string identifier = ParseIdentifier();
+            var identifier = ParseIdentifier();
             
             var name = new IdentifierExpressionNode(Range(firstTok, firstTok)) { Name = identifier };
 
@@ -698,7 +713,7 @@ namespace UnityShaderParser.HLSL
         {
             var openTok = Eat(TokenKind.OpenBracketToken);
 
-            string identifier = ParseIdentifier();
+            var identifier = ParseIdentifier();
 
             List<LiteralExpressionNode> args = new List<LiteralExpressionNode>();
             if (Match(TokenKind.OpenParenToken))
@@ -1060,7 +1075,7 @@ namespace UnityShaderParser.HLSL
         public UserDefinedNamedTypeNode ParseUserDefinedNamedType()
         {
             var firstTok = Peek();
-            string identifier = ParseIdentifier();
+            var identifier = ParseIdentifier();
             var name = new NamedTypeNode(Range(firstTok, firstTok)) { Name = identifier };
 
             if (Match(TokenKind.ColonColonToken))
@@ -1118,7 +1133,7 @@ namespace UnityShaderParser.HLSL
         public VariableDeclaratorNode ParseVariableDeclarator(bool allowCompoundInitializer = true)
         {
             var firstTok = Peek();
-            string identifier = ParseIdentifier();
+            var identifier = ParseIdentifier();
 
             List<ArrayRankNode> arrayRanks = new List<ArrayRankNode>();
             while (Match(TokenKind.OpenBracketToken))
@@ -1204,7 +1219,7 @@ namespace UnityShaderParser.HLSL
         public SemanticNode ParseSemantic()
         {
             var colTok = Eat(TokenKind.ColonToken);
-            string identifier = ParseIdentifier();
+            var identifier = ParseIdentifier();
             return new SemanticNode(Range(colTok, Previous())) { Name = identifier };
         }
 
@@ -1214,7 +1229,7 @@ namespace UnityShaderParser.HLSL
             Eat(TokenKind.RegisterKeyword);
             Eat(TokenKind.OpenParenToken);
 
-            string location = ParseIdentifier();
+            string location = base.ParseIdentifier();
             RegisterKind kind = default;
             int index = 0;
             switch (location.ToLower().FirstOrDefault())
@@ -1236,7 +1251,7 @@ namespace UnityShaderParser.HLSL
             {
                 Eat(TokenKind.CommaToken);
 
-                string space = ParseIdentifier();
+                string space = base.ParseIdentifier();
                 string spaceLexeme = string.Concat(space.SkipWhile(x => !char.IsNumber(x)));
                 if (int.TryParse(spaceLexeme, out int parsedIndex))
                 {
@@ -1264,7 +1279,7 @@ namespace UnityShaderParser.HLSL
             Eat(TokenKind.PackoffsetKeyword);
             Eat(TokenKind.OpenParenToken);
 
-            string location = ParseIdentifier();
+            string location = base.ParseIdentifier();
             int index = 0;
             string indexLexeme = string.Concat(location.SkipWhile(x => !char.IsNumber(x)));
             if (!int.TryParse(indexLexeme, out index))
@@ -1276,7 +1291,7 @@ namespace UnityShaderParser.HLSL
             if (Match(TokenKind.DotToken))
             {
                 Eat(TokenKind.DotToken);
-                swizzle = ParseIdentifier();
+                swizzle = base.ParseIdentifier();
             }
 
             var closeTok = Eat(TokenKind.CloseParenToken);
@@ -1746,13 +1761,13 @@ namespace UnityShaderParser.HLSL
         public PreProcessorDirectiveNode ParseDefineDirective()
         {
             var keywordTok = Eat(TokenKind.DefineDirectiveKeyword);
-            string ident = ParseIdentifier();
+            string ident = base.ParseIdentifier();
             
             // Function like
             if (Match(TokenKind.OpenFunctionLikeMacroParenToken))
             {
                 Eat(TokenKind.OpenFunctionLikeMacroParenToken);
-                var args = ParseSeparatedList0(TokenKind.CloseParenToken, TokenKind.CommaToken, ParseIdentifier);
+                var args = ParseSeparatedList0(TokenKind.CloseParenToken, TokenKind.CommaToken, base.ParseIdentifier);
                 Eat(TokenKind.CloseParenToken);
                 var tokens = ParseMany0(() => !Match(TokenKind.EndDirectiveToken), () => Advance());
                 var endTok = Eat(TokenKind.EndDirectiveToken);
@@ -1798,7 +1813,7 @@ namespace UnityShaderParser.HLSL
         public UndefDirectiveNode ParseUndefDirective()
         {
             var keywordTok = Eat(TokenKind.UndefDirectiveKeyword);
-            string ident = ParseIdentifier();
+            string ident = base.ParseIdentifier();
             var endTok = Eat(TokenKind.EndDirectiveToken);
             RecoverTo(TokenKind.EndDirectiveToken);
             return new UndefDirectiveNode(Range(keywordTok, endTok)) { Name = ident };
@@ -1841,7 +1856,7 @@ namespace UnityShaderParser.HLSL
         public IfDefDirectiveNode ParseIfDefDirective(Func<HLSLSyntaxNode> recurse)
         {
             var keywordTok = Eat(TokenKind.IfdefDirectiveKeyword);
-            string ident = ParseIdentifier();
+            string ident = base.ParseIdentifier();
             var endTok = Eat(TokenKind.EndDirectiveToken);
             RecoverTo(TokenKind.EndDirectiveToken);
             var body = ParseMany0(() => !Match(TokenKind.ElseDirectiveKeyword, TokenKind.ElifDirectiveKeyword, TokenKind.EndifDirectiveKeyword), recurse);
@@ -1857,7 +1872,7 @@ namespace UnityShaderParser.HLSL
         public IfNotDefDirectiveNode ParseIfNotDefDirective(Func<HLSLSyntaxNode> recurse)
         {
             var keywordTok = Eat(TokenKind.IfndefDirectiveKeyword);
-            string ident = ParseIdentifier();
+            string ident = base.ParseIdentifier();
             var endTok = Eat(TokenKind.EndDirectiveToken);
             RecoverTo(TokenKind.EndDirectiveToken);
             var body = ParseMany0(() => !Match(TokenKind.ElseDirectiveKeyword, TokenKind.ElifDirectiveKeyword, TokenKind.EndifDirectiveKeyword), recurse);
