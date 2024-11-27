@@ -321,9 +321,9 @@ namespace UnityShaderParser.HLSL
                 case "RWTexture2DArray": token = TokenKind.RWTexture2DArrayKeyword; return true;
                 case "RWTexture3D": token = TokenKind.RWTexture3DKeyword; return true;
                 case "sampler": token = TokenKind.SamplerKeyword; return true;
-                case "sampler1d": token = TokenKind.Sampler1DKeyword; return true;
-                case "sampler2d": token = TokenKind.Sampler2DKeyword; return true;
-                case "sampler3d": token = TokenKind.Sampler3DKeyword; return true;
+                case "sampler1D": token = TokenKind.Sampler1DKeyword; return true;
+                case "sampler2D": token = TokenKind.Sampler2DKeyword; return true;
+                case "sampler3D": token = TokenKind.Sampler3DKeyword; return true;
                 case "samplercube": token = TokenKind.SamplerCubeKeyword; return true;
                 case "SamplerComparisonState": token = TokenKind.SamplerComparisonStateKeyword; return true;
                 case "SamplerState": token = TokenKind.SamplerStateKeyword; return true;
