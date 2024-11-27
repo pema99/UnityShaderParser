@@ -14,28 +14,28 @@ namespace UnityShaderParser.HLSL
         public bool IndentBlockLikeSwitchClauses { get; set; } = false;
 
         // State and helpers
-        private StringBuilder sb = new StringBuilder();
+        protected StringBuilder sb = new StringBuilder();
         public string Text => sb.ToString();
 
-        private int indentLevel = 0;
-        private void PushIndent() => indentLevel++;
-        private void PopIndent() => indentLevel--;
-        private string Indent() => new string(' ', indentLevel * 4);
+        protected int indentLevel = 0;
+        protected void PushIndent() => indentLevel++;
+        protected void PopIndent() => indentLevel--;
+        protected string Indent() => new string(' ', indentLevel * 4);
 
-        private void Emit(string text) => sb.Append(text);
-        private void EmitLine(string text = "") => sb.AppendLine(text);
-        private void EmitIndented(string text = "")
+        protected void Emit(string text) => sb.Append(text);
+        protected void EmitLine(string text = "") => sb.AppendLine(text);
+        protected void EmitIndented(string text = "")
         {
             sb.Append(Indent());
             sb.Append(text);
         }
-        private void EmitIndentedLine(string text)
+        protected void EmitIndentedLine(string text)
         {
             sb.Append(Indent());
             sb.AppendLine(text);
         }
 
-        private Stack<int> expressionPrecedences = new Stack<int>();
+        protected Stack<int> expressionPrecedences = new Stack<int>();
 
         protected void VisitManySeparated<T>(IList<T> nodes, string separator, bool trailing = false, bool leading = false)
             where T : HLSLSyntaxNode
@@ -68,6 +68,10 @@ namespace UnityShaderParser.HLSL
         }
 
         // Visitor implementation
+        public override void VisitIdentifierNode(IdentifierNode node)
+        {
+            Emit(node.Identifier);
+        }
         public override void VisitFormalParameterNode(FormalParameterNode node)
         {
             VisitManySeparated(node.Attributes, " ", true);
@@ -79,7 +83,7 @@ namespace UnityShaderParser.HLSL
         }
         public override void VisitVariableDeclaratorNode(VariableDeclaratorNode node)
         {
-            Emit(node.Name);
+            Emit(node.Name.Identifier);
             VisitMany(node.ArrayRanks);
             VisitMany(node.Qualifiers);
             if (node.Annotations?.Count > 0)
@@ -440,7 +444,7 @@ namespace UnityShaderParser.HLSL
         public override void VisitAttributeNode(AttributeNode node)
         {
             Emit("[");
-            Emit(node.Name);
+            Emit(node.Name.Identifier);
             if (node.Arguments?.Count > 0)
             {
                 Emit("(");
