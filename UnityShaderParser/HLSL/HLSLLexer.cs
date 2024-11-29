@@ -201,7 +201,7 @@ namespace UnityShaderParser.HLSL
                 case "undef": Add(TokenKind.UndefDirectiveKeyword); break;
                 case "error": Add(TokenKind.ErrorDirectiveKeyword); break;
                 case "pragma": Add(TokenKind.PragmaDirectiveKeyword); break;
-                case "include": Add(TokenKind.IncludeDirectiveKeyword);
+                case "include": case "include_with_pragmas": Add(TokenKind.IncludeDirectiveKeyword);
                     SkipWhitespace();
                     // Handle system includes
                     if (Match('<'))
