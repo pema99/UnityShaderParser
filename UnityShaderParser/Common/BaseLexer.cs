@@ -125,7 +125,8 @@ namespace UnityShaderParser.Common
                 else if (c == 'e' || c == 'E')
                 {
                     builder.Append(Advance());
-                    if (Peek() == '-')
+                    var sign = Peek();
+                    if (sign == '-' || sign == '+')
                         builder.Append(Advance());
                 }
                 else
