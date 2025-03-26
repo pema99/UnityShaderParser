@@ -1847,7 +1847,7 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.ColonToken: return ":";
                 case TokenKind.ColonColonToken: return "::";
                 case TokenKind.EqualsToken: return "=";
-                case TokenKind.AsteriskEqualsToken: return "*";
+                case TokenKind.AsteriskEqualsToken: return "*=";
                 case TokenKind.SlashEqualsToken: return "/=";
                 case TokenKind.PercentEqualsToken: return "%=";
                 case TokenKind.PlusEqualsToken: return "+=";
