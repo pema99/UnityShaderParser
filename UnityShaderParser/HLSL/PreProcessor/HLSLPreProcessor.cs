@@ -423,9 +423,33 @@ namespace UnityShaderParser.HLSL.PreProcessor
                         // First, check if we have a functionlike macro
                         if (macro.FunctionLike)
                         {
-                            // Try to parase parameters. If they aren't there, it's just an identifier.
+                            // Try to parse parameters.
                             if (!TryParseFunctionLikeMacroInvocationParameters(expanded, ref i, out var parameters))
-                                next.Add(token);
+                            {
+                                // If they aren't present, it might be a deferred function-like macro.
+                                // Eat more tokens to get the parameters and retry.
+                                if (Match(TokenKind.OpenParenToken))
+                                {
+                                    expanded.Add(Eat(TokenKind.OpenParenToken));
+                                    int numParens = 1;
+                                    while (numParens > 0) // Might have nested parens
+                                    {
+                                        var nextTok = Advance();
+                                        if (nextTok.Kind == TokenKind.OpenParenToken)
+                                            numParens++;
+                                        else if (nextTok.Kind == TokenKind.CloseParenToken)
+                                            numParens--;
+                                        expanded.Add(nextTok);
+                                    }
+                                    if (!TryParseFunctionLikeMacroInvocationParameters(expanded, ref i, out parameters))
+                                        next.Add(token); // Still no luck, must be a regular identifier.
+                                }
+                                // Otherwise, must be a regular identifier.
+                                else
+                                {
+                                    next.Add(token);
+                                }
+                            }
 
                             if (parameters.Count != macro.Parameters.Count)
                                 Error(DiagnosticFlags.PreProcessorError, $"Incorrect number of arguments passed to macro '{macro.Name}', expected {macro.Parameters.Count}, got {parameters.Count}.");
