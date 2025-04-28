@@ -177,6 +177,28 @@ namespace UnityShaderParser.HLSL.PreProcessor.Tests
 
             CheckPositions(decls.SelectMany(x => x.Tokens).ToList());
         }
+
+        [Test]
+        public void DelayedFunctionLikeMacrosAreExpandedCorrectly()
+        {
+            var testCode = @"
+                #define XX(x,y) x y
+                #define YY XX
+                #define ZZ YY
+
+                ZZ(int, foo;)
+
+                #define RR() int bar;
+                #define GG RR
+                #define BB GG
+
+                BB()
+            ";
+
+            string expanded = ShaderParser.PreProcessToString(testCode, new HLSLParserConfig() { ThrowExceptionOnError = true });
+
+            Assert.AreEqual("int foo ; int bar ;", expanded);
+        }
     }
 
     public class NegativeTests
