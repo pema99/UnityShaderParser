@@ -1863,6 +1863,10 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.HashToken: return "#";
                 case TokenKind.HashHashToken: return "##";
 
+                case TokenKind.StringLiteralToken: return $"\"{token.Identifier}\"";
+                case TokenKind.CharacterLiteralToken: return $"'{token.Identifier}'";
+                case TokenKind.SystemIncludeLiteralToken: return $"<{token.Identifier}>";
+
                 case TokenKind.DefineDirectiveKeyword: return "#define";
                 case TokenKind.IncludeDirectiveKeyword: return "#include";
                 case TokenKind.LineDirectiveKeyword: return "#line";
