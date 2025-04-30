@@ -212,6 +212,49 @@ namespace UnityShaderParser.Common
 
     public static class PrintingUtil
     {
+        // Slower type-erased version. Need to duplicate code to avoid another reflection call :(
+        public static string GetEnumNameTypeErased(object val)
+        {
+            string name;
+            PrettyEnumAttribute[] enumAttrs = val.GetType().GetCustomAttributes<PrettyEnumAttribute>().ToArray();
+            if (enumAttrs == null || enumAttrs.Length == 0)
+            {
+                name = Enum.GetName(val.GetType(), val);
+            }
+            else
+            {
+                MemberInfo[] memberInfo = val.GetType().GetMember(val.ToString());
+                if (memberInfo != null && memberInfo.Length > 0)
+                {
+                    foreach (MemberInfo member in memberInfo)
+                    {
+                        PrettyNameAttribute[] attrs = member.GetCustomAttributes<PrettyNameAttribute>().ToArray();
+
+                        if (attrs != null && attrs.Length > 0)
+                        {
+                            //Pull out the description value
+                            return attrs[0].Name;
+                        }
+                    }
+                }
+                name = Enum.GetName(val.GetType(), val);
+            }
+
+            switch (enumAttrs[0].Style)
+            {
+                case PrettyEnumStyle.AllLowerCase: return name.ToLower();
+                case PrettyEnumStyle.AllUpperCase: return name.ToUpper();
+                case PrettyEnumStyle.CamelCase:
+                    if (name.Length > 0)
+                    {
+                        name = $"{char.ToLower(name[0])}{name.Substring(1)}";
+                    }
+                    return name;
+                default:
+                    return name;
+            }
+        }
+
         public static string GetEnumName<T>(T val)
             where T : Enum
         {
