@@ -757,7 +757,7 @@ namespace UnityShaderParser.ShaderLab
             Eat(TokenKind.OpenBraceToken);
 
             Dictionary<string, string> tags = new Dictionary<string, string>();
-            while (Peek().Kind != TokenKind.CloseBraceToken)
+            while (LoopShouldContinue() && Peek().Kind != TokenKind.CloseBraceToken)
             {
                 var tagKeySpan = Peek().Span;
                 string key = ParseStringLiteral();
@@ -1001,7 +1001,7 @@ namespace UnityShaderParser.ShaderLab
             Eat(TokenKind.OpenBraceToken);
 
             Dictionary<BindChannel, BindChannel> bindings = new Dictionary<BindChannel, BindChannel>();
-            while (Peek().Kind != TokenKind.CloseBraceToken)
+            while (LoopShouldContinue() && Peek().Kind != TokenKind.CloseBraceToken)
             {
                 Eat(TokenKind.BindKeyword);
                 string source = ParseStringLiteral();
@@ -1106,7 +1106,7 @@ namespace UnityShaderParser.ShaderLab
             Eat(TokenKind.OpenBraceToken);
 
             var props = new Dictionary<FixedFunctionMaterialProperty, PropertyReferenceOr<(float, float, float, float)>>();
-            while (!Match(TokenKind.CloseBraceToken))
+            while (LoopShouldContinue() && !Match(TokenKind.CloseBraceToken))
             {
                 var prop = GetValueOrDefault(fixedFunctionsMatProps, Eat(fixedFunctionsMatPropsKeys).Kind);
                 var val = ParsePropertyReferenceOr(() =>
@@ -1130,7 +1130,7 @@ namespace UnityShaderParser.ShaderLab
             Eat(TokenKind.OpenBraceToken);
 
             List<SLToken> tokens = new List<SLToken>();
-            while (!Match(TokenKind.CloseBraceToken))
+            while (LoopShouldContinue() && !Match(TokenKind.CloseBraceToken))
             {
                 tokens.Add(Advance());
             }
@@ -1170,7 +1170,7 @@ namespace UnityShaderParser.ShaderLab
             StencilOp ParseStencilOp() => ParseEnum<StencilOp>("a valid stencil operator");
             ComparisonMode ParseComparisonMode() => ParseEnum<ComparisonMode>("a valid stencil comparison operator");
 
-            while (!Match(TokenKind.CloseBraceToken))
+            while (LoopShouldContinue() && !Match(TokenKind.CloseBraceToken))
             {
                 SLToken next = Advance();
                 switch (next.Kind)
