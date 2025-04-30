@@ -132,7 +132,7 @@ namespace UnityShaderParser.HLSL
             EmitIndented();
             string modifiers = string.Join("", node.Modifiers.Select(PrintingUtil.GetEnumName).Select(x => x + " "));
             Emit(modifiers);
-            VisitManySeparated(node.Attributes, " ", true);
+            VisitManySeparated(node.Attributes, "\n", true);
             if (node.Attributes.Count > 0) EmitLine();
             Visit(node.ReturnType);
             Emit(" ");
