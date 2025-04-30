@@ -1,4 +1,7 @@
-﻿namespace UnityShaderParser.ShaderLab
+﻿using System.Collections.Generic;
+using System.Linq;
+
+namespace UnityShaderParser.ShaderLab
 {
     public static class ShaderLabSyntaxFacts
     {
@@ -186,6 +189,225 @@
                 default: return default;
             }
         }
-    }
 
+        public static bool TryConvertKeywordToString(TokenKind kind, out string result)
+        {
+            switch (kind)
+            {
+                case TokenKind.ShaderKeyword: result = "Shader"; return true;
+                case TokenKind.PropertiesKeyword: result = "Properties"; return true;
+                case TokenKind.RangeKeyword: result = "Range"; return true;
+                case TokenKind.FloatKeyword: result = "Float"; return true;
+                case TokenKind.IntegerKeyword: result = "Integer"; return true;
+                case TokenKind.IntKeyword: result = "Int"; return true;
+                case TokenKind.ColorKeyword: result = "Color"; return true;
+                case TokenKind.VectorKeyword: result = "Vector"; return true;
+                case TokenKind._2DKeyword: result = "2D"; return true;
+                case TokenKind._3DKeyword: result = "3D"; return true;
+                case TokenKind.CubeKeyword: result = "Cube"; return true;
+                case TokenKind._2DArrayKeyword: result = "2DArray"; return true;
+                case TokenKind._3DArrayKeyword: result = "3DArray"; return true;
+                case TokenKind.CubeArrayKeyword: result = "CubeArray"; return true;
+                case TokenKind.AnyKeyword: result = "Any"; return true;
+                case TokenKind.RectKeyword: result = "Rect"; return true;
+                case TokenKind.CategoryKeyword: result = "Category"; return true;
+                case TokenKind.SubShaderKeyword: result = "SubShader"; return true;
+                case TokenKind.TagsKeyword: result = "Tags"; return true;
+                case TokenKind.PassKeyword: result = "Pass"; return true;
+                case TokenKind.CgProgramKeyword: result = "CGPROGRAM"; return true;
+                case TokenKind.CgIncludeKeyword: result = "CGINCLUDE"; return true;
+                case TokenKind.EndCgKeyword: result = "ENDCG"; return true;
+                case TokenKind.HlslProgramKeyword: result = "HLSLPROGRAM"; return true;
+                case TokenKind.HlslIncludeKeyword: result = "HLSLINCLUDE"; return true;
+                case TokenKind.EndHlslKeyword: result = "ENDHLSL"; return true;
+                case TokenKind.GlslProgramKeyword: result = "GLSLPROGRAM"; return true;
+                case TokenKind.GlslIncludeKeyword: result = "GLSLINCLUDE"; return true;
+                case TokenKind.EndGlslKeyword: result = "ENDGLSL"; return true;
+                case TokenKind.FallbackKeyword: result = "Fallback"; return true;
+                case TokenKind.CustomEditorKeyword: result = "CustomEditor"; return true;
+                case TokenKind.CullKeyword: result = "Cull"; return true;
+                case TokenKind.ZWriteKeyword: result = "ZWrite"; return true;
+                case TokenKind.ZTestKeyword: result = "ZTest"; return true;
+                case TokenKind.OffsetKeyword: result = "Offset"; return true;
+                case TokenKind.BlendKeyword: result = "Blend"; return true;
+                case TokenKind.BlendOpKeyword: result = "BlendOp"; return true;
+                case TokenKind.ColorMaskKeyword: result = "ColorMask"; return true;
+                case TokenKind.AlphaToMaskKeyword: result = "AlphaToMask"; return true;
+                case TokenKind.ZClipKeyword: result = "ZClip"; return true;
+                case TokenKind.ConservativeKeyword: result = "Conservative"; return true;
+                case TokenKind.LodKeyword: result = "LOD"; return true;
+                case TokenKind.NameKeyword: result = "Name"; return true;
+                case TokenKind.LightingKeyword: result = "Lighting"; return true;
+                case TokenKind.StencilKeyword: result = "Stencil"; return true;
+                case TokenKind.RefKeyword: result = "Ref"; return true;
+                case TokenKind.ReadMaskKeyword: result = "ReadMask"; return true;
+                case TokenKind.WriteMaskKeyword: result = "WriteMask"; return true;
+                case TokenKind.CompKeyword: result = "Comp"; return true;
+                case TokenKind.CompBackKeyword: result = "CompBack"; return true;
+                case TokenKind.CompFrontKeyword: result = "CompFront"; return true;
+                case TokenKind.FailKeyword: result = "Fail"; return true;
+                case TokenKind.ZFailKeyword: result = "ZFail"; return true;
+                case TokenKind.FailBackKeyword: result = "FailBack"; return true;
+                case TokenKind.FailFrontKeyword: result = "failFront"; return true;
+                case TokenKind.ZFailBackKeyword: result = "ZFailBack"; return true;
+                case TokenKind.ZFailFrontKeyword: result = "ZFailFront"; return true;
+                case TokenKind.PassFrontKeyword: result = "PassFront"; return true;
+                case TokenKind.PassBackKeyword: result = "PassBack"; return true;
+                case TokenKind.UsePassKeyword: result = "UsePass"; return true;
+                case TokenKind.GrabPassKeyword: result = "GrabPass"; return true;
+                case TokenKind.DependencyKeyword: result = "Dependency"; return true;
+                case TokenKind.MaterialKeyword: result = "Material"; return true;
+                case TokenKind.DiffuseKeyword: result = "Diffuse"; return true;
+                case TokenKind.AmbientKeyword: result = "Ambient"; return true;
+                case TokenKind.ShininessKeyword: result = "Shininess"; return true;
+                case TokenKind.SpecularKeyword: result = "Specular"; return true;
+                case TokenKind.EmissionKeyword: result = "Emission"; return true;
+                case TokenKind.AmbientAndDiffuseKeyword: result = "AmbientAndDiffuse"; return true;
+                case TokenKind.FogKeyword: result = "Fog"; return true;
+                case TokenKind.ModeKeyword: result = "Mode"; return true;
+                case TokenKind.DensityKeyword: result = "Density"; return true;
+                case TokenKind.SeparateSpecularKeyword: result = "SeparateSpecular"; return true;
+                case TokenKind.SetTextureKeyword: result = "SetTexture"; return true;
+                case TokenKind.CombineKeyword: result = "Combine"; return true;
+                case TokenKind.AlphaKeyword: result = "Alpha"; return true;
+                case TokenKind.LerpKeyword: result = "Lerp"; return true;
+                case TokenKind.DoubleKeyword: result = "DOUBLE"; return true;
+                case TokenKind.QuadKeyword: result = "Quad"; return true;
+                case TokenKind.ConstantColorKeyword: result = "constantColor"; return true;
+                case TokenKind.MatrixKeyword: result = "Matrix"; return true;
+                case TokenKind.AlphaTestKeyword: result = "AlphaTest"; return true;
+                case TokenKind.ColorMaterialKeyword: result = "ColorMaterial"; return true;
+                case TokenKind.BindChannelsKeyword: result = "BindChannels"; return true;
+                case TokenKind.BindKeyword: result = "Bind"; return true;
+                case TokenKind.TrueKeyword: result = "True"; return true;
+                case TokenKind.FalseKeyword: result = "False"; return true;
+                case TokenKind.OffKeyword: result = "Off"; return true;
+                case TokenKind.OnKeyword: result = "On"; return true;
+                case TokenKind.FrontKeyword: result = "Front"; return true;
+                case TokenKind.BackKeyword: result = "Back"; return true;
+                case TokenKind.OneKeyword: result = "One"; return true;
+                case TokenKind.ZeroKeyword: result = "Zero"; return true;
+                case TokenKind.SrcColorKeyword: result = "SrcColor"; return true;
+                case TokenKind.SrcAlphaKeyword: result = "SrcAlpha"; return true;
+                case TokenKind.SrcAlphaSaturateKeyword: result = "SrcAlphaSaturate"; return true;
+                case TokenKind.DstColorKeyword: result = "DstColor"; return true;
+                case TokenKind.DstAlphaKeyword: result = "DstAlpha"; return true;
+                case TokenKind.OneMinusSrcColorKeyword: result = "OneMinusSrcColor"; return true;
+                case TokenKind.OneMinusSrcAlphaKeyword: result = "OneMinusSrcAlpha"; return true;
+                case TokenKind.OneMinusDstColorKeyword: result = "OneMinusDstColor"; return true;
+                case TokenKind.OneMinusDstAlphaKeyword: result = "OneMinusDstAlpha"; return true;
+                case TokenKind.GlobalKeyword: result = "Global"; return true;
+                case TokenKind.AddKeyword: result = "Add"; return true;
+                case TokenKind.SubKeyword: result = "Sub"; return true;
+                case TokenKind.RevSubKeyword: result = "RevSub"; return true;
+                case TokenKind.MinKeyword: result = "Min"; return true;
+                case TokenKind.MaxKeyword: result = "Max"; return true;
+                case TokenKind.LogicalClearKeyword: result = "LogicalClear"; return true;
+                case TokenKind.LogicalSetKeyword: result = "LogicalSet"; return true;
+                case TokenKind.LogicalCopyKeyword: result = "LogicalCopy"; return true;
+                case TokenKind.LogicalCopyInvertedKeyword: result = "LogicalCopyInverted"; return true;
+                case TokenKind.LogicalNoopKeyword: result = "LogicalNoop"; return true;
+                case TokenKind.LogicalInvertKeyword: result = "LogicalInvert"; return true;
+                case TokenKind.LogicalAndKeyword: result = "LogicalAnd"; return true;
+                case TokenKind.LogicalNandKeyword: result = "LogicalNand"; return true;
+                case TokenKind.LogicalOrKeyword: result = "LogicalOr"; return true;
+                case TokenKind.LogicalNorKeyword: result = "LogicalNor"; return true;
+                case TokenKind.LogicalXorKeyword: result = "LogicalXor"; return true;
+                case TokenKind.LogicalEquivKeyword: result = "LogicalEquiv"; return true;
+                case TokenKind.LogicalAndReverseKeyword: result = "LogicalAndReverse"; return true;
+                case TokenKind.LogicalOrReverseKeyword: result = "LogicalOrReverse"; return true;
+                case TokenKind.LogicalOrInvertedKeyword: result = "LogicalOrInverted"; return true;
+                case TokenKind.MultiplyKeyword: result = "Multiply"; return true;
+                case TokenKind.ScreenKeyword: result = "Screen"; return true;
+                case TokenKind.OverlayKeyword: result = "Overlay"; return true;
+                case TokenKind.DarkenKeyword: result = "Darken"; return true;
+                case TokenKind.LightenKeyword: result = "Lighten"; return true;
+                case TokenKind.ColorDodgeKeyword: result = "ColorDodge"; return true;
+                case TokenKind.ColorBurnKeyword: result = "ColorBurn"; return true;
+                case TokenKind.HardLightKeyword: result = "HardLight"; return true;
+                case TokenKind.SoftLightKeyword: result = "SoftLight"; return true;
+                case TokenKind.DifferenceKeyword: result = "Difference"; return true;
+                case TokenKind.ExclusionKeyword: result = "Exclusion"; return true;
+                case TokenKind.HSLHueKeyword: result = "HSLHue"; return true;
+                case TokenKind.HSLSaturationKeyword: result = "HSLSaturation"; return true;
+                case TokenKind.HSLColorKeyword: result = "HSLColor"; return true;
+                case TokenKind.HSLLuminosityKeyword: result = "HSLLuminosity"; return true;
+                default: result = string.Empty; return false;
+            }
+        }
+
+        public static string IdentifierOrKeywordToString(Common.Token<TokenKind> token)
+        {
+            if (token.Identifier != null)
+                return token.Identifier;
+
+            if (TryConvertKeywordToString(token.Kind, out string result))
+                return result;
+
+            return "__INVALID";
+        }
+
+        public static string TokenToString(Common.Token<TokenKind> token)
+        {
+            switch (token.Kind)
+            {
+                case TokenKind.InvalidToken: return "__INVALID";
+                case TokenKind.OpenParenToken: return "(";
+                case TokenKind.CloseParenToken: return ")";
+                case TokenKind.OpenBracketToken: return "[";
+                case TokenKind.CloseBracketToken: return "]";
+                case TokenKind.OpenBraceToken: return "{";
+                case TokenKind.CloseBraceToken: return "}";
+                case TokenKind.SemiToken: return ";";
+                case TokenKind.CommaToken: return ",";
+                case TokenKind.LessThanToken: return "<";
+                case TokenKind.LessThanEqualsToken: return "<=";
+                case TokenKind.GreaterThanToken: return ">";
+                case TokenKind.GreaterThanEqualsToken: return ">=";
+                case TokenKind.LessThanLessThanToken: return "<<";
+                case TokenKind.GreaterThanGreaterThanToken: return ">>";
+                case TokenKind.PlusToken: return "+";
+                case TokenKind.PlusPlusToken: return "++";
+                case TokenKind.MinusToken: return "-";
+                case TokenKind.MinusMinusToken: return "--";
+                case TokenKind.AsteriskToken: return "*";
+                case TokenKind.SlashToken: return "/";
+                case TokenKind.PercentToken: return "%";
+                case TokenKind.AmpersandToken: return "&";
+                case TokenKind.BarToken: return "|";
+                case TokenKind.AmpersandAmpersandToken: return "&&";
+                case TokenKind.BarBarToken: return "||";
+                case TokenKind.CaretToken: return "^";
+                case TokenKind.NotToken: return "!";
+                case TokenKind.TildeToken: return "~";
+                case TokenKind.QuestionToken: return "?";
+                case TokenKind.ColonToken: return ":";
+                case TokenKind.ColonColonToken: return "::";
+                case TokenKind.EqualsToken: return "=";
+                case TokenKind.AsteriskEqualsToken: return "*=";
+                case TokenKind.SlashEqualsToken: return "/=";
+                case TokenKind.PercentEqualsToken: return "%=";
+                case TokenKind.PlusEqualsToken: return "+=";
+                case TokenKind.MinusEqualsToken: return "-=";
+                case TokenKind.LessThanLessThanEqualsToken: return "<<=";
+                case TokenKind.GreaterThanGreaterThanEqualsToken: return ">>=";
+                case TokenKind.AmpersandEqualsToken: return "&=";
+                case TokenKind.CaretEqualsToken: return "^=";
+                case TokenKind.BarEqualsToken: return "|=";
+                case TokenKind.EqualsEqualsToken: return "==";
+                case TokenKind.ExclamationEqualsToken: return "!=";
+                case TokenKind.DotToken: return ".";
+
+                case TokenKind.BracketedStringLiteralToken: return $"[{token.Identifier}]";
+                case TokenKind.StringLiteralToken: return $"\"{token.Identifier}\"";
+
+                default: return IdentifierOrKeywordToString(token);
+            }
+        }
+
+        public static string TokensToString(IEnumerable<Common.Token<TokenKind>> tokens)
+        {
+            return string.Join(" ", tokens.Select(x => TokenToString(x)));
+        }
+    }
 }
