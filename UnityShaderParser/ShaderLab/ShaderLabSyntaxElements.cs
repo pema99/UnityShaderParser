@@ -541,12 +541,9 @@ namespace UnityShaderParser.ShaderLab
         public SubShaderNode(List<SLToken> tokens) : base(tokens) { }
     }
 
-    public class ShaderPassNode : ShaderLabSyntaxNode
+    public abstract class ShaderPassNode : ShaderLabSyntaxNode
     {
         protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => Enumerable.Empty<ShaderLabSyntaxNode>();
-        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderPassNode(this);
-        public override T Accept<T>(ShaderLabSyntaxVisitor<T> visitor) => visitor.VisitShaderPassNode(this);
-
         public ShaderPassNode(List<SLToken> tokens) : base(tokens) { }
     }
 
@@ -588,12 +585,9 @@ namespace UnityShaderParser.ShaderLab
         public ShaderUsePassNode(List<SLToken> tokens) : base(tokens) { }
     }
 
-    public class ShaderLabCommandNode : ShaderLabSyntaxNode
+    public abstract class ShaderLabCommandNode : ShaderLabSyntaxNode
     {
         protected override IEnumerable<ShaderLabSyntaxNode> GetChildren => Enumerable.Empty<ShaderLabSyntaxNode>();
-        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandNode(this);
-        public override T Accept<T>(ShaderLabSyntaxVisitor<T> visitor) => visitor.VisitShaderLabCommandNode(this);
-
         public ShaderLabCommandNode(List<SLToken> tokens) : base(tokens) { }
     }
 
@@ -617,13 +611,9 @@ namespace UnityShaderParser.ShaderLab
         public ShaderLabCommandLodNode(List<SLToken> tokens) : base(tokens) { }
     }
 
-    public class ShaderLabBasicToggleCommandNode : ShaderLabCommandNode
+    public abstract class ShaderLabBasicToggleCommandNode : ShaderLabCommandNode
     {
         public PropertyReferenceOr<bool> Enabled { get; set; }
-
-        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabBasicToggleCommandNode(this);
-        public override T Accept<T>(ShaderLabSyntaxVisitor<T> visitor) => visitor.VisitShaderLabBasicToggleCommandNode(this);
-
         public ShaderLabBasicToggleCommandNode(List<SLToken> tokens) : base(tokens) { }
     }
 
