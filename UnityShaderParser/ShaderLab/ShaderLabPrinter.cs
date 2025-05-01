@@ -82,9 +82,9 @@ namespace UnityShaderParser.ShaderLab
                     Emit(block.Code);
                     switch (block.Kind)
                     {
-                        case ProgramKind.Cg: Emit("ENDCG"); break;
-                        case ProgramKind.Hlsl: Emit("ENDHLSL"); break;
-                        case ProgramKind.Glsl: Emit("ENDGLSL"); break;
+                        case ProgramKind.Cg: EmitLine("ENDCG"); break;
+                        case ProgramKind.Hlsl: EmitLine("ENDHLSL"); break;
+                        case ProgramKind.Glsl: EmitLine("ENDGLSL"); break;
                     }
                 }
             }
@@ -113,9 +113,9 @@ namespace UnityShaderParser.ShaderLab
                     Emit(block.CodeWithoutIncludes);
                     switch (block.Kind)
                     {
-                        case ProgramKind.Cg: Emit("ENDCG"); break;
-                        case ProgramKind.Hlsl: Emit("ENDHLSL"); break;
-                        case ProgramKind.Glsl: Emit("ENDGLSL"); break;
+                        case ProgramKind.Cg: EmitLine("ENDCG"); break;
+                        case ProgramKind.Hlsl: EmitLine("ENDHLSL"); break;
+                        case ProgramKind.Glsl: EmitLine("ENDGLSL"); break;
                     }
                 }
             }
