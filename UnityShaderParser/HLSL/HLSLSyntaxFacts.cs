@@ -1889,5 +1889,18 @@ namespace UnityShaderParser.HLSL
         {
             return string.Join(" ", tokens.Select(x => TokenToString(x)));
         }
+
+        public static bool IsStringLikeLiteral(TokenKind kind)
+        {
+            switch (kind)
+            {
+                case TokenKind.StringLiteralToken:
+                case TokenKind.CharacterLiteralToken:
+                case TokenKind.SystemIncludeLiteralToken:
+                    return true;
+                default:
+                    return false;
+            }
+        }
     }
 }

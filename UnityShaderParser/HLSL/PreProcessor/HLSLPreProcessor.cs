@@ -211,7 +211,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
             ExitFile();
         }
 
-        // Glues tokens together with ## and evaluates defined(x) between each expansion
+        // Glues tokens together with ##, stringize with #, and evaluates defined(x) between each expansion
         private void ReplaceBetweenExpansions(List<HLSLToken> tokens)
         {
             HLSLToken LocalPeek(int i) => i < tokens.Count ? tokens[i] : InvalidToken;
@@ -277,6 +277,25 @@ namespace UnityShaderParser.HLSL.PreProcessor
                     i--; // For loop continues
 
                     result.Add(replacedToken);
+                }
+                else if (token.Kind == TokenKind.HashToken && LocalPeek(i + 1).Kind == TokenKind.IdentifierToken)
+                {
+                    SourceSpan startSpan = token.Span;
+                    SourceSpan startSpanOriginal = token.OriginalSpan;
+                    int startPosition = token.Position;
+
+                    i++; // Hash
+                    HLSLToken identifier = LocalPeek(i++); // Identifier
+
+                    var stringizedToken = new HLSLToken(
+                        TokenKind.StringLiteralToken,
+                        identifier.Identifier,
+                        SourceSpan.Between(startSpan, identifier.Span),
+                        SourceSpan.Between(startSpanOriginal, identifier.OriginalSpan),
+                        startPosition
+                    );
+                    i--; // For loop continues
+                    result.Add(stringizedToken);
                 }
                 else
                 {
@@ -409,7 +428,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
 
                     string lexeme = HLSLSyntaxFacts.IdentifierOrKeywordToString(token);
                     // If the macro matches
-                    if (!hideSet.Contains(lexeme) && defines.TryGetValue(lexeme, out Macro macro))
+                    if (!hideSet.Contains(lexeme) && !HLSLSyntaxFacts.IsStringLikeLiteral(token.Kind) && defines.TryGetValue(lexeme, out Macro macro))
                     {
                         // Add it to the hideset
                         if (!nextHideSet.Contains(lexeme))

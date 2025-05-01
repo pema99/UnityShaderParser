@@ -197,7 +197,20 @@ namespace UnityShaderParser.HLSL.PreProcessor.Tests
 
             string expanded = ShaderParser.PreProcessToString(testCode, new HLSLParserConfig() { ThrowExceptionOnError = true });
 
-            Assert.AreEqual("int foo ; int bar ;", expanded);
+            Assert.AreEqual("int foo ; int bar ;", expanded.Trim());
+        }
+
+        [Test]
+        public void StringizingMacroTokenWorks()
+        {
+            var testCode = @"
+                #define FOO(x, y) string x = #x; string x##x = #y;
+                FOO(bar, baz)
+            ";
+
+            string expanded = ShaderParser.PreProcessToString(testCode, new HLSLParserConfig() { ThrowExceptionOnError = true });
+
+            Assert.AreEqual("string bar = \"bar\" ; string barbar = \"baz\" ;", expanded.Trim());
         }
     }
 
