@@ -202,32 +202,32 @@ namespace UnityShaderParser.ShaderLab
                 if (token == TokenKind.CgProgramKeyword)
                 {
                     string body = SkipProgramBody("ENDCG");
-                    Add(body, TokenKind.ProgramBlock);
+                    Add(body, TokenKind.CgProgramBlock);
                 }
                 else if (token == TokenKind.CgIncludeKeyword)
                 {
                     string body = SkipProgramBody("ENDCG");
-                    Add(body, TokenKind.IncludeBlock);
+                    Add(body, TokenKind.CgIncludeBlock);
                 }
                 else if (token == TokenKind.HlslProgramKeyword)
                 {
                     string body = SkipProgramBody("ENDHLSL");
-                    Add(body, TokenKind.ProgramBlock);
+                    Add(body, TokenKind.HlslProgramBlock);
                 }
                 else if (token == TokenKind.HlslIncludeKeyword)
                 {
                     string body = SkipProgramBody("ENDHLSL");
-                    Add(body, TokenKind.IncludeBlock);
+                    Add(body, TokenKind.HlslIncludeBlock);
                 }
                 else if (token == TokenKind.GlslProgramKeyword)
                 {
                     string body = SkipProgramBody("ENDGLSL");
-                    Add(body, TokenKind.ProgramBlock);
+                    Add(body, TokenKind.GlslProgramBlock);
                 }
                 else if (token == TokenKind.GlslIncludeKeyword)
                 {
                     string body = SkipProgramBody("ENDGLSL");
-                    Add(body, TokenKind.IncludeBlock);
+                    Add(body, TokenKind.GlslIncludeBlock);
                 }
                 else
                 {

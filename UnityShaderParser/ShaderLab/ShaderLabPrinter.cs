@@ -9,7 +9,8 @@ namespace UnityShaderParser.ShaderLab
     public class ShaderLabPrinter : ShaderLabSyntaxVisitor
     {
         // Settings
-        public bool PrettyPrintEmbeddedHLSL { get; set; } = false; // Pretty-print embedded HLSL from the AST, or just print the original source?
+        // Pretty-print embedded HLSL from the AST, or just print the original source?
+        public bool PrettyPrintEmbeddedHLSL { get; set; } = false;
 
         // State and helpers
         protected StringBuilder sb = new StringBuilder();
@@ -72,9 +73,19 @@ namespace UnityShaderParser.ShaderLab
             {
                 foreach (var block in blocks)
                 {
-                    EmitIndented("CGINCLUDE"); // TODO: HLSLINCLUDE, GLSLINCLUDE
+                    switch (block.Kind)
+                    {
+                        case ProgramKind.Cg: EmitIndented("CGINCLUDE"); break;
+                        case ProgramKind.Hlsl: EmitIndented("HLSLINCLUDE"); break;
+                        case ProgramKind.Glsl: EmitIndented("GLSLINCLUDE"); break;
+                    }
                     Emit(block.Code);
-                    EmitLine("ENDCG");
+                    switch (block.Kind)
+                    {
+                        case ProgramKind.Cg: Emit("ENDCG"); break;
+                        case ProgramKind.Hlsl: Emit("ENDHLSL"); break;
+                        case ProgramKind.Glsl: Emit("ENDGLSL"); break;
+                    }
                 }
             }
         }
@@ -85,17 +96,27 @@ namespace UnityShaderParser.ShaderLab
             {
                 if (PrettyPrintEmbeddedHLSL)
                 {
-                    EmitIndented("CGPROGRAM"); // TODO: HLSLPROGRAM, GLSLPROGRAM
+                    EmitIndentedLine("HLSLPROGRAM");
                     HLSL.HLSLPrinter printer = new HLSL.HLSLPrinter();
                     printer.VisitMany(block.TopLevelDeclarations);
                     Emit(printer.Text);
-                    EmitLine("ENDCG");
+                    EmitLine("ENDHLSL");
                 }
                 else
                 {
-                    EmitIndented("CGPROGRAM");
+                    switch (block.Kind)
+                    {
+                        case ProgramKind.Cg: EmitIndented("CGPROGRAM"); break;
+                        case ProgramKind.Hlsl: EmitIndented("HLSLPROGRAM"); break;
+                        case ProgramKind.Glsl: EmitIndented("GLSLPROGRAM"); break;
+                    }
                     Emit(block.CodeWithoutIncludes);
-                    EmitLine("ENDCG");
+                    switch (block.Kind)
+                    {
+                        case ProgramKind.Cg: Emit("ENDCG"); break;
+                        case ProgramKind.Hlsl: Emit("ENDHLSL"); break;
+                        case ProgramKind.Glsl: Emit("ENDGLSL"); break;
+                    }
                 }
             }
         }

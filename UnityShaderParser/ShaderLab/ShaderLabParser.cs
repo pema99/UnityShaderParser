@@ -186,7 +186,13 @@ namespace UnityShaderParser.ShaderLab
         }
         protected HLSLProgramBlock ParseOrSkipEmbeddedHLSL()
         {
-            var programToken = Eat(TokenKind.ProgramBlock);
+            var programToken = Eat(TokenKind.CgProgramBlock, TokenKind.HlslProgramBlock, TokenKind.GlslProgramBlock);
+            ProgramKind kind = ProgramKind.Cg;
+            if (programToken.Kind == TokenKind.HlslProgramBlock)
+                kind = ProgramKind.Hlsl;
+            else if (programToken.Kind == TokenKind.GlslProgramBlock)
+                kind = ProgramKind.Glsl;
+
             string program = programToken.Identifier;
             
             // Prepend include blocks
@@ -222,13 +228,13 @@ namespace UnityShaderParser.ShaderLab
             }
 
             // Add preamble
-            string preamble;
+            string preamble = string.Empty;
             if (isSurfaceShader)
             {
                 // Surface shader compiler has some secret INTERNAL_DATA macro and special includes :(
                 preamble = $"#ifndef INTERNAL_DATA\n#define INTERNAL_DATA\n#endif\n#include \"UnityCG.cginc\"\n";
             }
-            else
+            else if (programToken.Kind != TokenKind.HlslProgramBlock) // HLSLPROGRAM doesn't include anything implicitly.
             {
                 // UnityShaderVariables.cginc should always be included otherwise
                 preamble = $"#include \"UnityShaderVariables.cginc\"\n"; 
@@ -243,6 +249,7 @@ namespace UnityShaderParser.ShaderLab
                     Span = programToken.Span,
                     Pragmas = new List<string>(),
                     TopLevelDeclarations = new List<HLSLSyntaxNode>(),
+                    Kind = kind,
                 };
             }
 
@@ -261,6 +268,7 @@ namespace UnityShaderParser.ShaderLab
                 Span = programToken.Span,
                 Pragmas = pragmas,
                 TopLevelDeclarations = decls,
+                Kind = kind,
             };
         }
         protected void PushIncludes() => currentIncludeBlocks.Push(new List<HLSLIncludeBlock>());
@@ -383,9 +391,16 @@ namespace UnityShaderParser.ShaderLab
             while (true)
             {
                 SLToken next = Peek();
-                if (next.Kind == TokenKind.IncludeBlock && !string.IsNullOrEmpty(next.Identifier))
+                if ((next.Kind == TokenKind.CgIncludeBlock || next.Kind == TokenKind.HlslIncludeBlock || next.Kind == TokenKind.GlslIncludeBlock)
+                    && !string.IsNullOrEmpty(next.Identifier))
                 {
-                    outIncludeBlocks.Add(new HLSLIncludeBlock { Span = next.Span, Code = next.Identifier });
+                    ProgramKind kind = ProgramKind.Cg;
+                    if (next.Kind == TokenKind.HlslProgramBlock)
+                        kind = ProgramKind.Hlsl;
+                    else if (next.Kind == TokenKind.GlslProgramBlock)
+                        kind = ProgramKind.Glsl;
+
+                    outIncludeBlocks.Add(new HLSLIncludeBlock { Span = next.Span, Code = next.Identifier, Kind = kind });
                     Advance();
                 }
                 else
@@ -568,7 +583,10 @@ namespace UnityShaderParser.ShaderLab
                     case TokenKind.PassKeyword: passes.Add(ParseCodePass()); break;
                     case TokenKind.GrabPassKeyword: passes.Add(ParseGrabPass()); break;
                     case TokenKind.UsePassKeyword: passes.Add(ParseUsePass()); break;
-                    case TokenKind.ProgramBlock: programBlocks.Add(ParseOrSkipEmbeddedHLSL()); break;
+                    case TokenKind.CgProgramBlock:
+                    case TokenKind.HlslProgramBlock:
+                    case TokenKind.GlslProgramBlock:
+                        programBlocks.Add(ParseOrSkipEmbeddedHLSL()); break;
                     default:
                         ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
                         SetIncludes(includeBlocks);
@@ -613,7 +631,7 @@ namespace UnityShaderParser.ShaderLab
             ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);
             SetIncludes(includeBlocks);
 
-            while (Match(TokenKind.ProgramBlock))
+            while (Match(TokenKind.CgProgramBlock, TokenKind.HlslProgramBlock, TokenKind.GlslProgramBlock))
             {
                 programBlocks.Add(ParseOrSkipEmbeddedHLSL());
                 ParseCommandsAndIncludeBlocksIfPresent(commands, includeBlocks);

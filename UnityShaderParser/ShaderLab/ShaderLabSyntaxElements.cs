@@ -209,8 +209,12 @@ namespace UnityShaderParser.ShaderLab
         HSLColorKeyword,
         HSLLuminosityKeyword,
 
-        IncludeBlock,
-        ProgramBlock,
+        HlslIncludeBlock,
+        HlslProgramBlock,
+        CgIncludeBlock,
+        CgProgramBlock,
+        GlslIncludeBlock,
+        GlslProgramBlock,
     }
     #endregion
 
@@ -385,6 +389,13 @@ namespace UnityShaderParser.ShaderLab
 
     #region Syntax Tree
     // Embedded HLSL
+    public enum ProgramKind
+    {
+        Cg,   // CGINCLUDE, CGPROGRAM
+        Hlsl, // HLSLINCLUDE, HLSLPROGRAM
+        Glsl, // GLSLINCLUDE, GLSLPROGRAM
+    }
+
     public struct HLSLProgramBlock
     {
         public string FullCode;
@@ -392,12 +403,14 @@ namespace UnityShaderParser.ShaderLab
         public SourceSpan Span;
         public List<string> Pragmas;
         public List<HLSLSyntaxNode> TopLevelDeclarations;
+        public ProgramKind Kind;
     }
 
     public struct HLSLIncludeBlock
     {
         public string Code;
         public SourceSpan Span;
+        public ProgramKind Kind;
     }
 
     public abstract class ShaderLabSyntaxNode : SyntaxNode<ShaderLabSyntaxNode>
