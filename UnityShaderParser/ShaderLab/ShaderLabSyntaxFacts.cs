@@ -96,6 +96,7 @@ namespace UnityShaderParser.ShaderLab
                 case "colormaterial": token = TokenKind.ColorMaterialKeyword; return true;
                 case "bindchannels": token = TokenKind.BindChannelsKeyword; return true;
                 case "bind": token = TokenKind.BindKeyword; return true;
+                case "packagerequirements": token = TokenKind.PackageRequirementsKeyword; return true;
                 case "true": token = TokenKind.TrueKeyword; return true;
                 case "false": token = TokenKind.FalseKeyword; return true;
                 case "off": token = TokenKind.OffKeyword; return true;
@@ -278,6 +279,7 @@ namespace UnityShaderParser.ShaderLab
                 case TokenKind.AlphaTestKeyword: result = "AlphaTest"; return true;
                 case TokenKind.ColorMaterialKeyword: result = "ColorMaterial"; return true;
                 case TokenKind.BindChannelsKeyword: result = "BindChannels"; return true;
+                case TokenKind.PackageRequirementsKeyword: result = "PackageRequirements"; return true;
                 case TokenKind.BindKeyword: result = "Bind"; return true;
                 case TokenKind.TrueKeyword: result = "True"; return true;
                 case TokenKind.FalseKeyword: result = "False"; return true;

@@ -68,6 +68,7 @@ namespace UnityShaderParser.ShaderLab
         public virtual void VisitShaderLabCommandSetTextureNode(ShaderLabCommandSetTextureNode node) => DefaultVisit(node);
         public virtual void VisitShaderLabCommandColorMaterialNode(ShaderLabCommandColorMaterialNode node) => DefaultVisit(node);
         public virtual void VisitShaderLabCommandStencilNode(ShaderLabCommandStencilNode node) => DefaultVisit(node);
+        public virtual void VisitShaderLabCommandPackageRequirementsNode(ShaderLabCommandPackageRequirementsNode node) => DefaultVisit(node);
     }
 
     public abstract class ShaderLabSyntaxVisitor<TReturn>
@@ -139,5 +140,6 @@ namespace UnityShaderParser.ShaderLab
         public virtual TReturn VisitShaderLabCommandSetTextureNode(ShaderLabCommandSetTextureNode node) => DefaultVisit(node);
         public virtual TReturn VisitShaderLabCommandColorMaterialNode(ShaderLabCommandColorMaterialNode node) => DefaultVisit(node);
         public virtual TReturn VisitShaderLabCommandStencilNode(ShaderLabCommandStencilNode node) => DefaultVisit(node);
+        public virtual TReturn VisitShaderLabCommandPackageRequirementsNode(ShaderLabCommandPackageRequirementsNode node) => DefaultVisit(node);
     }
 }

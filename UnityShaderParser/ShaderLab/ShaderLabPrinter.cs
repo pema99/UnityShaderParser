@@ -581,5 +581,25 @@ namespace UnityShaderParser.ShaderLab
             PopIndent();
             EmitIndentedLine("}");
         }
+
+        public override void VisitShaderLabCommandPackageRequirementsNode(ShaderLabCommandPackageRequirementsNode node)
+        {
+            EmitIndentedLine("PackageRequirements");
+            EmitIndentedLine("{");
+            PushIndent();
+
+            foreach (var reference in node.References)
+            {
+                EmitIndented($"\"{reference.Key}\"");
+                if (reference.Value != null)
+                {
+                    Emit($": \"{reference.Value}\"");
+                }
+                EmitLine();
+            }
+
+            PopIndent();
+            EmitIndentedLine("}");
+        }
     }
 }

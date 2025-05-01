@@ -731,6 +731,7 @@ namespace UnityShaderParser.ShaderLab
                 case TokenKind.SetTextureKeyword: result = ParseSetTextureCommand(); return true;
                 case TokenKind.ColorMaterialKeyword: result = ParseColorMaterialNode(); return true;
                 case TokenKind.StencilKeyword: result = ParseStencilNode(); return true;
+                case TokenKind.PackageRequirementsKeyword: result = ParsePackageRequirementsNode(); return true;
                 default: result = null; return false;
             }
         }
@@ -1231,6 +1232,32 @@ namespace UnityShaderParser.ShaderLab
                 PassOperationFront = passOperationFront ,
                 FailOperationFront = failOperationFront ,
                 ZFailOperationFront = zFailOperationFront ,
+            };
+        }
+
+        public ShaderLabCommandPackageRequirementsNode ParsePackageRequirementsNode()
+        {
+            var keywordTok = Eat(TokenKind.PackageRequirementsKeyword);
+            Eat(TokenKind.OpenBraceToken);
+
+            var references = new Dictionary<string, string>();
+            while (LoopShouldContinue() && !Match(TokenKind.CloseBraceToken))
+            {
+                string package = ParseStringLiteral();
+                string version = null;
+                if (Match(TokenKind.ColonToken))
+                {
+                    Advance();
+                    version = ParseStringLiteral();
+                }
+                references[package] = version;
+            }
+
+            var closeTok = Eat(TokenKind.CloseBraceToken);
+
+            return new ShaderLabCommandPackageRequirementsNode(Range(keywordTok, closeTok))
+            {
+                References = references
             };
         }
     }

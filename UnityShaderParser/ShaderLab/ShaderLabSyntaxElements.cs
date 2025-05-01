@@ -154,6 +154,7 @@ namespace UnityShaderParser.ShaderLab
         ColorMaterialKeyword,
         BindChannelsKeyword,
         BindKeyword,
+        PackageRequirementsKeyword,
 
         TrueKeyword,
         FalseKeyword,
@@ -863,6 +864,17 @@ namespace UnityShaderParser.ShaderLab
         public override T Accept<T>(ShaderLabSyntaxVisitor<T> visitor) => visitor.VisitShaderLabCommandStencilNode(this);
 
         public ShaderLabCommandStencilNode(List<SLToken> tokens) : base(tokens) { }
+    }
+
+    public class ShaderLabCommandPackageRequirementsNode : ShaderLabCommandNode
+    {
+        // Key: Package name, Value: Package version (optional)
+        public Dictionary<string, string> References { get; set; }
+
+        public override void Accept(ShaderLabSyntaxVisitor visitor) => visitor.VisitShaderLabCommandPackageRequirementsNode(this);
+        public override T Accept<T>(ShaderLabSyntaxVisitor<T> visitor) => visitor.VisitShaderLabCommandPackageRequirementsNode(this);
+
+        public ShaderLabCommandPackageRequirementsNode(List<SLToken> tokens) : base(tokens) { }
     }
     #endregion
 }
