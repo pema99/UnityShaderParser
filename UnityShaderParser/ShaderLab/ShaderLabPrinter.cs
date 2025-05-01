@@ -402,7 +402,8 @@ namespace UnityShaderParser.ShaderLab
         {
             EmitIndented($"ColorMask ");
             EmitPropertyReferenceOr(node.Mask);
-            Emit($" {node.RenderTarget}");
+            if (node.Mask.IsValue) // RenderTarget not allowed with property-based mask
+                Emit($" {node.RenderTarget}");
             EmitLine();
         }
 
