@@ -61,7 +61,18 @@ namespace UnityShaderParser.ShaderLab.Tests
         }
 
         [Test, TestCaseSource(nameof(GetBuiltinUnityShaders))]
-        public void RoundTripTestShaders(string path)
+        public void RoundTripTestShadersWithPrettyPrintedHLSL(string path)
+        {
+            RoundTripTestShaders(path, true);
+        }
+
+        [Test, TestCaseSource(nameof(GetBuiltinUnityShaders))]
+        public void RoundTripTestShadersWithOriginalHLSL(string path)
+        {
+            RoundTripTestShaders(path, false);
+        }
+
+        public void RoundTripTestShaders(string path, bool prettyPrintEmbeddedHLSL)
         {
             // Read text
             string source = File.ReadAllText(path);
@@ -74,7 +85,7 @@ namespace UnityShaderParser.ShaderLab.Tests
             string cgIncludesPath = Path.Combine(Directory.GetCurrentDirectory(), "TestShaders/UnityBuiltinShaders/CGIncludes");
             var config = new ShaderLabParserConfig
             {
-                ParseEmbeddedHLSL = true,
+                ParseEmbeddedHLSL = prettyPrintEmbeddedHLSL,
                 ThrowExceptionOnError = false,
                 IncludeResolver = new DefaultPreProcessorIncludeResolver(new List<string> { cgIncludesPath }),
                 BasePath = Directory.GetParent(path)?.FullName,
@@ -89,6 +100,7 @@ namespace UnityShaderParser.ShaderLab.Tests
 
             // Pretty print
             var printer = new ShaderLabPrinter();
+            printer.PrettyPrintEmbeddedHLSL = prettyPrintEmbeddedHLSL;
             printer.Visit(shader);
             string prettyPrinted = printer.Text;
 
@@ -102,6 +114,7 @@ namespace UnityShaderParser.ShaderLab.Tests
 
             // Re-pretty print
             printer = new ShaderLabPrinter();
+            printer.PrettyPrintEmbeddedHLSL = prettyPrintEmbeddedHLSL;
             printer.Visit(reshader);
             string roundtripped = printer.Text;
 
