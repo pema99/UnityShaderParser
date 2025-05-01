@@ -434,6 +434,13 @@ namespace UnityShaderParser.ShaderLab
         private List<SLToken> tokens;
 
         public string GetCodeInSourceText(string sourceText) => Span.GetCodeInSourceText(sourceText);
+        public string GetPrettyPrintedCode(bool prettyPrintEmbeddedHLSL = false)
+        {
+            ShaderLabPrinter printer = new ShaderLabPrinter();
+            printer.PrettyPrintEmbeddedHLSL = prettyPrintEmbeddedHLSL;
+            printer.Visit(this);
+            return printer.Text;
+        }
 
         public ShaderLabSyntaxNode(List<SLToken> tokens)
         {
