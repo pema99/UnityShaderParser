@@ -299,6 +299,7 @@ namespace UnityShaderParser.Common
         }
 
         // TODO: Edits across macro boundaries
+        // Note: Assumes no overlapping edits
         public static string ApplyEditsToSourceText(IEnumerable<(SourceSpan span, string newText)> edits, string source)
         {
             var orderedEdits = edits.OrderBy(x => x.span.Start.Index);
