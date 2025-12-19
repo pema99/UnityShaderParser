@@ -329,6 +329,7 @@ namespace UnityShaderParser.HLSL
         SNormKeyword,
         StaticKeyword,
         StringKeyword,
+        CharKeyword,
         StructKeyword,
         StructuredBufferKeyword,
         SwitchKeyword,
@@ -480,6 +481,7 @@ namespace UnityShaderParser.HLSL
         Min16Uint,
         Min12Uint,
         String,
+        Char,
         [PrettyName("unorm float")] UNormFloat,
         [PrettyName("snorm float")] SNormFloat,
     }

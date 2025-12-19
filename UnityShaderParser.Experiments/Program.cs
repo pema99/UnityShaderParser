@@ -1,27 +1,23 @@
 ﻿using UnityShaderParser.Common;
 using UnityShaderParser.HLSL;
 using UnityShaderParser.HLSL.PreProcessor;
+using UnityShaderParser.Test;
+using System.IO;
 
-string shaderPath = @"D:\Projects\UnityShaderParser\UnityShaderParser\UnityShaderParser.Tests\TestShaders\Homemade\Tricky.hlsl";
-string shaderSource = File.ReadAllText(shaderPath);
-Console.WriteLine($"Before:\n{shaderSource}\n");
-
-// Ignore macros for the purpose of editing
-var config = new HLSLParserConfig() { PreProcessorMode = PreProcessorMode.StripDirectives };
-
-List<HLSLSyntaxNode> decls = ShaderParser.ParseTopLevelDeclarations(shaderSource, config, out var diags, out var prags);
-
-string editedShaderSource = HLSLEditor.RunEditor<IfConditionReplacer>(shaderSource, decls);
-Console.WriteLine($"After:\n{editedShaderSource}\n");
-
-class IfConditionReplacer : HLSLEditor
+public class Program
 {
-    public IfConditionReplacer(string source, List<Token<TokenKind>> tokens)
-        : base(source, tokens) { }
-
-    public override void VisitIfStatementNode(IfStatementNode node)
+    public static void Main()
     {
-        Edit(node.Condition, "true"); // replace conditions with 'true'
-        base.VisitIfStatementNode(node);
+        string shaderPath = @"D:\Projects\UnityShaderParser\UnityShaderParser\UnityShaderParser.Experiments\Test.hlsl";
+        string shaderSource = File.ReadAllText(shaderPath);
+
+        // Ignore macros for the purpose of editing
+        var config = new HLSLParserConfig() { PreProcessorMode = PreProcessorMode.StripDirectives };
+
+        var stmts = ShaderParser.ParseStatements(shaderSource, config, out var diags, out var prags);
+
+        HLSLInterpreter interpreter = new HLSLInterpreter();
+        interpreter.VisitMany(stmts);
+
     }
 }
