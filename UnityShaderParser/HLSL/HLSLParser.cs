@@ -84,7 +84,7 @@ namespace UnityShaderParser.HLSL
         {
             HLSLParser parser = new HLSLParser(tokens, config.ThrowExceptionOnError, config.DiagnosticFilter);
             parser.RunPreProcessor(config, out pragmas);
-            var result = parser.ParseMany0(() => !parser.LoopShouldContinue(), () => parser.ParseStatement());
+            var result = parser.ParseMany0(() => parser.LoopShouldContinue(), () => parser.ParseStatement());
             foreach (var stmt in result)
             {
                 stmt.ComputeParents();
