@@ -129,7 +129,10 @@ namespace UnityShaderParser.Test
                 args[i] = Visit(node.Arguments[i]);
             }
 
-            if (HLSLIntrinsics.TryInvokeIntrinsic(node.Name.GetName(), args, out HLSLValue result))
+            string name = node.Name.GetName();
+
+            // Try to invoke basic intrinsics
+            if (HLSLIntrinsics.TryInvokeIntrinsic(name, args, out HLSLValue result))
                 return result;
 
             throw new Exception($"Unknown function '{node.Name.GetName()}' called.");
