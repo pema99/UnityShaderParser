@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 using UnityShaderParser.HLSL;
@@ -51,24 +52,44 @@ namespace UnityShaderParser.Test
         {
             if (args.Length > 0)
             {
-                string formatString = args[0].ToString();
-                StringBuilder sb = new StringBuilder();
-                int argCounter = 1;
-                for (int j = 0; j < formatString.Length; j++)
+                int maxThreadCount = args.Max(x =>
                 {
-                    if (formatString[j] == '%')
-                    {
-                        j++;
-                        sb.Append(Convert.ToString(args[argCounter++], CultureInfo.InvariantCulture));
-                    }
+                    if (x is NumericValue num)
+                        return HLSLValueUtils.GetThreadCount(num);
                     else
+                        return 1;
+                });
+
+                for (int threadIndex = 0; threadIndex < maxThreadCount; threadIndex++)
+                {
+                    string formatString = args[0].ToString();
+                    StringBuilder sb = new StringBuilder();
+                    int argCounter = 1;
+                    for (int j = 0; j < formatString.Length; j++)
                     {
-                        sb.Append(formatString[j]);
+                        if (formatString[j] == '%')
+                        {
+                            j++;
+                            var arg = args[argCounter++];
+                            if (arg is NumericValue num)
+                            {
+                                sb.Append($"[Thread {threadIndex}] ");
+                                sb.Append(Convert.ToString(HLSLValueUtils.Scalarize(num, threadIndex), CultureInfo.InvariantCulture));
+                            }
+                            else
+                            {
+                                sb.Append(Convert.ToString(arg, CultureInfo.InvariantCulture));
+                            }
+                        }
+                        else
+                        {
+                            sb.Append(formatString[j]);
+                        }
                     }
+                    Console.WriteLine(sb.ToString());
                 }
-                Console.WriteLine(sb.ToString());
             }
-            return new ScalarValue(ScalarType.Void, null);
+            return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
         }
     }
 }

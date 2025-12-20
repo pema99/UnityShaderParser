@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using System.Numerics;
 using UnityShaderParser.Common;
 using UnityShaderParser.HLSL;
 
@@ -9,10 +11,12 @@ namespace UnityShaderParser.Test
     public class HLSLExpressionEvaluator : HLSLSyntaxVisitor<HLSLValue>
     {
         protected HLSLInterpreterContext context;
+        protected HLSLExecutionState executionState;
 
-        public HLSLExpressionEvaluator(HLSLInterpreterContext context)
+        public HLSLExpressionEvaluator(HLSLInterpreterContext context, HLSLExecutionState executionState)
         {
             this.context = context;
+            this.executionState = executionState;
         }
 
         protected override HLSLValue DefaultVisit(HLSLSyntaxNode node)
@@ -41,29 +45,29 @@ namespace UnityShaderParser.Test
             switch (node.Kind)
             {
                 case LiteralKind.String:
-                    return new ScalarValue(ScalarType.String, node.Lexeme);
+                    return new ScalarValue(ScalarType.String, new HLSLRegister<object>(node.Lexeme));
                 case LiteralKind.Float:
                     if (float.TryParse(node.Lexeme, NumberStyles.Any, CultureInfo.InvariantCulture, out float parsedFloat))
-                        return new ScalarValue(ScalarType.Float, parsedFloat);
+                        return new ScalarValue(ScalarType.Float, new HLSLRegister<object>(parsedFloat));
                     else
                         throw new Exception($"Failed to parse float '{node.Lexeme}'.");
                 case LiteralKind.Integer:
                     if (int.TryParse(node.Lexeme, NumberStyles.Any, CultureInfo.InvariantCulture, out int parsedInt))
-                        return new ScalarValue(ScalarType.Int, parsedInt);
+                        return new ScalarValue(ScalarType.Int, new HLSLRegister<object>(parsedInt));
                     else
                         throw new Exception($"Failed to parse float '{node.Lexeme}'.");
                 case LiteralKind.Character:
                     if (char.TryParse(node.Lexeme, out char parsedChar))
-                        return new ScalarValue(ScalarType.Char, parsedChar);
+                        return new ScalarValue(ScalarType.Char, new HLSLRegister<object>(parsedChar));
                     else
                         throw new Exception($"Failed to parse float '{node.Lexeme}'.");
                 case LiteralKind.Boolean:
                     if (bool.TryParse(node.Lexeme, out bool parsedBool))
-                        return new ScalarValue(ScalarType.Bool, parsedBool);
+                        return new ScalarValue(ScalarType.Bool, new HLSLRegister<object>(parsedBool));
                     else
                         throw new Exception($"Failed to parse float '{node.Lexeme}'.");
                 case LiteralKind.Null:
-                    return new ScalarValue(ScalarType.Void, null);
+                    return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
                 default:
                     throw new Exception($"Unknown literal '{node.Lexeme}'.");
             }
@@ -135,39 +139,91 @@ namespace UnityShaderParser.Test
             if (HLSLIntrinsics.TryInvokeIntrinsic(name, args, out HLSLValue result))
                 return result;
 
+            // Now handle special intrinsics that affect or read from the execution state
+            switch (name)
+            {
+                case "WaveGetLaneIndex":
+                    return new ScalarValue(ScalarType.Uint, HLSLValueUtils.MakeScalarVGPR(Enumerable.Range(0, executionState.GetThreadCount())));
+                case "WaveGetLaneCount":
+                    return (NumericValue)executionState.GetThreadCount();
+                case "WaveIsFirstLane":
+                    var perLaneIsFirst = new bool[executionState.GetThreadCount()];
+                    for (int threadIdx = 0; threadIdx < executionState.GetThreadCount(); threadIdx++)
+                    {
+                        if (executionState.IsThreadActive(threadIdx))
+                        {
+                            perLaneIsFirst[threadIdx] = true;
+                            break;
+                        }
+                    }
+                    return new ScalarValue(ScalarType.Bool, HLSLValueUtils.MakeScalarVGPR(perLaneIsFirst));
+                default:
+                    break;
+            }
+
             throw new Exception($"Unknown function '{node.Name.GetName()}' called.");
         }
 
         public override HLSLValue VisitNumericConstructorCallExpressionNode(NumericConstructorCallExpressionNode node)
         {
+            // Get arguments, keep track of SGPR and VGPR
             NumericValue[] args = new NumericValue[node.Arguments.Count];
+            int maxThreadCount = 1;
+            bool anyUniform = false;
             for (int i = 0; i < args.Length; i++)
             {
                 args[i] = Visit(node.Arguments[i]) as NumericValue;
                 if (args[i] is null)
                     throw new Exception("Expected numeric arguments as inputs to vector constructor.");
+
+                int argThreadCount = HLSLValueUtils.GetThreadCount(args[i]);
+                maxThreadCount = Math.Max(maxThreadCount, argThreadCount);
+                anyUniform |= argThreadCount == 1;
             }
 
-            List<object> values = new List<object>();
-            foreach (var numeric in args)
+            // If we are mixing VGPR and SGPR, vectorize inputs
+            if (anyUniform && maxThreadCount > 1)
             {
-                if (numeric is ScalarValue scalar)
-                    values.Add(scalar.Value);
-                if (numeric is VectorValue vector)
-                    values.AddRange(vector.Values);
+                for (int i = 0; i < args.Length; i++)
+                {
+                    args[i] = HLSLValueUtils.Vectorize(args[i], maxThreadCount);
+                }
+            }
+
+            object[][] lanes = new object[maxThreadCount][];
+            for (int threadIdx = 0; threadIdx < maxThreadCount; threadIdx++)
+            {
+                List<object> flattened = new List<object>();
+                foreach (var numeric in args)
+                {
+                    if (numeric is ScalarValue scalar)
+                        flattened.Add(scalar.Value.Get(threadIdx));
+                    if (numeric is VectorValue vector)
+                        flattened.AddRange(vector.Values.Get(threadIdx));
+                }
+                lanes[threadIdx] = flattened.ToArray();
             }
 
             switch (node.Kind)
             {
                 case VectorTypeNode _:
                 case GenericVectorTypeNode _:
-                    return new VectorValue(node.Kind.Kind, values.ToArray());
+                    if (maxThreadCount == 1)
+                        return new VectorValue(node.Kind.Kind, new HLSLRegister<object[]>(lanes[0]));
+                    else
+                        return new VectorValue(node.Kind.Kind, new HLSLRegister<object[]>(lanes));
                 case MatrixTypeNode matrix:
-                    return new MatrixValue(node.Kind.Kind, matrix.FirstDimension, matrix.SecondDimension, values.ToArray());
+                    if (maxThreadCount == 1)
+                        return new MatrixValue(node.Kind.Kind, matrix.FirstDimension, matrix.SecondDimension, new HLSLRegister<object[]>(lanes[0]));
+                    else
+                        return new MatrixValue(node.Kind.Kind, matrix.FirstDimension, matrix.SecondDimension, new HLSLRegister<object[]>(lanes));
                 case GenericMatrixTypeNode genMatrix:
                     var d1 = Visit(genMatrix.FirstDimension) as ScalarValue;
                     var d2 = Visit(genMatrix.SecondDimension) as ScalarValue;
-                    return new MatrixValue(node.Kind.Kind, Convert.ToInt32(d1.Value), Convert.ToInt32(d2.Value), values.ToArray());
+                    if (maxThreadCount == 1)
+                        return new MatrixValue(node.Kind.Kind, Convert.ToInt32(d1.Value), Convert.ToInt32(d2.Value), new HLSLRegister<object[]>(lanes[0]));
+                    else
+                        return new MatrixValue(node.Kind.Kind, Convert.ToInt32(d1.Value), Convert.ToInt32(d2.Value), new HLSLRegister<object[]>(lanes));
                 default:
                     throw new Exception("Unknown numeric constructor");
             }

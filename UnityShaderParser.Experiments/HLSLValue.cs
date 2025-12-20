@@ -1,18 +1,78 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using UnityShaderParser.Common;
 using UnityShaderParser.HLSL;
 
 namespace UnityShaderParser.Test
 {
+    public struct HLSLRegister<T>
+    {
+        public T UniformValue;
+        public T[] VaryingValues;
+        public bool IsVarying;
+
+        public HLSLRegister(T value)
+        {
+            VaryingValues = null;
+            UniformValue = value;
+            IsVarying = false;
+        }
+
+        public HLSLRegister(T[] values)
+        {
+            VaryingValues = values;
+            UniformValue = default;
+            IsVarying = true;
+        }
+
+        public HLSLRegister<U> Map<U>(Func<T, U> mapper)
+        {
+            if (IsVarying)
+            {
+                T[] input = VaryingValues;
+                return new HLSLRegister<U>(input.Select(mapper).ToArray());
+            }
+            else
+            {
+                return new HLSLRegister<U>(mapper(UniformValue));
+            }
+        }
+
+        public T Get(int threadIndex)
+        {
+            if (IsVarying)
+                return VaryingValues[threadIndex];
+            else
+                return UniformValue;
+        }
+
+        public HLSLRegister<T> Vectorize(int threadCount)
+        {
+            if (IsVarying)
+                return new HLSLRegister<T>(VaryingValues.ToArray());
+            else
+                return new HLSLRegister<T>(Enumerable.Repeat(UniformValue, threadCount).ToArray());
+        }
+
+        public HLSLRegister<T> Scalarize(int threadIndex)
+        {
+            return new HLSLRegister<T>(Get(threadIndex));
+        }
+
+        public int Size => IsVarying ? VaryingValues.Length : 1;
+    }
+
     public abstract class HLSLValue
     {
     }
 
+    // TODO: Use a union over "object" to avoid boxing of every individual value.
     public abstract class NumericValue : HLSLValue
     {
         public ScalarType Type;
@@ -35,12 +95,12 @@ namespace UnityShaderParser.Test
         public static NumericValue operator !(NumericValue left) => HLSLOperators.BoolNegate(left);
         public static NumericValue operator -(NumericValue left) => HLSLOperators.Negate(left);
 
-        public static implicit operator NumericValue(int v) => new ScalarValue(ScalarType.Int, v);
-        public static implicit operator NumericValue(uint v) => new ScalarValue(ScalarType.Uint, v);
-        public static implicit operator NumericValue(float v) => new ScalarValue(ScalarType.Float, v);
-        public static implicit operator NumericValue(double v) => new ScalarValue(ScalarType.Double, v);
-        public static implicit operator NumericValue(bool v) => new ScalarValue(ScalarType.Bool, v);
-        public static implicit operator NumericValue(char v) => new ScalarValue(ScalarType.Char, v);
+        public static implicit operator NumericValue(int v) => new ScalarValue(ScalarType.Int, new HLSLRegister<object>(v));
+        public static implicit operator NumericValue(uint v) => new ScalarValue(ScalarType.Uint, new HLSLRegister<object>(v));
+        public static implicit operator NumericValue(float v) => new ScalarValue(ScalarType.Float, new HLSLRegister<object>(v));
+        public static implicit operator NumericValue(double v) => new ScalarValue(ScalarType.Double, new HLSLRegister<object>(v));
+        public static implicit operator NumericValue(bool v) => new ScalarValue(ScalarType.Bool, new HLSLRegister<object>(v));
+        public static implicit operator NumericValue(char v) => new ScalarValue(ScalarType.Char, new HLSLRegister<object>(v));
     }
 
     public sealed class StructValue : HLSLValue
@@ -75,23 +135,47 @@ namespace UnityShaderParser.Test
 
     public sealed class ScalarValue : NumericValue
     {
-        public object Value;
+        public HLSLRegister<object> Value;
 
-        public ScalarValue(ScalarType type, object value)
+        //public ScalarValue(ScalarType type, object value)
+        //    : this(type, new UniformRegister(value)) 
+        //{
+        //}
+
+        public ScalarValue(ScalarType type, HLSLRegister<object> value)
         {
             Type = type;
             Value = value;
         }
 
-        public override string ToString() => Convert.ToString(Value, CultureInfo.InvariantCulture);
+        public override string ToString()
+        {
+            if (Value.IsVarying)
+            {
+                string[] vals = new string[Value.VaryingValues.Length];
+                for (int i = 0; i < vals.Length; i++)
+                    vals[i] = $"{i}: {ToString(i)}";
+                return $"Varying({string.Join(", ", vals)})";
+            }
+            else
+            {
+                return ToString(0);
+            }
+        }
+        public string ToString(int threadIndex) => Convert.ToString(Value.Get(threadIndex), CultureInfo.InvariantCulture);
     }
 
     public sealed class VectorValue : NumericValue
     {
-        public object[] Values;
-        public int Size => Values.Length;
+        public HLSLRegister<object[]> Values;
+        public int Size => Values.Get(0).Length;
 
-        public VectorValue(ScalarType type, object[] values)
+        //public VectorValue(ScalarType type, object[] values)
+        //    : this(type, values.Select(x => new UniformRegister(x)).ToArray())
+        //{
+        //}
+
+        public VectorValue(ScalarType type, HLSLRegister<object[]> values)
         {
             Type = type;
             Values = values;
@@ -99,8 +183,22 @@ namespace UnityShaderParser.Test
 
         public override string ToString()
         {
+            if (Values.IsVarying)
+            {
+                string[] vals = new string[Values.VaryingValues.Length];
+                for (int i = 0; i < vals.Length; i++)
+                    vals[i] = $"{i}: {ToString(i)}";
+                return $"Varying({string.Join(", ", vals)})";
+            }
+            else
+            {
+                return ToString(0);
+            }
+        }
+        public string ToString(int threadIndex)
+        {
             string type = PrintingUtil.GetEnumName(Type);
-            return $"{type}{Size}({string.Join(", ", Values.Select(x => Convert.ToString(x, CultureInfo.InvariantCulture)))})";
+            return $"{type}{Size}({string.Join(", ", Values.Get(threadIndex).Select(x => Convert.ToString(x, CultureInfo.InvariantCulture)))})"; // TODO: not thread 0
         }
     }
 
@@ -108,9 +206,14 @@ namespace UnityShaderParser.Test
     {
         public int Rows;
         public int Columns;
-        public object[] Values;
+        public HLSLRegister<object[]> Values;
 
-        public MatrixValue(ScalarType type, int rows, int columns, object[] values)
+        //public MatrixValue(ScalarType type, int rows, int columns, object[] values)
+        //    : this(type, rows, columns, values.Select(x => new UniformRegister(x)).ToArray())
+        //{
+        //}
+
+        public MatrixValue(ScalarType type, int rows, int columns, HLSLRegister<object[]> values)
         {
             Type = type;
             Rows = rows;
@@ -120,8 +223,22 @@ namespace UnityShaderParser.Test
 
         public override string ToString()
         {
+            if (Values.IsVarying)
+            {
+                string[] vals = new string[Values.VaryingValues.Length];
+                for (int i = 0; i < vals.Length; i++)
+                    vals[i] = $"{i}: {ToString(i)}";
+                return $"Varying({string.Join(", ", vals)})";
+            }
+            else
+            {
+                return ToString(0);
+            }
+        }
+        public string ToString(int threadIndex)
+        {
             string type = PrintingUtil.GetEnumName(Type);
-            return $"{type}{Rows}{Columns}({string.Join(", ", Values.Select(x => Convert.ToString(x, CultureInfo.InvariantCulture)))})";
+            return $"{type}{Rows}{Columns}({string.Join(", ", Values.Get(threadIndex).Select(x => Convert.ToString(x, CultureInfo.InvariantCulture)))})"; // TODO: not thread 0
         }
     }
 
@@ -286,16 +403,19 @@ namespace UnityShaderParser.Test
         {
             if (value is VectorValue vec)
             {
-                int sizeDiff = size - vec.Values.Length;
-                if (sizeDiff > 0) // Expansion
-                    return new VectorValue(vec.Type, vec.Values.Append(Enumerable.Repeat(GetZeroValue(vec.Type), sizeDiff)).ToArray());
-                else if (size < vec.Values.Length) // Truncation
-                    return new VectorValue(vec.Type, vec.Values.Take(size).ToArray());
-                else
-                    return vec;
+                return new VectorValue(vec.Type, vec.Values.Map(x =>
+                {
+                    int sizeDiff = size - x.Length;
+                    if (sizeDiff > 0) // Expansion
+                        return x.Append(Enumerable.Repeat(GetZeroValue(vec.Type), sizeDiff)).ToArray();
+                    else if (size < x.Length) // Truncation
+                        return x.Take(size).ToArray();
+                    else
+                        return x;
+                }));
             }
             if (value is ScalarValue scalar)
-                return new VectorValue(scalar.Type, Enumerable.Repeat(scalar.Value, size).ToArray());
+                return new VectorValue(scalar.Type, scalar.Value.Map(x => Enumerable.Repeat(x, size).ToArray()));
             return null;
         }
 
@@ -308,7 +428,7 @@ namespace UnityShaderParser.Test
                 return mat;
             }
             if (value is ScalarValue scalar)
-                return new MatrixValue(scalar.Type, rows, columns, Enumerable.Repeat(scalar.Value, rows * columns).ToArray());
+                return new MatrixValue(scalar.Type, rows, columns, scalar.Value.Map(x => Enumerable.Repeat(x, rows * columns).ToArray()));
             return null;
         }
 
@@ -364,17 +484,58 @@ namespace UnityShaderParser.Test
         public static NumericValue CastNumeric(ScalarType type, NumericValue value)
         {
             if (value is ScalarValue scalar)
-                return new ScalarValue(type, CastNumeric(type, scalar.Value));
+                return new ScalarValue(type, scalar.Value.Map(x => CastNumeric(type, x)));
             if (value is VectorValue vector)
-                return new VectorValue(type, vector.Values.Select(x => CastNumeric(type, x)).ToArray());
+                return new VectorValue(type, vector.Values.Map(x => x.Select(y => CastNumeric(type, y)).ToArray()));
             if (value is MatrixValue matrix)
-                return new MatrixValue(type, matrix.Rows, matrix.Columns, matrix.Values.Select(x => CastNumeric(type, x)).ToArray());
+                return new MatrixValue(type, matrix.Rows, matrix.Columns, matrix.Values.Map(x => x.Select(y => CastNumeric(type, y)).ToArray()));
+            return null;
+        }
+
+        public static int GetThreadCount(NumericValue value)
+        {
+            switch (value)
+            {
+                case ScalarValue scalar: return scalar.Value.Size;
+                case VectorValue vector: return vector.Values.Size;
+                case MatrixValue matrix: return matrix.Values.Size;
+                default: return 1;
+            }
+        }
+
+        public static NumericValue Vectorize(NumericValue value, int threadCount)
+        {
+            if (value is ScalarValue scalar)
+                return new ScalarValue(scalar.Type, scalar.Value.Vectorize(threadCount));
+            if (value is VectorValue vector)
+                return new VectorValue(vector.Type, vector.Values.Vectorize(threadCount));
+            if (value is MatrixValue matrix)
+                return new MatrixValue(matrix.Type, matrix.Rows, matrix.Columns, matrix.Values.Vectorize(threadCount));
+            return null;
+        }
+
+        public static NumericValue Scalarize(NumericValue value, int threadIndex)
+        {
+            if (value is ScalarValue scalar)
+                return new ScalarValue(scalar.Type, scalar.Value.Scalarize(threadIndex));
+            if (value is VectorValue vector)
+                return new VectorValue(vector.Type, vector.Values.Scalarize(threadIndex));
+            if (value is MatrixValue matrix)
+                return new MatrixValue(matrix.Type, matrix.Rows, matrix.Columns, matrix.Values.Scalarize(threadIndex));
             return null;
         }
 
         // Given 2 params, promote such that no information is lost.
+        // This includes promoting SGPR to VGPR.
         public static (NumericValue newLeft, NumericValue newRight) Promote(NumericValue left, NumericValue right, bool bitwiseOp)
         {
+            int leftThreadCount = GetThreadCount(left);
+            int rightThreadCount = GetThreadCount(right);
+            if (leftThreadCount < rightThreadCount)
+                left = Vectorize(left, rightThreadCount);
+            else if (rightThreadCount < leftThreadCount)
+                right = Vectorize(right, leftThreadCount);
+
             ScalarType type = bitwiseOp
                 ? PromoteForBitwiseBinOp(left.Type, right.Type)
                 : PromoteScalarType(left.Type, right.Type);
@@ -409,35 +570,81 @@ namespace UnityShaderParser.Test
         public static NumericValue Map(NumericValue value, Func<object, object> mapper)
         {
             if (value is ScalarValue scalar)
-                return new ScalarValue(scalar.Type, mapper(scalar.Value));
+                return new ScalarValue(scalar.Type, scalar.Value.Map(mapper));
             if (value is VectorValue vector)
-                return new VectorValue(vector.Type, vector.Values.Select(mapper).ToArray());
+                return new VectorValue(vector.Type, vector.Values.Map(x => x.Select(mapper).ToArray()));
             if (value is MatrixValue matrix)
-                return new MatrixValue(matrix.Type, matrix.Rows, matrix.Columns, matrix.Values.Select(mapper).ToArray());
+                return new MatrixValue(matrix.Type, matrix.Rows, matrix.Columns, matrix.Values.Map(x => x.Select(mapper).ToArray()));
             return null;
+        }
+
+        private static HLSLRegister<T> Map2Registers<T>(HLSLRegister<T> left, HLSLRegister<T> right, Func<T, T, T> mapper)
+        {
+            if (left.IsVarying && right.IsVarying)
+            {
+                T[] mapped = left.VaryingValues.Zip(right.VaryingValues, mapper).ToArray();
+                return new HLSLRegister<T>(mapped);
+            }
+            else if (!left.IsVarying && !right.IsVarying)
+            {
+                return new HLSLRegister<T>(mapper(left.UniformValue, right.UniformValue));
+            }
+            else
+            {
+                throw new InvalidOperationException("Cannot map varying and uniform register together.");
+            }
         }
 
         public static NumericValue Map2(NumericValue left, NumericValue right, Func<object, object, object> mapper)
         {
+
             if (GetTensorSize(left) != GetTensorSize(right))
                 throw new ArgumentException("Sizes of operands must match.");
             if (left is ScalarValue scalarLeft && right is ScalarValue scalarRight)
-                return new ScalarValue(scalarLeft.Type, mapper(scalarLeft.Value, scalarRight.Value));
+                return new ScalarValue(scalarLeft.Type, Map2Registers(scalarLeft.Value, scalarRight.Value, mapper));
             if (left is VectorValue vectorLeft && right is VectorValue vectorRight)
             {
-                object[] result = new object[vectorLeft.Size];
-                for (int i = 0; i < result.Length; i++)
-                    result[i] = mapper(vectorLeft.Values[i], vectorRight.Values[i]);
-                return new VectorValue(vectorLeft.Type, result);
+                var mapped = Map2Registers(vectorLeft.Values, vectorRight.Values, (x, y) =>
+                {
+                    object[] result = new object[vectorLeft.Size];
+                    for (int i = 0; i < result.Length; i++)
+                        result[i] = mapper(x[i], y[i]);
+                    return result;
+                });
+                return new VectorValue(vectorLeft.Type, mapped);
             }
             if (left is MatrixValue matrixLeft && right is MatrixValue matrixRight)
             {
-                object[] result = new object[matrixLeft.Values.Length];
-                for (int i = 0; i < result.Length; i++)
-                    result[i] = mapper(matrixLeft.Values[i], matrixRight.Values[i]);
-                return new MatrixValue(matrixLeft.Type, matrixLeft.Rows, matrixLeft.Columns, result);
+                var mapped = Map2Registers(matrixLeft.Values, matrixRight.Values, (x, y) =>
+                {
+                    object[] result = new object[x.Length];
+                    for (int i = 0; i < result.Length; i++)
+                        result[i] = mapper(x[i], y[i]);
+                    return result;
+                });
+                return new MatrixValue(matrixLeft.Type, matrixLeft.Rows, matrixLeft.Columns, mapped);
             }
             return null;
+        }
+
+        public static HLSLRegister<object> MakeScalarSGPR<T>(T val)
+        {
+            return new HLSLRegister<object>(val);
+        }
+
+        public static HLSLRegister<object> MakeScalarVGPR<T>(IEnumerable<T> val)
+        {
+            return new HLSLRegister<object>(val.Select(x => (object)x).ToArray());
+        }
+
+        public static HLSLRegister<object[]> MakeVectorSGPR<T>(IEnumerable<T> val)
+        {
+            return new HLSLRegister<object[]>(val.Select(x => (object)x).ToArray());
+        }
+
+        public static HLSLRegister<object[]> MakeVectorVGPR<T>(IEnumerable<IEnumerable<T>> val)
+        {
+            return new HLSLRegister<object[]>(val.Select(x => x.Select(y => (object)y).ToArray()).ToArray());
         }
     }
 }

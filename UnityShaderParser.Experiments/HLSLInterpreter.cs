@@ -7,12 +7,15 @@ namespace UnityShaderParser.Test
     public class HLSLInterpreter : HLSLSyntaxVisitor
     {
         protected HLSLInterpreterContext context;
+        protected HLSLExecutionState executionState;
         protected HLSLExpressionEvaluator expressionEvaluator;
+        protected bool[] executionMask;
 
-        public HLSLInterpreter()
+        public HLSLInterpreter(int threadsX = 2, int threadsY = 2)
         {
             context = new HLSLInterpreterContext();
-            expressionEvaluator = new HLSLExpressionEvaluator(context);
+            executionState = new HLSLExecutionState(threadsX, threadsY);
+            expressionEvaluator = new HLSLExpressionEvaluator(context, executionState);
         }
 
         public override void VisitVariableDeclarationStatementNode(VariableDeclarationStatementNode node)
@@ -62,14 +65,15 @@ namespace UnityShaderParser.Test
                     switch (node.Kind)
                     {
                         case ScalarTypeNode scalarType:
-                            defaultValue = new ScalarValue(scalarType.Kind, HLSLValueUtils.GetZeroValue(scalarType.Kind));
+                            defaultValue = new ScalarValue(scalarType.Kind, new HLSLRegister<object>(HLSLValueUtils.GetZeroValue(scalarType.Kind)));
                             break;
                         case VectorTypeNode vectorType:
-                            defaultValue = new VectorValue(vectorType.Kind, Enumerable.Repeat(HLSLValueUtils.GetZeroValue(vectorType.Kind), vectorType.Dimension).ToArray());
+                            defaultValue = new VectorValue(vectorType.Kind, 
+                                new HLSLRegister<object[]>(Enumerable.Repeat(HLSLValueUtils.GetZeroValue(vectorType.Kind), vectorType.Dimension).ToArray()));
                             break;
                         case MatrixTypeNode matrixType:
                             defaultValue = new MatrixValue(matrixType.Kind, matrixType.FirstDimension, matrixType.SecondDimension,
-                                Enumerable.Repeat(HLSLValueUtils.GetZeroValue(matrixType.Kind), matrixType.FirstDimension * matrixType.SecondDimension).ToArray());
+                                new HLSLRegister<object[]>(Enumerable.Repeat(HLSLValueUtils.GetZeroValue(matrixType.Kind), matrixType.FirstDimension * matrixType.SecondDimension).ToArray()));
                             break;
                         case PredefinedObjectTypeNode predefinedObjectType:
                             defaultValue = new PredefinedObjectValue(predefinedObjectType.Kind, null);
