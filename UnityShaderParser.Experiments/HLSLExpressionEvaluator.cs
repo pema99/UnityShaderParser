@@ -1,20 +1,40 @@
-﻿using UnityShaderParser.HLSL;
-using System;
-using UnityShaderParser.Common;
+﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
+using UnityShaderParser.Common;
+using UnityShaderParser.HLSL;
 
 namespace UnityShaderParser.Test
 {
     public class HLSLExpressionEvaluator : HLSLSyntaxVisitor<HLSLValue>
     {
+        protected HLSLInterpreterContext context;
+
+        public HLSLExpressionEvaluator(HLSLInterpreterContext context)
+        {
+            this.context = context;
+        }
+
         protected override HLSLValue DefaultVisit(HLSLSyntaxNode node)
         {
             throw new InvalidOperationException($"{nameof(HLSLExpressionEvaluator)} should only be used to evaluate expressions.");
         }
 
-        public override HLSLValue VisitQualifiedIdentifierExpressionNode(QualifiedIdentifierExpressionNode node) => throw new NotImplementedException();
+        public override HLSLValue VisitQualifiedIdentifierExpressionNode(QualifiedIdentifierExpressionNode node)
+        {
+            if (context.TryGetVariable(node.GetName(), out var variable))
+                return variable;
+            else
+                throw new Exception($"Unknown variable '{node.GetName()}' referenced.");
+        }
         
-        public override HLSLValue VisitIdentifierExpressionNode(IdentifierExpressionNode node) => throw new NotImplementedException();
+        public override HLSLValue VisitIdentifierExpressionNode(IdentifierExpressionNode node)
+        {
+            if (context.TryGetVariable(node.GetName(), out var variable))
+                return variable;
+            else
+                throw new Exception($"Unknown variable '{node.GetName()}' referenced.");
+        }
         
         public override HLSLValue VisitLiteralExpressionNode(LiteralExpressionNode node)
         {
@@ -115,12 +135,49 @@ namespace UnityShaderParser.Test
             throw new Exception($"Unknown function '{node.Name.GetName()}' called.");
         }
 
-        public override HLSLValue VisitNumericConstructorCallExpressionNode(NumericConstructorCallExpressionNode node) => throw new NotImplementedException();
+        public override HLSLValue VisitNumericConstructorCallExpressionNode(NumericConstructorCallExpressionNode node)
+        {
+            NumericValue[] args = new NumericValue[node.Arguments.Count];
+            for (int i = 0; i < args.Length; i++)
+            {
+                args[i] = Visit(node.Arguments[i]) as NumericValue;
+                if (args[i] is null)
+                    throw new Exception("Expected numeric arguments as inputs to vector constructor.");
+            }
+
+            List<object> values = new List<object>();
+            foreach (var numeric in args)
+            {
+                if (numeric is ScalarValue scalar)
+                    values.Add(scalar.Value);
+                if (numeric is VectorValue vector)
+                    values.AddRange(vector.Values);
+            }
+
+            switch (node.Kind)
+            {
+                case VectorTypeNode _:
+                case GenericVectorTypeNode _:
+                    return new VectorValue(node.Kind.Kind, values.ToArray());
+                case MatrixTypeNode matrix:
+                    return new MatrixValue(node.Kind.Kind, matrix.FirstDimension, matrix.SecondDimension, values.ToArray());
+                case GenericMatrixTypeNode genMatrix:
+                    var d1 = Visit(genMatrix.FirstDimension) as ScalarValue;
+                    var d2 = Visit(genMatrix.SecondDimension) as ScalarValue;
+                    return new MatrixValue(node.Kind.Kind, Convert.ToInt32(d1.Value), Convert.ToInt32(d2.Value), values.ToArray());
+                default:
+                    throw new Exception("Unknown numeric constructor");
+            }
+        }
+
         public override HLSLValue VisitElementAccessExpressionNode(ElementAccessExpressionNode node) => throw new NotImplementedException();
+
         public override HLSLValue VisitCastExpressionNode(CastExpressionNode node) => throw new NotImplementedException();
+
         public override HLSLValue VisitArrayInitializerExpressionNode(ArrayInitializerExpressionNode node) => throw new NotImplementedException();
+
         public override HLSLValue VisitTernaryExpressionNode(TernaryExpressionNode node) => throw new NotImplementedException();
+
         public override HLSLValue VisitSamplerStateLiteralExpressionNode(SamplerStateLiteralExpressionNode node) => throw new NotImplementedException();
-        public override HLSLValue VisitCompileExpressionNode(CompileExpressionNode node) => throw new NotImplementedException();
     }
 }

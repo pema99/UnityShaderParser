@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Text;
 using System.Xml.Linq;
 using UnityShaderParser.HLSL;
@@ -58,7 +59,7 @@ namespace UnityShaderParser.Test
                     if (formatString[j] == '%')
                     {
                         j++;
-                        sb.Append(args[argCounter++].ToString());
+                        sb.Append(Convert.ToString(args[argCounter++], CultureInfo.InvariantCulture));
                     }
                     else
                     {

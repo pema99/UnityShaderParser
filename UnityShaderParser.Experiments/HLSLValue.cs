@@ -91,7 +91,7 @@ namespace UnityShaderParser.Test
         public object[] Values;
         public int Size => Values.Length;
 
-        public VectorValue(ScalarType type, params object[] values)
+        public VectorValue(ScalarType type, object[] values)
         {
             Type = type;
             Values = values;
@@ -100,28 +100,28 @@ namespace UnityShaderParser.Test
         public override string ToString()
         {
             string type = PrintingUtil.GetEnumName(Type);
-            return $"{type}{Size}({string.Join(", ", Values)})";
+            return $"{type}{Size}({string.Join(", ", Values.Select(x => Convert.ToString(x, CultureInfo.InvariantCulture)))})";
         }
     }
 
     public sealed class MatrixValue : NumericValue
     {
-        public int Width;
-        public int Height;
+        public int Rows;
+        public int Columns;
         public object[] Values;
 
-        public MatrixValue(ScalarType type, int width, int height, params object[] values)
+        public MatrixValue(ScalarType type, int rows, int columns, object[] values)
         {
             Type = type;
-            Width = width;
-            Height = height;
+            Rows = rows;
+            Columns = columns;
             Values = values;
         }
 
         public override string ToString()
         {
             string type = PrintingUtil.GetEnumName(Type);
-            return $"{type}{Width}{Height}({string.Join(", ", Values)})";
+            return $"{type}{Rows}{Columns}({string.Join(", ", Values.Select(x => Convert.ToString(x, CultureInfo.InvariantCulture)))})";
         }
     }
 
@@ -160,6 +160,40 @@ namespace UnityShaderParser.Test
 
     public static class HLSLValueUtils
     {
+        public static object GetZeroValue(ScalarType type)
+        {
+            switch (type)
+            {
+                case ScalarType.Void:
+                    return null;
+                case ScalarType.Bool:
+                    return default(bool);
+                case ScalarType.Int:
+                case ScalarType.Min16Int:
+                case ScalarType.Min12Int:
+                    return default(int);
+                case ScalarType.Uint:
+                case ScalarType.Min16Uint:
+                case ScalarType.Min12Uint:
+                    return default(uint);
+                case ScalarType.Half:
+                case ScalarType.Float:
+                case ScalarType.Min16Float:
+                case ScalarType.Min10Float:
+                case ScalarType.UNormFloat:
+                case ScalarType.SNormFloat:
+                    return default(float);
+                case ScalarType.Double:
+                    return default(double);
+                case ScalarType.String:
+                    return string.Empty;
+                case ScalarType.Char:
+                    return default(char);
+                default:
+                    return null;
+            }
+        }
+
         public static bool IsFloat(ScalarType type)
         {
             switch (type)
@@ -251,29 +285,41 @@ namespace UnityShaderParser.Test
         public static VectorValue BroadcastToVector(NumericValue value, int size)
         {
             if (value is VectorValue vec)
-                return vec;
+            {
+                int sizeDiff = size - vec.Values.Length;
+                if (sizeDiff > 0) // Expansion
+                    return new VectorValue(vec.Type, vec.Values.Append(Enumerable.Repeat(GetZeroValue(vec.Type), sizeDiff)).ToArray());
+                else if (size < vec.Values.Length) // Truncation
+                    return new VectorValue(vec.Type, vec.Values.Take(size).ToArray());
+                else
+                    return vec;
+            }
             if (value is ScalarValue scalar)
-                return new VectorValue(scalar.Type, Enumerable.Repeat(scalar.Value, size));
+                return new VectorValue(scalar.Type, Enumerable.Repeat(scalar.Value, size).ToArray());
             return null;
         }
 
-        public static MatrixValue BroadcastToMatrix(NumericValue value, int width, int height)
+        public static MatrixValue BroadcastToMatrix(NumericValue value, int rows, int columns)
         {
             if (value is MatrixValue mat)
+            {
+                if (mat.Rows != rows || mat.Columns != columns)
+                    throw new NotImplementedException();
                 return mat;
+            }
             if (value is ScalarValue scalar)
-                return new MatrixValue(scalar.Type, width, height, Enumerable.Repeat(scalar.Value, width*height));
+                return new MatrixValue(scalar.Type, rows, columns, Enumerable.Repeat(scalar.Value, rows * columns).ToArray());
             return null;
         }
 
-        public static (int width, int height) GetTensorSize(NumericValue value)
+        public static (int rows, int columns) GetTensorSize(NumericValue value)
         {
             if (value is ScalarValue)
                 return (1, 1);
             if (value is VectorValue vector)
                 return (vector.Size, 1);
             if (value is MatrixValue matrix)
-                return (matrix.Width, matrix.Height);
+                return (matrix.Rows, matrix.Columns);
             return (0, 0);
         }
 
@@ -288,10 +334,14 @@ namespace UnityShaderParser.Test
                 case ScalarType.Int:
                 case ScalarType.Min16Int:
                 case ScalarType.Min12Int:
+                    if (value is float fi) return (int)fi;
+                    if (value is double di) return (int)di;
                     return Convert.ToInt32(value);
                 case ScalarType.Uint:
                 case ScalarType.Min16Uint:
                 case ScalarType.Min12Uint:
+                    if (value is float fu) return (uint)fu;
+                    if (value is double du) return (uint)du;
                     return Convert.ToUInt32(value);
                 case ScalarType.Double:
                     return Convert.ToDouble(value);
@@ -318,7 +368,7 @@ namespace UnityShaderParser.Test
             if (value is VectorValue vector)
                 return new VectorValue(type, vector.Values.Select(x => CastNumeric(type, x)).ToArray());
             if (value is MatrixValue matrix)
-                return new MatrixValue(type, matrix.Width, matrix.Height, matrix.Values.Select(x => CastNumeric(type, x)).ToArray());
+                return new MatrixValue(type, matrix.Rows, matrix.Columns, matrix.Values.Select(x => CastNumeric(type, x)).ToArray());
             return null;
         }
 
@@ -334,12 +384,12 @@ namespace UnityShaderParser.Test
 
             if (needMatrix)
             {
-                (int leftWidth, int leftHeight) = GetTensorSize(left);
-                (int rightWidth, int rightHeight) = GetTensorSize(right);
-                int newWidth = Math.Max(leftWidth, rightWidth);
-                int newHeight = Math.Max(leftHeight, rightHeight);
-                var resizedLeft = BroadcastToMatrix(left, newWidth, newHeight);
-                var resizedRight = BroadcastToMatrix(right, newWidth, newHeight);
+                (int leftRows, int leftColumns) = GetTensorSize(left);
+                (int rightRows, int rightColumns) = GetTensorSize(right);
+                int newRows = Math.Max(leftRows, rightRows);
+                int newColumns = Math.Max(rightRows, rightColumns);
+                var resizedLeft = BroadcastToMatrix(left, newRows, newColumns);
+                var resizedRight = BroadcastToMatrix(right, newRows, newColumns);
                 return (CastNumeric(type, resizedLeft), CastNumeric(type, resizedRight));
             }
 
@@ -363,7 +413,7 @@ namespace UnityShaderParser.Test
             if (value is VectorValue vector)
                 return new VectorValue(vector.Type, vector.Values.Select(mapper).ToArray());
             if (value is MatrixValue matrix)
-                return new MatrixValue(matrix.Type, matrix.Width, matrix.Height, matrix.Values.Select(mapper).ToArray());
+                return new MatrixValue(matrix.Type, matrix.Rows, matrix.Columns, matrix.Values.Select(mapper).ToArray());
             return null;
         }
 
@@ -385,7 +435,7 @@ namespace UnityShaderParser.Test
                 object[] result = new object[matrixLeft.Values.Length];
                 for (int i = 0; i < result.Length; i++)
                     result[i] = mapper(matrixLeft.Values[i], matrixRight.Values[i]);
-                return new MatrixValue(matrixLeft.Type, matrixLeft.Width, matrixLeft.Height, result);
+                return new MatrixValue(matrixLeft.Type, matrixLeft.Rows, matrixLeft.Columns, result);
             }
             return null;
         }
