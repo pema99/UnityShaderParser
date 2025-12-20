@@ -142,6 +142,8 @@ namespace UnityShaderParser.Test
             // Now handle special intrinsics that affect or read from the execution state
             switch (name)
             {
+                case "printf":
+                    return HLSLIntrinsics.Printf(executionState, args);
                 case "WaveGetLaneIndex":
                     return HLSLIntrinsics.WaveGetLaneIndex(executionState);        
                 case "WaveGetLaneCount":

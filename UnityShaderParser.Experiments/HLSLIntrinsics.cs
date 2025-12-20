@@ -38,9 +38,6 @@ namespace UnityShaderParser.Test
                     CheckNumeric(name, args);
                     result = Exp((NumericValue)args[0]);
                     return true;
-                case "printf":
-                    result = Printf(args);
-                    return true;
                 default:
                     result = null;
                     return false;
@@ -59,7 +56,8 @@ namespace UnityShaderParser.Test
             return HLSLValueUtils.Map(casted, val => Math.Exp((float)val));
         }
 
-        public static ScalarValue Printf(HLSLValue[] args)
+        #region Special intrinsics that touch execution state
+        public static ScalarValue Printf(HLSLExecutionState executionState, HLSLValue[] args)
         {
             if (args.Length > 0)
             {
@@ -71,11 +69,17 @@ namespace UnityShaderParser.Test
                         return 1;
                 });
 
-                for (int threadIndex = 0; threadIndex < maxThreadCount; threadIndex++)
+                bool scalarizeLoop = executionState.IsVaryingExecution() || maxThreadCount > 1;
+                int numThreads = scalarizeLoop ? Math.Max(maxThreadCount, executionState.GetThreadCount()) : 1;
+
+                for (int threadIndex = 0; threadIndex < numThreads; threadIndex++)
                 {
+                    if (scalarizeLoop && !executionState.IsThreadActive(threadIndex))
+                        continue;
+
                     string formatString = args[0].ToString();
                     StringBuilder sb = new StringBuilder();
-                    if (maxThreadCount > 1)
+                    if (scalarizeLoop)
                         sb.Append($"[Thread {threadIndex}] ");
                     int argCounter = 1;
                     for (int j = 0; j < formatString.Length; j++)
@@ -104,7 +108,6 @@ namespace UnityShaderParser.Test
             return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
         }
 
-        #region Special intrinsics that touch execution state
         public static ScalarValue WaveGetLaneIndex(HLSLExecutionState executionState)
         {
             return new ScalarValue(ScalarType.Uint, HLSLValueUtils.MakeScalarVGPR(Enumerable.Range(0, executionState.GetThreadCount())));

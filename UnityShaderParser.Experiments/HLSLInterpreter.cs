@@ -9,7 +9,6 @@ namespace UnityShaderParser.Test
         protected HLSLInterpreterContext context;
         protected HLSLExecutionState executionState;
         protected HLSLExpressionEvaluator expressionEvaluator;
-        protected bool[] executionMask;
 
         public HLSLInterpreter(int threadsX = 2, int threadsY = 2)
         {
@@ -89,6 +88,30 @@ namespace UnityShaderParser.Test
                     context.SetVariable(decl.Name, defaultValue);
                 }
             }
+        }
+
+        public override void VisitIfStatementNode(IfStatementNode node)
+        {
+            NumericValue condValue = expressionEvaluator.Visit(node.Condition) as NumericValue;
+            if (condValue is null)
+                throw new Exception("Expected a numeric value for the condition.");
+
+            ScalarValue boolCondValue = HLSLValueUtils.CastNumeric(ScalarType.Bool, condValue) as ScalarValue;
+            if (boolCondValue is null)
+                throw new Exception("Expected a scalar boolean value for the condition.");
+
+            executionState.PushExecutionMask();
+            for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+                executionState.SetThreadState(threadIndex, (bool)boolCondValue.Value.Get(threadIndex));
+
+            Visit(node.Body);
+
+            executionState.FlipExecutionMask();
+
+            if (node.ElseClause != null)
+                Visit(node.ElseClause);
+
+            executionState.PopExecutionMask();
         }
 
         public override void VisitExpressionStatementNode(ExpressionStatementNode node)

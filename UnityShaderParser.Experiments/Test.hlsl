@@ -1,14 +1,21 @@
+#if !HLSL_TEST
+#define printf
+#endif
+
+printf("Printing stuff %f!", 42.69);
+
+// Values varying per thread
 int laneIndex = WaveGetLaneIndex();
+printf("%d", laneIndex);
 
-printf("%d", 123);
-
-printf("=== Lerp test ===");
-float4 result = lerp(float4(float2(1,2),3,4), 1 + laneIndex * 4, 0.5);
-printf("%d", result);
-
-printf("=== Exp test ===");
+// Derivatives
 float e = exp(laneIndex);
-printf("exp(%d): %d", laneIndex, e);
+printf("ddx(%f): %f", e, ddx_fine(e));
 
-printf("=== DDX test ===");
-printf("DDX: %d", ddx_fine(e));
+// Coherent control flow
+if (lerp(1, 2, 0.5) > 0.5)
+    printf("I'm coherent");
+
+// Divergent control flow
+if (laneIndex >= 2)
+    printf("I'm divergent");
