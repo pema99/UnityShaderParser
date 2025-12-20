@@ -143,20 +143,20 @@ namespace UnityShaderParser.Test
             switch (name)
             {
                 case "WaveGetLaneIndex":
-                    return new ScalarValue(ScalarType.Uint, HLSLValueUtils.MakeScalarVGPR(Enumerable.Range(0, executionState.GetThreadCount())));
+                    return HLSLIntrinsics.WaveGetLaneIndex(executionState);        
                 case "WaveGetLaneCount":
-                    return (NumericValue)executionState.GetThreadCount();
+                    return HLSLIntrinsics.WaveGetLaneCount(executionState);
                 case "WaveIsFirstLane":
-                    var perLaneIsFirst = new bool[executionState.GetThreadCount()];
-                    for (int threadIdx = 0; threadIdx < executionState.GetThreadCount(); threadIdx++)
-                    {
-                        if (executionState.IsThreadActive(threadIdx))
-                        {
-                            perLaneIsFirst[threadIdx] = true;
-                            break;
-                        }
-                    }
-                    return new ScalarValue(ScalarType.Bool, HLSLValueUtils.MakeScalarVGPR(perLaneIsFirst));
+                    return HLSLIntrinsics.WaveIsFirstLane(executionState);
+                case "ddx":
+                    return HLSLIntrinsics.Ddx(executionState, (NumericValue)args[0]);
+                case "ddy":
+                    return HLSLIntrinsics.Ddy(executionState, (NumericValue)args[0]);
+                case "ddx_fine":
+                    return HLSLIntrinsics.DdxFine(executionState, (NumericValue)args[0]);
+                case "ddy_fine":
+                    return HLSLIntrinsics.DdyFine(executionState, (NumericValue)args[0]);
+                    
                 default:
                     break;
             }

@@ -39,13 +39,13 @@ namespace UnityShaderParser.Test
                     switch (node.Kind)
                     {
                         case ScalarTypeNode scalarType:
-                            initializerValue = HLSLValueUtils.Map(numeric, x => HLSLValueUtils.CastNumeric(scalarType.Kind, x));
+                            initializerValue = HLSLValueUtils.CastNumeric(scalarType.Kind, numeric);
                             break;
                         case VectorTypeNode vectorType:
-                            initializerValue = HLSLValueUtils.BroadcastToVector(HLSLValueUtils.Map(numeric, x => HLSLValueUtils.CastNumeric(vectorType.Kind, x)), vectorType.Dimension);
+                            initializerValue = HLSLValueUtils.BroadcastToVector(HLSLValueUtils.CastNumeric(vectorType.Kind, numeric), vectorType.Dimension);
                             break;
                         case MatrixTypeNode matrixType:
-                            initializerValue = HLSLValueUtils.BroadcastToMatrix(HLSLValueUtils.Map(numeric, x => HLSLValueUtils.CastNumeric(matrixType.Kind, x)), matrixType.FirstDimension, matrixType.SecondDimension);
+                            initializerValue = HLSLValueUtils.BroadcastToMatrix(HLSLValueUtils.CastNumeric(matrixType.Kind, numeric), matrixType.FirstDimension, matrixType.SecondDimension);
                             break;
                         case PredefinedObjectTypeNode predefinedObjectType:
                             throw new Exception("Invalid cast.");
