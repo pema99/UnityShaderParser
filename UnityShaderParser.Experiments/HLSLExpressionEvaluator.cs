@@ -10,11 +10,13 @@ namespace UnityShaderParser.Test
 {
     public class HLSLExpressionEvaluator : HLSLSyntaxVisitor<HLSLValue>
     {
+        protected HLSLInterpreter interpreter;
         protected HLSLInterpreterContext context;
         protected HLSLExecutionState executionState;
 
-        public HLSLExpressionEvaluator(HLSLInterpreterContext context, HLSLExecutionState executionState)
+        public HLSLExpressionEvaluator(HLSLInterpreter interpreter, HLSLInterpreterContext context, HLSLExecutionState executionState)
         {
+            this.interpreter = interpreter;
             this.context = context;
             this.executionState = executionState;
         }
@@ -158,9 +160,28 @@ namespace UnityShaderParser.Test
                     return HLSLIntrinsics.DdxFine(executionState, (NumericValue)args[0]);
                 case "ddy_fine":
                     return HLSLIntrinsics.DdyFine(executionState, (NumericValue)args[0]);
-                    
                 default:
                     break;
+            }
+
+            FunctionDefinitionNode func = context.GetFunction(name, args);
+            if (func != null)
+            {
+                context.PushScope();
+                for (int i = 0; i < func.Parameters.Count; i++)
+                {
+                    var param = func.Parameters[i];
+                    var declarator = param.Declarator;
+                    context.SetVariable(declarator.Name, args[i]);
+                }
+                interpreter.Visit(func.Body);
+                context.PopScope();
+
+                bool voidReturn = func.ReturnType is ScalarTypeNode scalarType && scalarType.Kind == ScalarType.Void;
+                if (voidReturn)
+                    return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+                else
+                    return context.PopReturn();
             }
 
             throw new Exception($"Unknown function '{node.Name.GetName()}' called.");

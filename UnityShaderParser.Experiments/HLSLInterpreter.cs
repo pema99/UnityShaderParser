@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityShaderParser.HLSL;
 
@@ -14,7 +15,37 @@ namespace UnityShaderParser.Test
         {
             context = new HLSLInterpreterContext();
             executionState = new HLSLExecutionState(threadsX, threadsY);
-            expressionEvaluator = new HLSLExpressionEvaluator(context, executionState);
+            expressionEvaluator = new HLSLExpressionEvaluator(this, context, executionState);
+        }
+
+        public HLSLValue CallFunction(string name, params object[] args)
+        {
+            List<ExpressionNode> exprArgs = new List<ExpressionNode>();
+            for (int i = 0; i < args.Length; i++)
+            {
+                LiteralKind kind;
+                switch (args[i])
+                {
+                    case string _: kind = LiteralKind.String; break;
+                    case float _: kind = LiteralKind.Float; break;
+                    case int _: kind = LiteralKind.Integer; break;
+                    case char _: kind = LiteralKind.Character; break;
+                    case bool _: kind = LiteralKind.Boolean; break;
+                    default: kind = LiteralKind.Null; break;
+                }
+
+                exprArgs.Add(new LiteralExpressionNode(null)
+                {
+                    Kind = kind,
+                    Lexeme = args[i].ToString(),
+                });
+            }
+
+            return expressionEvaluator.Visit(new FunctionCallExpressionNode(null)
+            {
+                Name = new IdentifierExpressionNode(null) { Name = new IdentifierNode(null) { Identifier = name } },
+                Arguments = exprArgs
+            });
         }
 
         public override void VisitVariableDeclarationStatementNode(VariableDeclarationStatementNode node)
@@ -112,6 +143,17 @@ namespace UnityShaderParser.Test
                 Visit(node.ElseClause);
 
             executionState.PopExecutionMask();
+        }
+
+        public override void VisitFunctionDefinitionNode(FunctionDefinitionNode node)
+        {
+            context.AddFunction(node.Name.GetName(), node);
+        }
+
+        public override void VisitReturnStatementNode(ReturnStatementNode node)
+        {
+            if (node.Expression != null)
+                context.PushReturn(expressionEvaluator.Visit(node.Expression));
         }
 
         public override void VisitExpressionStatementNode(ExpressionStatementNode node)

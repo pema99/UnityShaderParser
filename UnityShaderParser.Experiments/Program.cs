@@ -4,6 +4,7 @@ using UnityShaderParser.HLSL.PreProcessor;
 using UnityShaderParser.Test;
 using System.IO;
 using System.Collections.Generic;
+using System;
 
 public class Program
 {
@@ -19,10 +20,11 @@ public class Program
             Defines = new Dictionary<string, string>() { { "HLSL_TEST", "1" } }
         };
 
-        var stmts = ShaderParser.ParseStatements(shaderSource, config, out var diags, out var prags);
+        var stmts = ShaderParser.ParseTopLevelDeclarations(shaderSource, config, out var diags, out var prags);
 
         HLSLInterpreter interpreter = new HLSLInterpreter();
         interpreter.VisitMany(stmts);
+        interpreter.CallFunction("main");
 
     }
 }

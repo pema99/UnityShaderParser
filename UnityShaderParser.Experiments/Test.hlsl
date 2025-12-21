@@ -1,21 +1,28 @@
-#if !HLSL_TEST
-#define printf
-#endif
+int add(int a, int b)
+{
+    return a + b;
+}
 
-printf("Printing stuff %f!", 42.69);
+void main()
+{
+    printf("Printing stuff %f!", 42.69);
 
-// Values varying per thread
-int laneIndex = WaveGetLaneIndex();
-printf("%d", laneIndex);
+    // Values varying per thread
+    int laneIndex = WaveGetLaneIndex();
+    printf("%d", laneIndex);
 
-// Derivatives
-float e = exp(laneIndex);
-printf("ddx(%f): %f", e, ddx_fine(e));
+    // Derivatives
+    float e = exp(laneIndex);
+    printf("ddx(%f): %f", e, ddx_fine(e));
 
-// Coherent control flow
-if (lerp(1, 2, 0.5) > 0.5)
-    printf("I'm coherent");
+    // Coherent control flow
+    if (lerp(1, 2, 0.5) > 0.5)
+        printf("I'm coherent");
 
-// Divergent control flow
-if (laneIndex >= 2)
-    printf("I'm divergent");
+    // Divergent control flow
+    if (laneIndex >= 2)
+        printf("I'm divergent");
+
+    // Function calls
+    printf("Func call: %d", add(laneIndex, 2));
+}

@@ -708,7 +708,7 @@ namespace UnityShaderParser.HLSL
 
         public HLSLSyntaxNode(List<HLSLToken> tokens)
         {
-            if (tokens.Count > 0)
+            if (tokens?.Count > 0)
             {
                 this.span = SourceSpan.Between(tokens.First().Span, tokens.Last().Span);
                 this.originalSpan = SourceSpan.Between(tokens.First().OriginalSpan, tokens.Last().OriginalSpan);
