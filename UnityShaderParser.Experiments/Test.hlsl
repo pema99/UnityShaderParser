@@ -5,6 +5,9 @@ int add(int a, int b)
 
 void main()
 {
+int a = 3;
+a += a;
+printf("FOO %d", a);
     printf("Printing stuff %f!", 42.69);
 
     // Values varying per thread

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
+using System.Xml.Linq;
 using UnityShaderParser.Common;
 using UnityShaderParser.HLSL;
 
@@ -75,7 +76,79 @@ namespace UnityShaderParser.Test
             }
         }
         
-        public override HLSLValue VisitAssignmentExpressionNode(AssignmentExpressionNode node) => throw new NotImplementedException();
+        public override HLSLValue VisitAssignmentExpressionNode(AssignmentExpressionNode node)
+        {
+            var left = Visit(node.Left);
+            var right = Visit(node.Right);
+
+            HLSLValue SetValue(HLSLValue value)
+            {
+                if (node.Left is NamedExpressionNode named)
+                {
+                    context.SetVariable(named.GetName(), value);
+                    return value;
+                }
+                else if (node.Left is ElementAccessExpressionNode elem && elem.Target is NamedExpressionNode arr)
+                {
+                    var index = Visit(elem.Index) as ScalarValue;
+                    var arrValue = (ArrayValue)context.GetVariable(arr.GetName());
+                    if (index.Value.IsUniform)
+                    {
+                        arrValue.Values[Convert.ToInt32(index.Value.UniformValue)] = value;
+                    }
+                    else
+                    {
+                        for (int threadIndex = 0;  threadIndex < executionState.GetThreadCount() ; threadIndex++)
+                        {
+                            // Scattered write. First get the array element for this thread.
+                            int myIndex = Convert.ToInt32(index.Value.Get(threadIndex));
+                            var arrElem = arrValue.Values[myIndex] as NumericValue;
+
+                            // Expand it to a VGPR.
+                            arrElem = HLSLValueUtils.Vectorize(arrElem, executionState.GetThreadCount());
+
+                            // Splat to the element for the correct thread.
+                            arrValue.Values[myIndex] = HLSLValueUtils.SetThreadValue(arrElem, threadIndex, value);
+                        }
+                    }
+                    return value;
+                }
+                // TODO: StructuredBuffer/Resource writes
+                // TODO: Write to struct array
+                else
+                    throw new Exception("Invalid assignment");
+            }
+
+            var leftNum = left as NumericValue;
+            var rightNum = right as NumericValue;
+            switch (node.Operator)
+            {
+                case OperatorKind.Assignment:
+                    return SetValue(right);
+                case OperatorKind.PlusAssignment:
+                    return SetValue(leftNum + rightNum);
+                case OperatorKind.MinusAssignment:
+                    return SetValue(leftNum - rightNum);
+                case OperatorKind.MulAssignment:
+                    return SetValue(leftNum * rightNum);
+                case OperatorKind.DivAssignment:
+                    return SetValue(leftNum / rightNum);
+                case OperatorKind.ModAssignment:
+                    return SetValue(leftNum % rightNum);
+                case OperatorKind.ShiftLeftAssignment:
+                    return SetValue(HLSLOperators.BitSHL(leftNum, rightNum));
+                case OperatorKind.ShiftRightAssignment:
+                    return SetValue(HLSLOperators.BitSHR(leftNum, rightNum));
+                case OperatorKind.BitwiseAndAssignment:
+                    return SetValue(leftNum & rightNum);
+                case OperatorKind.BitwiseXorAssignment:
+                    return SetValue(leftNum ^ rightNum);
+                case OperatorKind.BitwiseOrAssignment:
+                    return SetValue(leftNum | rightNum);
+            }
+
+            throw new Exception("Invalid assignment.");
+        }
         
         public override HLSLValue VisitBinaryExpressionNode(BinaryExpressionNode node)
         {
@@ -117,13 +190,57 @@ namespace UnityShaderParser.Test
             }
         }
         
-        public override HLSLValue VisitCompoundExpressionNode(CompoundExpressionNode node) => throw new NotImplementedException();
+        public override HLSLValue VisitCompoundExpressionNode(CompoundExpressionNode node)
+        {
+            Visit(node.Left);
+            return Visit(node.Right);
+        }
         
-        public override HLSLValue VisitPrefixUnaryExpressionNode(PrefixUnaryExpressionNode node) => throw new NotImplementedException();
+        public override HLSLValue VisitPrefixUnaryExpressionNode(PrefixUnaryExpressionNode node)
+        {
+            var value = Visit(node.Expression);
+            if (value is NumericValue num)
+            {
+                switch (node.Operator)
+                {
+                    case OperatorKind.Plus: return num;
+                    case OperatorKind.Minus: return -num;
+                    case OperatorKind.Not: return !num;
+                    case OperatorKind.BitFlip: return ~num;
+                    case OperatorKind.Increment when node.Expression is NamedExpressionNode named:
+                        context.SetVariable(named.GetName(), num + 1);
+                        return num + 1;
+                    case OperatorKind.Decrement when node.Expression is NamedExpressionNode named:
+                        context.SetVariable(named.GetName(), num - 1);
+                        return num - 1;
+                }
+            }
+            throw new Exception("Invalid prefix unary operation.");
+        }
         
-        public override HLSLValue VisitPostfixUnaryExpressionNode(PostfixUnaryExpressionNode node) => throw new NotImplementedException();
+        public override HLSLValue VisitPostfixUnaryExpressionNode(PostfixUnaryExpressionNode node)
+        {
+            var value = Visit(node.Expression);
+            if (value is NumericValue num)
+            {
+                switch (node.Operator)
+                {
+                    case OperatorKind.Increment when node.Expression is NamedExpressionNode named:
+                        context.SetVariable(named.GetName(), num + 1);
+                        return num;
+                    case OperatorKind.Decrement when node.Expression is NamedExpressionNode named:
+                        context.SetVariable(named.GetName(), num - 1);
+                        return num;
+                }
+            }
+            throw new Exception("Invalid postfix unary operation.");
+        }
         
-        public override HLSLValue VisitFieldAccessExpressionNode(FieldAccessExpressionNode node) => throw new NotImplementedException();
+        public override HLSLValue VisitFieldAccessExpressionNode(FieldAccessExpressionNode node)
+        {
+            var target = Visit(node.Target) as StructValue;
+            return target.Members[node.Name];
+        }
         
         public override HLSLValue VisitMethodCallExpressionNode(MethodCallExpressionNode node) => throw new NotImplementedException();
         
@@ -252,13 +369,99 @@ namespace UnityShaderParser.Test
             }
         }
 
-        public override HLSLValue VisitElementAccessExpressionNode(ElementAccessExpressionNode node) => throw new NotImplementedException();
+        public override HLSLValue VisitElementAccessExpressionNode(ElementAccessExpressionNode node)
+        {
+            HLSLValue arr = Visit(node.Target);
+            HLSLValue target = Visit(node.Index);
+            if (arr is ArrayValue arrValue && target is ScalarValue targetValue)
+            {
+                if (targetValue.Value.IsVarying)
+                {
+                    object[] values = new object[executionState.GetThreadCount()];
+                    for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+                    {
+                        var index = targetValue.Value.Get(threadIndex);
+                        values[threadIndex] = arrValue.Values[Convert.ToInt32(index)];
+                    }
+                }
+                else
+                {
+                    return arrValue.Values[Convert.ToInt32(targetValue.Value.UniformValue)];
+                }
+            }
+            throw new Exception("Invalid element access.");
+        }
 
         public override HLSLValue VisitCastExpressionNode(CastExpressionNode node) => throw new NotImplementedException();
 
-        public override HLSLValue VisitArrayInitializerExpressionNode(ArrayInitializerExpressionNode node) => throw new NotImplementedException();
+        public override HLSLValue VisitArrayInitializerExpressionNode(ArrayInitializerExpressionNode node)
+        {
+            var elems = VisitMany(node.Elements);
+            return new ArrayValue(elems.ToArray());
+        }
 
-        public override HLSLValue VisitTernaryExpressionNode(TernaryExpressionNode node) => throw new NotImplementedException();
+        public override HLSLValue VisitTernaryExpressionNode(TernaryExpressionNode node)
+        {
+            var cond = Visit(node.Condition) as NumericValue;
+            var left = Visit(node.TrueCase) as NumericValue;
+            var right = Visit(node.FalseCase) as NumericValue;
+
+            (left, right) = HLSLValueUtils.Promote(left, right, false);
+            if (cond is MatrixValue matrix)
+            {
+                left = HLSLValueUtils.BroadcastToMatrix(left, matrix.Rows, matrix.Columns);
+                right = HLSLValueUtils.BroadcastToMatrix(right, matrix.Rows, matrix.Columns);
+            }
+            else if (cond is VectorValue vector)
+            {
+                left = HLSLValueUtils.BroadcastToVector(left, vector.Size);
+                right = HLSLValueUtils.BroadcastToVector(right, vector.Size);
+            }
+
+            object[] values = new object[executionState.GetThreadCount()];
+            for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+            {
+                if (cond is ScalarValue condScalar && left is ScalarValue leftScalar && right is ScalarValue rightScalar)
+                {
+                    var channel = Convert.ToBoolean(condScalar.Value.Get(threadIndex))
+                        ? leftScalar.Value.Get(threadIndex)
+                        : rightScalar.Value.Get(threadIndex);
+                    values[threadIndex] = channel;
+                }
+                else if (cond is VectorValue condVector && left is VectorValue leftVector && right is VectorValue rightVector)
+                {
+                    object[] channels = new object[condVector.Size];
+                    for (int channel = 0; channel < channels.Length; channel++)
+                    {
+                        channels[channel] = Convert.ToBoolean(condVector.Values.Get(threadIndex)[channel])
+                            ? leftVector.Values.Get(threadIndex)[channel]
+                            : rightVector.Values.Get(threadIndex)[channel];
+                    }
+                    values[threadIndex] = channels;
+                }
+                else if (cond is MatrixValue condMatrix && left is MatrixValue leftMatrix && right is MatrixValue rightMatrix)
+                {
+                    object[] channels = new object[condMatrix.Rows * condMatrix.Columns];
+                    for (int channel = 0; channel < channels.Length; channel++)
+                    {
+                        channels[channel] = Convert.ToBoolean(condMatrix.Values.Get(threadIndex)[channel])
+                            ? leftMatrix.Values.Get(threadIndex)[channel]
+                            : rightMatrix.Values.Get(threadIndex)[channel];
+                    }
+                    values[threadIndex] = channels;
+                }
+                else
+                    throw new Exception("Invalid ternary.");
+            }
+
+            if (cond is ScalarValue)
+                return new ScalarValue(left.Type, new HLSLRegister<object>(values).Converge());
+            if (cond is VectorValue)
+                return new VectorValue(left.Type, new HLSLRegister<object[]>(values.Select(x => (object[])x).ToArray()).Converge());
+            if (cond is MatrixValue finalMatrix)
+                return new MatrixValue(left.Type, finalMatrix.Rows, finalMatrix.Columns, new HLSLRegister<object[]>(values.Select(x => (object[])x).ToArray()).Converge());
+            throw new Exception("Invalid ternary.");
+        }
 
         public override HLSLValue VisitSamplerStateLiteralExpressionNode(SamplerStateLiteralExpressionNode node) => throw new NotImplementedException();
     }

@@ -11,11 +11,12 @@ using UnityShaderParser.HLSL;
 
 namespace UnityShaderParser.Test
 {
-    public struct HLSLRegister<T>
+    public readonly struct HLSLRegister<T>
     {
-        public T UniformValue;
-        public T[] VaryingValues;
-        public bool IsVarying;
+        public readonly T UniformValue;
+        public readonly T[] VaryingValues;
+        public readonly bool IsVarying;
+        public bool IsUniform => !IsVarying;
 
         public HLSLRegister(T value)
         {
@@ -65,6 +66,20 @@ namespace UnityShaderParser.Test
                 return UniformValue;
         }
 
+        public HLSLRegister<T> Set(int threadIndex, T value)
+        {
+            if (IsVarying)
+            {
+                var valCopy = VaryingValues.ToArray();
+                valCopy[threadIndex] = value;
+                return new HLSLRegister<T>(valCopy);
+            }
+            else
+            {
+                return new HLSLRegister<T>(value);
+            }
+        }
+
         public HLSLRegister<T> Vectorize(int threadCount)
         {
             if (IsVarying)
@@ -78,6 +93,29 @@ namespace UnityShaderParser.Test
             return new HLSLRegister<T>(Get(threadIndex));
         }
 
+        // If all lanes agree, collapse to scalar
+        public HLSLRegister<T> Converge()
+        {
+            if (IsUniform)
+                return new HLSLRegister<T>(Get(0));
+
+            T first = Get(0);
+            bool allSame = true;
+            foreach (T value in VaryingValues)
+            {
+                if (!StructuralComparisons.StructuralEqualityComparer.Equals(first, value))
+                {
+                    allSame = false;
+                    break;
+                }
+            }
+
+            if (allSame)
+                return new HLSLRegister<T>(first);
+            else
+                return new HLSLRegister<T>(VaryingValues.ToArray());
+        }
+
         public int Size => IsVarying ? VaryingValues.Length : 1;
     }
 
@@ -88,7 +126,12 @@ namespace UnityShaderParser.Test
     // TODO: Use a union over "object" to avoid boxing of every individual value.
     public abstract class NumericValue : HLSLValue
     {
-        public ScalarType Type;
+        public readonly ScalarType Type;
+
+        public NumericValue(ScalarType type)
+        {
+            Type = type;
+        }
 
         public static NumericValue operator +(NumericValue left, NumericValue right) => HLSLOperators.Add(left, right);
         public static NumericValue operator -(NumericValue left, NumericValue right) => HLSLOperators.Sub(left, right);
@@ -118,8 +161,8 @@ namespace UnityShaderParser.Test
 
     public sealed class StructValue : HLSLValue
     {
-        public string Name;
-        public Dictionary<string, HLSLValue> Members;
+        public readonly string Name;
+        public readonly Dictionary<string, HLSLValue> Members;
 
         public StructValue(string name, Dictionary<string, HLSLValue> members)
         {
@@ -148,7 +191,7 @@ namespace UnityShaderParser.Test
 
     public sealed class ScalarValue : NumericValue
     {
-        public HLSLRegister<object> Value;
+        public readonly HLSLRegister<object> Value;
 
         //public ScalarValue(ScalarType type, object value)
         //    : this(type, new UniformRegister(value)) 
@@ -156,8 +199,8 @@ namespace UnityShaderParser.Test
         //}
 
         public ScalarValue(ScalarType type, HLSLRegister<object> value)
+            : base(type)
         {
-            Type = type;
             Value = value;
         }
 
@@ -180,7 +223,7 @@ namespace UnityShaderParser.Test
 
     public sealed class VectorValue : NumericValue
     {
-        public HLSLRegister<object[]> Values;
+        public readonly HLSLRegister<object[]> Values;
         public int Size => Values.Get(0).Length;
 
         //public VectorValue(ScalarType type, object[] values)
@@ -189,8 +232,8 @@ namespace UnityShaderParser.Test
         //}
 
         public VectorValue(ScalarType type, HLSLRegister<object[]> values)
+            : base(type)
         {
-            Type = type;
             Values = values;
         }
 
@@ -217,9 +260,9 @@ namespace UnityShaderParser.Test
 
     public sealed class MatrixValue : NumericValue
     {
-        public int Rows;
-        public int Columns;
-        public HLSLRegister<object[]> Values;
+        public readonly int Rows;
+        public readonly int Columns;
+        public readonly HLSLRegister<object[]> Values;
 
         //public MatrixValue(ScalarType type, int rows, int columns, object[] values)
         //    : this(type, rows, columns, values.Select(x => new UniformRegister(x)).ToArray())
@@ -227,8 +270,8 @@ namespace UnityShaderParser.Test
         //}
 
         public MatrixValue(ScalarType type, int rows, int columns, HLSLRegister<object[]> values)
+            : base(type)
         {
-            Type = type;
             Rows = rows;
             Columns = columns;
             Values = values;
@@ -257,8 +300,8 @@ namespace UnityShaderParser.Test
 
     public sealed class PredefinedObjectValue : HLSLValue
     {
-        public PredefinedObjectType Type;
-        public HLSLValue[] TemplateArguments;
+        public readonly PredefinedObjectType Type;
+        public readonly HLSLValue[] TemplateArguments;
 
         public PredefinedObjectValue(PredefinedObjectType type, HLSLValue[] templateArguments)
         {
@@ -275,7 +318,7 @@ namespace UnityShaderParser.Test
 
     public sealed class ArrayValue : HLSLValue
     {
-        public HLSLValue[] Values;
+        public readonly HLSLValue[] Values;
 
         public ArrayValue(HLSLValue[] values)
         {
@@ -537,6 +580,17 @@ namespace UnityShaderParser.Test
             throw new InvalidOperationException();
         }
 
+        public static HLSLValue Vectorize(HLSLValue value, int threadCount)
+        {
+            if (value is NumericValue num)
+                return Vectorize(num, threadCount);
+            if (value is StructValue str)
+                return new StructValue(str.Name, str.Members.Select(x => (x.Key, Vectorize(x.Value, threadCount))).ToDictionary(x => x.Key, y => y.Item2));
+            if (value is ArrayValue arr)
+                return new ArrayValue(arr.Values.Select(x => Vectorize(x, threadCount)).ToArray());
+            throw new InvalidOperationException();
+        }
+
         public static NumericValue Scalarize(NumericValue value, int threadIndex)
         {
             if (value is ScalarValue scalar)
@@ -548,6 +602,17 @@ namespace UnityShaderParser.Test
             throw new InvalidOperationException();
         }
 
+        public static HLSLValue Scalarize(HLSLValue value, int threadIndex)
+        {
+            if (value is NumericValue num)
+                return Scalarize(num, threadIndex);
+            if (value is StructValue str)
+                return new StructValue(str.Name, str.Members.Select(x => (x.Key, Scalarize(x.Value, threadIndex))).ToDictionary(x => x.Key, y => y.Item2));
+            if (value is ArrayValue arr)
+                return new ArrayValue(arr.Values.Select(x => Scalarize(x, threadIndex)).ToArray());
+            throw new InvalidOperationException();
+        }
+
         public static object ExtractThread(NumericValue value, int threadIndex)
         {
             if (value is ScalarValue scalar)
@@ -556,6 +621,17 @@ namespace UnityShaderParser.Test
                 return vector.Values.Get(threadIndex);
             if (value is MatrixValue matrix)
                 return matrix.Values.Get(threadIndex);
+            throw new InvalidOperationException();
+        }
+
+        public static NumericValue SetThreadValue(NumericValue value, int threadIndex, object set)
+        {
+            if (value is ScalarValue scalar)
+                return new ScalarValue(scalar.Type, scalar.Value.Set(threadIndex, set));
+            if (value is VectorValue vector)
+                return new VectorValue(vector.Type, vector.Values.Set(threadIndex, (object[])set));
+            if (value is MatrixValue matrix)
+                return new MatrixValue(matrix.Type, matrix.Rows, matrix.Columns, matrix.Values.Set(threadIndex, (object[])set));
             throw new InvalidOperationException();
         }
 
