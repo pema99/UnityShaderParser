@@ -1,4 +1,5 @@
 ﻿using System;
+using UnityShaderParser.HLSL;
 
 namespace UnityShaderParser.Test
 {
@@ -324,37 +325,37 @@ namespace UnityShaderParser.Test
         public static NumericValue Less(NumericValue left, NumericValue right)
         {
             (left, right) = HLSLValueUtils.Promote(left, right, false);
-            return HLSLValueUtils.Map2(left, right, Less);
+            return HLSLValueUtils.Map2(left, right, Less).Cast(ScalarType.Bool);
         }
 
         public static NumericValue Greater(NumericValue left, NumericValue right)
         {
             (left, right) = HLSLValueUtils.Promote(left, right, false);
-            return HLSLValueUtils.Map2(left, right, Greater);
+            return HLSLValueUtils.Map2(left, right, Greater).Cast(ScalarType.Bool);
         }
 
         public static NumericValue LessEqual(NumericValue left, NumericValue right)
         {
             (left, right) = HLSLValueUtils.Promote(left, right, false);
-            return HLSLValueUtils.Map2(left, right, LessEqual);
+            return HLSLValueUtils.Map2(left, right, LessEqual).Cast(ScalarType.Bool);
         }
 
         public static NumericValue GreaterEqual(NumericValue left, NumericValue right)
         {
             (left, right) = HLSLValueUtils.Promote(left, right, false);
-            return HLSLValueUtils.Map2(left, right, GreaterEqual);
+            return HLSLValueUtils.Map2(left, right, GreaterEqual).Cast(ScalarType.Bool);
         }
 
         public static NumericValue Equal(NumericValue left, NumericValue right)
         {
             (left, right) = HLSLValueUtils.Promote(left, right, false);
-            return HLSLValueUtils.Map2(left, right, Equal);
+            return HLSLValueUtils.Map2(left, right, Equal).Cast(ScalarType.Bool);
         }
 
         public static NumericValue NotEqual(NumericValue left, NumericValue right)
         {
             (left, right) = HLSLValueUtils.Promote(left, right, false);
-            return HLSLValueUtils.Map2(left, right, NotEqual);
+            return HLSLValueUtils.Map2(left, right, NotEqual).Cast(ScalarType.Bool);
         }
         #endregion
     }

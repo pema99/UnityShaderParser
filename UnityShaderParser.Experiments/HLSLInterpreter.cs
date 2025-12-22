@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using UnityShaderParser.HLSL;
 
 namespace UnityShaderParser.Test
@@ -34,6 +33,7 @@ namespace UnityShaderParser.Test
 
         public void AddCallback(string name, Func<ExpressionNode[], HLSLValue> callback) => expressionEvaluator.AddCallback(name, callback);
         public void RemoveCallback(string name) => expressionEvaluator.RemoveCallback(name);
+        public HLSLValue CallFunction(string name, params HLSLValue[] args) => expressionEvaluator.CallFunction(name, args);
 
         public HLSLValue CallFunction(string name, params object[] args)
         {

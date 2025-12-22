@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -9,6 +10,7 @@ namespace UnityShaderParser.Test
 {
     public static class HLSLIntrinsics
     {
+        #region Helpers
         private static void CheckArity(string name, HLSLValue[] args, int arity)
         {
             if (args.Length != arity)
@@ -23,25 +25,81 @@ namespace UnityShaderParser.Test
                     throw new ArgumentException($"Expected argument in position '{i}' to builtin '{name}' to be a numeric value.");
             }
         }
+        private static VectorValue CastToVector(NumericValue v)
+        {
+            if (v is VectorValue vec)
+                return vec;
+            else
+                return v.BroadcastToVector(1);
+        }
+        private static object Min(object left, object right)
+        {
+            switch (left)
+            {
+                case int x: return Math.Min(x, (int)right);
+                case uint x: return Math.Min(x, (uint)right);
+                case float x: return Math.Min(x, (float)right);
+                case double x: return Math.Min(x, (double)right);
+                case bool x: return Math.Min((x ? 1 : 0), ((bool)right ? 1 : 0)) != 0;
+                default: throw new InvalidOperationException();
+            }
+        }
+
+        private static object Max(object left, object right)
+        {
+            switch (left)
+            {
+                case int x: return Math.Max(x, (int)right);
+                case uint x: return Math.Max(x, (uint)right);
+                case float x: return Math.Max(x, (float)right);
+                case double x: return Math.Max(x, (double)right);
+                case bool x: return Math.Max((x ? 1 : 0), ((bool)right ? 1 : 0)) != 0;
+                default: throw new InvalidOperationException();
+            }
+        }
+        #endregion
+
+        #region Basic intrinsics
+        private delegate HLSLValue BasicIntrinsic(HLSLValue[] args);
+
+        private static (int arity, BasicIntrinsic) N1(Func<NumericValue, NumericValue> fn) =>
+            (1, args => fn((NumericValue)args[0]));
+
+        private static (int arity, BasicIntrinsic) N2(Func<NumericValue, NumericValue, NumericValue> fn) =>
+            (2, args => fn((NumericValue)args[0], (NumericValue)args[1]));
+
+        private static (int arity, BasicIntrinsic) N3(Func<NumericValue, NumericValue, NumericValue, NumericValue> fn) =>
+            (3, args => fn((NumericValue)args[0], (NumericValue)args[1], (NumericValue)args[2]));
+
+        private static readonly Dictionary<string, (int arity, BasicIntrinsic fn)> basicIntrinsics = new Dictionary<string, (int arity, BasicIntrinsic fn)>()
+        {
+            ["exp"] = N1(Exp),
+            ["sqrt"] = N1(Sqrt),
+            ["length"] = N1(Length),
+            ["normalize"] = N1(Normalize),
+            ["saturate"] = N1(Saturate),
+
+            ["dot"] = N2(Dot),
+            ["min"] = N2(Min),
+            ["max"] = N2(Max),
+
+            ["lerp"] = N3(Lerp),
+            ["clamp"] = N3(Clamp),
+        };
 
         public static bool TryInvokeIntrinsic(string name, HLSLValue[] args, out HLSLValue result)
         {
-            switch (name)
+            if (!basicIntrinsics.TryGetValue(name, out var entry))
             {
-                case "lerp":
-                    CheckArity(name, args, 3);
-                    CheckNumeric(name, args);
-                    result = Lerp((NumericValue)args[0], (NumericValue)args[1], (NumericValue)args[2]);
-                    return true;
-                case "exp":
-                    CheckArity(name, args, 1);
-                    CheckNumeric(name, args);
-                    result = Exp((NumericValue)args[0]);
-                    return true;
-                default:
-                    result = null;
-                    return false;
+                result = null;
+                return false;
             }
+
+            CheckArity(name, args, entry.arity);
+            CheckNumeric(name, args);
+
+            result = entry.fn(args);
+            return true;
         }
 
         // https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-lerp
@@ -55,6 +113,87 @@ namespace UnityShaderParser.Test
             var casted = x.Cast(ScalarType.Float);
             return casted.Map(val => Math.Exp((float)val));
         }
+
+        public static NumericValue Sqrt(NumericValue x)
+        {
+            var casted = x.Cast(ScalarType.Float);
+            return casted.Map(val => Math.Sqrt((float)val));
+        }
+
+        public static NumericValue Dot(NumericValue x, NumericValue y)
+        {
+            (x, y) = HLSLValueUtils.Promote(x, y, false);
+            VectorValue vx = CastToVector(x);
+            VectorValue vy = CastToVector(y);
+
+            bool isFloat = HLSLValueUtils.IsFloat(vx.Type);
+
+            int threadCount = Math.Max(vx.ThreadCount, vy.ThreadCount);
+            if (threadCount == 1) // TODO: This can be refactored probably
+            {
+                float valueFloat = 0;
+                int valueInt = 0;
+                for (int channel = 0; channel < vx.Size; channel++)
+                {
+                    if (isFloat)
+                        valueFloat += Convert.ToSingle(vx.Values.Get(0)[channel]) * Convert.ToSingle(vy.Values.Get(0)[channel]);
+                    else
+                        valueInt += Convert.ToInt32(vx.Values.Get(0)[channel]) * Convert.ToInt32(vy.Values.Get(0)[channel]);
+                }
+                return new ScalarValue(vx.Type, new HLSLRegister<object>(isFloat ? valueFloat : valueInt));
+            }
+            else
+            {
+                object[] results = new object[threadCount];
+                for (int threadIndex = 0; threadIndex < threadCount; threadIndex++)
+                {
+                    float valueFloat = 0;
+                    int valueInt = 0;
+                    for (int channel = 0; channel < vx.Size; channel++)
+                    {
+                        if (isFloat)
+                            valueFloat += Convert.ToSingle(vx.Values.Get(threadIndex)[channel]) * Convert.ToSingle(vy.Values.Get(threadIndex)[channel]);
+                        else
+                            valueInt += Convert.ToInt32(vx.Values.Get(threadIndex)[channel]) * Convert.ToInt32(vy.Values.Get(threadIndex)[channel]);
+                    }
+                    results[threadCount] = isFloat ? valueFloat : valueInt;
+                }
+                return new ScalarValue(vx.Type, new HLSLRegister<object>(results));
+            }
+        }
+
+        public static NumericValue Length(NumericValue x)
+        {
+            return Sqrt(Dot(x, x));
+        }
+
+        public static NumericValue Normalize(NumericValue x)
+        {
+            return x / Length(x);
+        }
+
+        public static NumericValue Min(NumericValue x, NumericValue y)
+        {
+            (x, y) = HLSLValueUtils.Promote(x, y, false);
+            return HLSLValueUtils.Map2(x, y, Min);
+        }
+
+        public static NumericValue Max(NumericValue x, NumericValue y)
+        {
+            (x, y) = HLSLValueUtils.Promote(x, y, false);
+            return HLSLValueUtils.Map2(x, y, Max);
+        }
+
+        public static NumericValue Clamp(NumericValue x, NumericValue min, NumericValue max)
+        {
+            return Min(Max(x, min), max);
+        }
+
+        public static NumericValue Saturate(NumericValue x)
+        {
+            return Clamp(x, 0, 1);
+        }
+        #endregion
 
         #region Special intrinsics that touch execution state
         public static ScalarValue Printf(HLSLExecutionState executionState, HLSLValue[] args)

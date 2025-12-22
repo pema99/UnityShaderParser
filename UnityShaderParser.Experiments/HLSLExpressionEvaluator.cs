@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Numerics;
-using System.Xml.Linq;
 using UnityShaderParser.Common;
 using UnityShaderParser.HLSL;
 
@@ -26,6 +24,61 @@ namespace UnityShaderParser.Test
 
         public void AddCallback(string name, Func<ExpressionNode[], HLSLValue> callback) => callbacks.Add(name, callback);
         public void RemoveCallback(string name) => callbacks.Remove(name);
+
+        public HLSLValue CallFunction(string name, params HLSLValue[] args)
+        {
+            // Try to invoke basic intrinsics
+            if (HLSLIntrinsics.TryInvokeIntrinsic(name, args, out HLSLValue result))
+                return result;
+
+            // Now handle special intrinsics that affect or read from the execution state
+            switch (name)
+            {
+                case "printf":
+                    return HLSLIntrinsics.Printf(executionState, args);
+                case "WaveGetLaneIndex":
+                    return HLSLIntrinsics.WaveGetLaneIndex(executionState);
+                case "WaveGetLaneCount":
+                    return HLSLIntrinsics.WaveGetLaneCount(executionState);
+                case "WaveIsFirstLane":
+                    return HLSLIntrinsics.WaveIsFirstLane(executionState);
+                case "ddx":
+                    return HLSLIntrinsics.Ddx(executionState, (NumericValue)args[0]);
+                case "ddy":
+                    return HLSLIntrinsics.Ddy(executionState, (NumericValue)args[0]);
+                case "ddx_fine":
+                    return HLSLIntrinsics.DdxFine(executionState, (NumericValue)args[0]);
+                case "ddy_fine":
+                    return HLSLIntrinsics.DdyFine(executionState, (NumericValue)args[0]);
+                default:
+                    break;
+            }
+
+            FunctionDefinitionNode func = context.GetFunction(name, args);
+            if (func != null)
+            {
+                if (args.Length != func.Parameters.Count)
+                    throw new Exception($"Argument count mismatch in call to '{name}'.");
+
+                context.PushScope();
+                for (int i = 0; i < func.Parameters.Count; i++)
+                {
+                    var param = func.Parameters[i];
+                    var declarator = param.Declarator;
+                    context.SetVariable(declarator.Name, args[i]);
+                }
+                interpreter.Visit(func.Body);
+                context.PopScope();
+
+                bool voidReturn = func.ReturnType is ScalarTypeNode scalarType && scalarType.Kind == ScalarType.Void;
+                if (voidReturn)
+                    return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+                else
+                    return context.PopReturn();
+            }
+
+            throw new Exception($"Unknown function '{name}' called.");
+        }
 
         protected override HLSLValue DefaultVisit(HLSLSyntaxNode node)
         {
@@ -258,58 +311,10 @@ namespace UnityShaderParser.Test
             }
 
             string name = node.Name.GetName();
-
-            // Try to invoke basic intrinsics
-            if (HLSLIntrinsics.TryInvokeIntrinsic(name, args, out HLSLValue result))
-                return result;
-
-            // Now handle special intrinsics that affect or read from the execution state
-            switch (name)
-            {
-                case "printf":
-                    return HLSLIntrinsics.Printf(executionState, args);
-                case "WaveGetLaneIndex":
-                    return HLSLIntrinsics.WaveGetLaneIndex(executionState);        
-                case "WaveGetLaneCount":
-                    return HLSLIntrinsics.WaveGetLaneCount(executionState);
-                case "WaveIsFirstLane":
-                    return HLSLIntrinsics.WaveIsFirstLane(executionState);
-                case "ddx":
-                    return HLSLIntrinsics.Ddx(executionState, (NumericValue)args[0]);
-                case "ddy":
-                    return HLSLIntrinsics.Ddy(executionState, (NumericValue)args[0]);
-                case "ddx_fine":
-                    return HLSLIntrinsics.DdxFine(executionState, (NumericValue)args[0]);
-                case "ddy_fine":
-                    return HLSLIntrinsics.DdyFine(executionState, (NumericValue)args[0]);
-                default:
-                    break;
-            }
-
-            FunctionDefinitionNode func = context.GetFunction(name, args);
-            if (func != null)
-            {
-                context.PushScope();
-                for (int i = 0; i < func.Parameters.Count; i++)
-                {
-                    var param = func.Parameters[i];
-                    var declarator = param.Declarator;
-                    context.SetVariable(declarator.Name, args[i]);
-                }
-                interpreter.Visit(func.Body);
-                context.PopScope();
-
-                bool voidReturn = func.ReturnType is ScalarTypeNode scalarType && scalarType.Kind == ScalarType.Void;
-                if (voidReturn)
-                    return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
-                else
-                    return context.PopReturn();
-            }
-
             if (callbacks.ContainsKey(name))
                 return callbacks[name](node.Arguments.ToArray());
 
-            throw new Exception($"Unknown function '{node.Name.GetName()}' called.");
+            return CallFunction(name, args);
         }
 
         public override HLSLValue VisitNumericConstructorCallExpressionNode(NumericConstructorCallExpressionNode node)

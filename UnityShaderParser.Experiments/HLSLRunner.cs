@@ -32,6 +32,7 @@ namespace UnityShaderParser.Test
             public bool customWarpSize;
             public int threadsX;
             public int threadsY;
+            public Func<List<HLSLValue>> input;
         }
 
 
@@ -138,6 +139,7 @@ namespace UnityShaderParser.Test
             foreach (var func in functions.Where(x => string.IsNullOrEmpty(testFilter) || Regex.IsMatch(x.Name.GetName(), testFilter)))
             {
                 bool hasTestAttribute = false;
+                List<Func<List<HLSLValue>>> testCases = new List<Func<List<HLSLValue>>>();
                 TestRun testRun = default;
                 testRun.name = func.Name.GetName();
                 foreach (var attribute in func.Attributes)
@@ -162,12 +164,37 @@ namespace UnityShaderParser.Test
                                 testRun.threadsY = 1;
                             }
                             break;
+                        case "testcase":
+                            if (attribute.Arguments.Count == func.Parameters.Count)
+                            {
+                                testCases.Add(() =>
+                                {
+                                    List<HLSLValue> inputs = new List<HLSLValue>();
+                                    for (int i = 0; i < attribute.Arguments.Count; i++)
+                                        inputs.Add(interpreter.RunExpression(attribute.Arguments[i]));
+                                    return inputs;
+                                });
+                            }
+                            break;
                         default: break;
                     }
                 }
-                
+
                 if (hasTestAttribute)
-                    testsToRun.Add(testRun);
+                {
+                    if (testCases.Count == 0)
+                    {
+                        testsToRun.Add(testRun);
+                    }
+                    else
+                    {
+                        foreach (var testCase in testCases)
+                        {
+                            testRun.input = testCase;
+                            testsToRun.Add(testRun);
+                        }
+                    }
+                }
             }
 
             int passCount = 0;
@@ -176,7 +203,15 @@ namespace UnityShaderParser.Test
                 Console.WriteLine($"=== Running test ({i+1}/{testsToRun.Count}) ===");
                 try
                 {
-                    interpreter.CallFunction(testsToRun[i].name);
+                    if (testsToRun[i].input != null)
+                    {
+                        var inputs = testsToRun[i].input();
+                        interpreter.CallFunction(testsToRun[i].name, inputs.ToArray());
+                    }
+                    else
+                    {
+                        interpreter.CallFunction(testsToRun[i].name);
+                    }
                     passCount++;
                 }
                 catch (TestFailException ex)
