@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using UnityShaderParser.Common;
@@ -35,6 +36,13 @@ namespace UnityShaderParser.Test
             public Func<List<HLSLValue>> input;
         }
 
+        public struct TestResult
+        {
+            public string TestName;
+            public bool Pass;
+            public string Message;
+            public string Log;
+        }
 
         protected HLSLInterpreter interpreter;
 
@@ -48,10 +56,14 @@ namespace UnityShaderParser.Test
                 throw new NotImplementedException();
             });
 
-            interpreter.AddCallback("ASSERT", args =>
+            ScalarValue Assert(ExpressionNode[] args)
             {
                 if (args.Length > 0)
                 {
+                    string message = null;
+                    if (args.Length > 1)
+                        message = (interpreter.RunExpression(args[1]) as ScalarValue).Value.Get(0) as string;
+
                     HLSLValue val = interpreter.RunExpression(args[0]);
                     if (val is ScalarValue sv)
                     {
@@ -60,7 +72,7 @@ namespace UnityShaderParser.Test
                         {
                             if (!Convert.ToBoolean(sv.Value.Get(i)))
                             {
-                                throw new TestFailException();
+                                throw new TestFailException(message);
                             }
                         }
                         return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
@@ -71,21 +83,32 @@ namespace UnityShaderParser.Test
                     }
                 }
                 return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+            }
+
+            interpreter.AddCallback("ASSERT", args =>
+            {
+                return Assert(args);
             });
 
             interpreter.AddCallback("ASSERT_MSG", args =>
             {
-                throw new NotImplementedException();
+                return Assert(args);
             });
 
             interpreter.AddCallback("PASS_TEST", args =>
             {
-                throw new TestPassException();
+                if (args.Length > 0)
+                    throw new TestPassException(interpreter.RunExpression(args[0]).ToString());
+                else
+                    throw new TestPassException();
             });
 
             interpreter.AddCallback("FAIL_TEST", args =>
             {
-                throw new TestFailException();
+                if (args.Length > 0)
+                    throw new TestFailException(interpreter.RunExpression(args[0]).ToString());
+                else
+                    throw new TestFailException();
             });
 
             interpreter.AddCallback("NAMEOF", args =>
@@ -129,8 +152,8 @@ namespace UnityShaderParser.Test
             interpreter.CallFunction(name, args);
         }
 
-        public void RunTests() => RunTests(null);
-        public void RunTests(string testFilter)
+        public TestResult[] RunTests() => RunTests(null);
+        public TestResult[] RunTests(string testFilter)
         {
             FunctionDefinitionNode[] functions = interpreter.GetFunctions();
 
@@ -197,34 +220,56 @@ namespace UnityShaderParser.Test
                 }
             }
 
-            int passCount = 0;
+            TestResult[] results = new TestResult[testsToRun.Count];
+            var oldConsoleOut = Console.Out;
             for (int i = 0; i < testsToRun.Count; i++)
             {
-                Console.WriteLine($"=== Running test ({i+1}/{testsToRun.Count}) ===");
+                var sw = new StringWriter();
+                Console.SetOut(sw);
+
+                string formattedName = testsToRun[i].name;
                 try
                 {
                     if (testsToRun[i].input != null)
                     {
                         var inputs = testsToRun[i].input();
+                        formattedName += $"({string.Join(", ", inputs)})";
                         interpreter.CallFunction(testsToRun[i].name, inputs.ToArray());
                     }
                     else
                     {
                         interpreter.CallFunction(testsToRun[i].name);
                     }
-                    passCount++;
+                    results[i] = new TestResult
+                    {
+                        TestName = formattedName,
+                        Pass = true,
+                        Log = sw.ToString(),
+                    };
                 }
                 catch (TestFailException ex)
                 {
-                    Console.WriteLine("Test failed.");
+                    results[i] = new TestResult
+                    {
+                        TestName = formattedName,
+                        Pass = false,
+                        Log = sw.ToString(),
+                        Message = ex.Message
+                    };
                 }
                 catch (TestPassException ex)
                 {
-                    passCount++;
-                    Console.WriteLine("Test passed.");
+                    results[i] = new TestResult
+                    {
+                        TestName = formattedName,
+                        Pass = true,
+                        Log = sw.ToString(),
+                        Message = ex.Message
+                    };
                 }
             }
-            Console.WriteLine($"=== Tests passed: ({passCount}/{testsToRun.Count}) ===");
+            Console.SetOut(oldConsoleOut);
+            return results;
         }
     }
 }

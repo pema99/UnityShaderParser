@@ -5,7 +5,7 @@
 [TestCase(float3(1,1,1))]
 void TestNormalize(float3 testVal)
 {
-    ASSERT(length(normalize(testVal)) < 1.01);
+    ASSERT_MSG(length(normalize(testVal)) < 1.01, "Should be normalized");
 }
 
 [Test]
@@ -21,7 +21,7 @@ int add(int a, int b)
     return a + b;
 }
 
-
+[Test]
 void main()
 {
     int a = 3;

@@ -22,6 +22,20 @@ public class Program
 
         HLSLRunner runner = new HLSLRunner();
         runner.ProcessCode(shaderSource, config, out var diags, out var prags);
-        runner.RunTests();
+        var results = runner.RunTests();
+
+        foreach (var result in results)
+        {
+            Console.WriteLine($"=== Test: {result.TestName} ===");
+            Console.WriteLine("Result: " + (result.Pass ? "Pass" : "Fail"));
+            if (!string.IsNullOrEmpty(result.Message))
+                Console.WriteLine("Message: " + result.Message);
+            if (!string.IsNullOrEmpty(result.Log))
+            {
+                Console.WriteLine("Log:");
+                Console.WriteLine(result.Log);
+            }
+            Console.WriteLine();
+        }
     }
 }
