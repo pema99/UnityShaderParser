@@ -123,6 +123,11 @@ namespace UnityShaderParser.Test
             return null;
         }
 
+        public FunctionDefinitionNode[] GetFunctions()
+        {
+            return functions.Values.SelectMany(x => x).ToArray();
+        }
+
         public void AddFunction(string name, FunctionDefinitionNode func)
         {
             if (namespaceStack.Count > 0)

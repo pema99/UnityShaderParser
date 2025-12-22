@@ -20,11 +20,8 @@ public class Program
             Defines = new Dictionary<string, string>() { { "HLSL_TEST", "1" } }
         };
 
-        var stmts = ShaderParser.ParseTopLevelDeclarations(shaderSource, config, out var diags, out var prags);
-
-        HLSLInterpreter interpreter = new HLSLInterpreter();
-        interpreter.VisitMany(stmts);
-        interpreter.CallFunction("main");
-
+        HLSLRunner runner = new HLSLRunner();
+        runner.ProcessCode(shaderSource, config, out var diags, out var prags);
+        runner.RunTests();
     }
 }

@@ -1,13 +1,17 @@
+#include "HLSLTest.hlsl"
+
 int add(int a, int b)
 {
     return a + b;
 }
 
+[Test]
 void main()
 {
-int a = 3;
-a += a;
-printf("FOO %d", a);
+    int a = 3;
+    a += a;
+    printf("FOO %d", a);
+
     printf("Printing stuff %f!", 42.69);
 
     // Values varying per thread
@@ -28,4 +32,6 @@ printf("FOO %d", a);
 
     // Function calls
     printf("Func call: %d", add(laneIndex, 2));
+
+    ASSERT(a > 3);
 }

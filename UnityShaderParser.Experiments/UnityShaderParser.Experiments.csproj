@@ -9,4 +9,10 @@
     <ProjectReference Include="..\UnityShaderParser\UnityShaderParser.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="HLSLTest.hlsl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

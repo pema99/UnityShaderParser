@@ -70,5 +70,7 @@ namespace UnityShaderParser.Test
         public int GetThreadIndex(int threadX, int threadY) => threadY * threadsX + threadX;
         public (int threadX, int threadY) GetThreadPosition(int threadIndex) => (threadIndex % threadsX, threadIndex / threadsX);
         public int GetThreadCount() => threadsX * threadsY;
+        public int GetThreadsX() => threadsX;
+        public int GetThreadsY() => threadsY;
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using UnityShaderParser.HLSL;
 
 namespace UnityShaderParser.Test
@@ -17,6 +18,22 @@ namespace UnityShaderParser.Test
             executionState = new HLSLExecutionState(threadsX, threadsY);
             expressionEvaluator = new HLSLExpressionEvaluator(this, context, executionState);
         }
+
+        public void SetWarpSize(int threadsX, int threadsY)
+        {
+            executionState = new HLSLExecutionState(threadsX, threadsY);
+            expressionEvaluator = new HLSLExpressionEvaluator(this, context, executionState);
+        }
+
+        public void Reset()
+        {
+            context = new HLSLInterpreterContext();
+            executionState = new HLSLExecutionState(executionState.GetThreadsX(), executionState.GetThreadsY());
+            expressionEvaluator = new HLSLExpressionEvaluator(this, context, executionState);
+        }
+
+        public void AddCallback(string name, Func<ExpressionNode[], HLSLValue> callback) => expressionEvaluator.AddCallback(name, callback);
+        public void RemoveCallback(string name) => expressionEvaluator.RemoveCallback(name);
 
         public HLSLValue CallFunction(string name, params object[] args)
         {
@@ -47,6 +64,10 @@ namespace UnityShaderParser.Test
                 Arguments = exprArgs
             });
         }
+
+        public FunctionDefinitionNode[] GetFunctions() => context.GetFunctions();
+
+        public HLSLValue RunExpression(ExpressionNode node) => expressionEvaluator.Visit(node);
 
         public override void VisitVariableDeclarationStatementNode(VariableDeclarationStatementNode node)
         {

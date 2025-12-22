@@ -15,12 +15,17 @@ namespace UnityShaderParser.Test
         protected HLSLInterpreterContext context;
         protected HLSLExecutionState executionState;
 
+        protected Dictionary<string, Func<ExpressionNode[], HLSLValue>> callbacks = new Dictionary<string, Func<ExpressionNode[], HLSLValue>>();
+
         public HLSLExpressionEvaluator(HLSLInterpreter interpreter, HLSLInterpreterContext context, HLSLExecutionState executionState)
         {
             this.interpreter = interpreter;
             this.context = context;
             this.executionState = executionState;
         }
+
+        public void AddCallback(string name, Func<ExpressionNode[], HLSLValue> callback) => callbacks.Add(name, callback);
+        public void RemoveCallback(string name) => callbacks.Remove(name);
 
         protected override HLSLValue DefaultVisit(HLSLSyntaxNode node)
         {
@@ -300,6 +305,9 @@ namespace UnityShaderParser.Test
                 else
                     return context.PopReturn();
             }
+
+            if (callbacks.ContainsKey(name))
+                return callbacks[name](node.Arguments.ToArray());
 
             throw new Exception($"Unknown function '{node.Name.GetName()}' called.");
         }

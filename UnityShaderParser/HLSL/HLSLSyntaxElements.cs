@@ -1211,7 +1211,7 @@ namespace UnityShaderParser.HLSL
     public class AttributeNode : HLSLSyntaxNode
     {
         public IdentifierNode Name { get; set; }
-        public List<LiteralExpressionNode> Arguments { get; set; }
+        public List<ExpressionNode> Arguments { get; set; }
 
         protected override IEnumerable<HLSLSyntaxNode> GetChildren =>
             MergeChildren(Child(Name), Arguments);
