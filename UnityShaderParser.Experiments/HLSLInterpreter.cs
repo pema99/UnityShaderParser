@@ -166,6 +166,34 @@ namespace UnityShaderParser.Test
             executionState.PopExecutionMask();
         }
 
+        public override void VisitWhileStatementNode(WhileStatementNode node)
+        {
+            executionState.PushExecutionMask();
+            bool anyRunning = true;
+            while (anyRunning)
+            {
+                anyRunning = false;
+
+                NumericValue condValue = expressionEvaluator.Visit(node.Condition) as NumericValue;
+                if (condValue is null)
+                    throw new Exception("Expected a numeric value for the condition.");
+
+                ScalarValue boolCondValue = condValue.Cast(ScalarType.Bool) as ScalarValue;
+                if (boolCondValue is null)
+                    throw new Exception("Expected a scalar boolean value for the condition.");
+
+                for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+                {
+                    bool threadCond = (bool)boolCondValue.Value.Get(threadIndex);
+                    executionState.SetThreadState(threadIndex, threadCond);
+                    anyRunning |= threadCond;
+                }
+
+                Visit(node.Body);
+            }
+            executionState.PopExecutionMask();
+        }
+
         public override void VisitFunctionDefinitionNode(FunctionDefinitionNode node)
         {
             context.AddFunction(node.Name.GetName(), node);

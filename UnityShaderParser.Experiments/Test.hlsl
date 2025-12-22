@@ -23,16 +23,19 @@ int add(int a, int b)
 
 [Test]
 void main()
-{
-    int a = 3;
-    a += a;
-    printf("FOO %d", a);
-
+{    
     printf("Printing stuff %f!", 42.69);
-
+    
     // Values varying per thread
     int laneIndex = WaveGetLaneIndex();
     printf("%d", laneIndex);
+    
+    int i = 0;
+    while (i < laneIndex)
+    {
+        printf("LOOP %d", i);
+        i++;
+    }
 
     // Derivatives
     float e = exp(laneIndex);
@@ -48,6 +51,4 @@ void main()
 
     // Function calls
     printf("Func call: %d", add(laneIndex, 2));
-
-    ASSERT(a > 3);
 }
