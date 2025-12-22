@@ -69,13 +69,13 @@ namespace UnityShaderParser.Test
                     switch (node.Kind)
                     {
                         case ScalarTypeNode scalarType:
-                            initializerValue = HLSLValueUtils.CastNumeric(scalarType.Kind, numeric);
+                            initializerValue = numeric.Cast(scalarType.Kind);
                             break;
                         case VectorTypeNode vectorType:
-                            initializerValue = HLSLValueUtils.BroadcastToVector(HLSLValueUtils.CastNumeric(vectorType.Kind, numeric), vectorType.Dimension);
+                            initializerValue = numeric.Cast(vectorType.Kind).BroadcastToVector(vectorType.Dimension);
                             break;
                         case MatrixTypeNode matrixType:
-                            initializerValue = HLSLValueUtils.BroadcastToMatrix(HLSLValueUtils.CastNumeric(matrixType.Kind, numeric), matrixType.FirstDimension, matrixType.SecondDimension);
+                            initializerValue = numeric.Cast(matrixType.Kind).BroadcastToMatrix(matrixType.FirstDimension, matrixType.SecondDimension);
                             break;
                         case PredefinedObjectTypeNode predefinedObjectType:
                             throw new Exception("Invalid cast.");
@@ -127,7 +127,7 @@ namespace UnityShaderParser.Test
             if (condValue is null)
                 throw new Exception("Expected a numeric value for the condition.");
 
-            ScalarValue boolCondValue = HLSLValueUtils.CastNumeric(ScalarType.Bool, condValue) as ScalarValue;
+            ScalarValue boolCondValue = condValue.Cast(ScalarType.Bool) as ScalarValue;
             if (boolCondValue is null)
                 throw new Exception("Expected a scalar boolean value for the condition.");
 

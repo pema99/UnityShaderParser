@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 using UnityShaderParser.Common;
@@ -121,6 +122,9 @@ namespace UnityShaderParser.Test
 
     public abstract class HLSLValue
     {
+        public abstract int ThreadCount { get; }
+        public abstract bool IsUniform { get; }
+        public bool IsVarying => !IsUniform;
     }
 
     // TODO: Use a union over "object" to avoid boxing of every individual value.
@@ -132,6 +136,19 @@ namespace UnityShaderParser.Test
         {
             Type = type;
         }
+
+        public abstract (int rows, int columns) TensorSize { get; }
+
+        public abstract VectorValue BroadcastToVector(int size);
+        public abstract MatrixValue BroadcastToMatrix(int rows, int columns);
+        public abstract NumericValue Cast(ScalarType type);
+        public abstract object GetThreadValue(int threadIndex);
+        public abstract NumericValue SetThreadValue(int threadIndex, object set);
+        public abstract NumericValue Map(Func<object, object> mapper);
+        public abstract NumericValue MapThreads(Func<object, int, object> mapper);
+
+        public abstract NumericValue Vectorize(int threadCount);
+        public abstract NumericValue Scalarize(int threadIndex);
 
         public static NumericValue operator +(NumericValue left, NumericValue right) => HLSLOperators.Add(left, right);
         public static NumericValue operator -(NumericValue left, NumericValue right) => HLSLOperators.Sub(left, right);
@@ -170,6 +187,9 @@ namespace UnityShaderParser.Test
             Members = members;
         }
 
+        public override int ThreadCount => Members.Max(x => x.Value.ThreadCount);
+        public override bool IsUniform => Members.All(x => x.Value.IsUniform);
+
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
@@ -193,15 +213,59 @@ namespace UnityShaderParser.Test
     {
         public readonly HLSLRegister<object> Value;
 
-        //public ScalarValue(ScalarType type, object value)
-        //    : this(type, new UniformRegister(value)) 
-        //{
-        //}
-
         public ScalarValue(ScalarType type, HLSLRegister<object> value)
             : base(type)
         {
             Value = value;
+        }
+
+        public override (int rows, int columns) TensorSize => (1, 1);
+        public override int ThreadCount => Value.Size;
+        public override bool IsUniform => Value.IsUniform;
+
+        public override MatrixValue BroadcastToMatrix(int rows, int columns)
+        {
+            return new MatrixValue(Type, rows, columns, Value.Map(x => Enumerable.Repeat(x, rows * columns).ToArray()));
+        }
+
+        public override VectorValue BroadcastToVector(int size)
+        {
+            return new VectorValue(Type, Value.Map(x => Enumerable.Repeat(x, size).ToArray()));
+        }
+
+        public override NumericValue Cast(ScalarType type)
+        {
+            return new ScalarValue(type, Value.Map(x => HLSLValueUtils.CastNumeric(type, x)));
+        }
+
+        public override object GetThreadValue(int threadIndex)
+        {
+            return Value.Get(threadIndex);
+        }
+
+        public override NumericValue Map(Func<object, object> mapper)
+        {
+            return new ScalarValue(Type, Value.Map(mapper));
+        }
+
+        public override NumericValue MapThreads(Func<object, int, object> mapper)
+        {
+            return new ScalarValue(Type, Value.MapThreads(mapper));
+        }
+
+        public override NumericValue Scalarize(int threadIndex)
+        {
+            return new ScalarValue(Type, Value.Scalarize(threadIndex));
+        }
+
+        public override NumericValue Vectorize(int threadCount)
+        {
+            return new ScalarValue(Type, Value.Vectorize(threadCount));
+        }
+
+        public override NumericValue SetThreadValue(int threadIndex, object set)
+        {
+            return new ScalarValue(Type, Value.Set(threadIndex, set));
         }
 
         public override string ToString()
@@ -224,17 +288,70 @@ namespace UnityShaderParser.Test
     public sealed class VectorValue : NumericValue
     {
         public readonly HLSLRegister<object[]> Values;
-        public int Size => Values.Get(0).Length;
-
-        //public VectorValue(ScalarType type, object[] values)
-        //    : this(type, values.Select(x => new UniformRegister(x)).ToArray())
-        //{
-        //}
 
         public VectorValue(ScalarType type, HLSLRegister<object[]> values)
             : base(type)
         {
             Values = values;
+        }
+
+        public int Size => Values.Get(0).Length;
+        public override (int rows, int columns) TensorSize => (Size, 1);
+        public override int ThreadCount => Values.Size;
+        public override bool IsUniform => Values.IsUniform;
+
+        public override MatrixValue BroadcastToMatrix(int rows, int columns)
+        {
+            throw new InvalidOperationException();
+        }
+
+        public override VectorValue BroadcastToVector(int size)
+        {
+            return new VectorValue(Type, Values.Map(x =>
+            {
+                int sizeDiff = size - x.Length;
+                if (sizeDiff > 0) // Expansion
+                    return x.Append(Enumerable.Repeat(HLSLValueUtils.GetZeroValue(Type), sizeDiff)).ToArray();
+                else if (size < x.Length) // Truncation
+                    return x.Take(size).ToArray();
+                else
+                    return x;
+            }));
+        }
+
+        public override NumericValue Cast(ScalarType type)
+        {
+            return new VectorValue(type, Values.Map(x => x.Select(y => HLSLValueUtils.CastNumeric(type, y)).ToArray()));
+        }
+
+        public override object GetThreadValue(int threadIndex)
+        {
+            return Values.Get(threadIndex);
+        }
+
+        public override NumericValue Map(Func<object, object> mapper)
+        {
+            return new VectorValue(Type, Values.Map(x => x.Select(mapper).ToArray()));
+        }
+
+        public override NumericValue MapThreads(Func<object, int, object> mapper)
+        {
+            return new VectorValue(Type, Values.MapThreads((a, b) => (object[])mapper(a, b)));
+        }
+
+        public override NumericValue Scalarize(int threadIndex)
+        {
+            return new VectorValue(Type, Values.Scalarize(threadIndex));
+        }
+
+        public override NumericValue Vectorize(int threadCount)
+        {
+            return new VectorValue(Type, Values.Vectorize(threadCount));
+        }
+
+        public override NumericValue SetThreadValue(int threadIndex, object set)
+        {
+            return new VectorValue(Type, Values.Set(threadIndex, (object[])set));
         }
 
         public override string ToString()
@@ -264,17 +381,63 @@ namespace UnityShaderParser.Test
         public readonly int Columns;
         public readonly HLSLRegister<object[]> Values;
 
-        //public MatrixValue(ScalarType type, int rows, int columns, object[] values)
-        //    : this(type, rows, columns, values.Select(x => new UniformRegister(x)).ToArray())
-        //{
-        //}
-
         public MatrixValue(ScalarType type, int rows, int columns, HLSLRegister<object[]> values)
             : base(type)
         {
             Rows = rows;
             Columns = columns;
             Values = values;
+        }
+
+        public override (int rows, int columns) TensorSize => (Rows, Columns);
+        public override int ThreadCount => Values.Size;
+        public override bool IsUniform => Values.IsUniform;
+
+        public override MatrixValue BroadcastToMatrix(int rows, int columns)
+        {
+            if (Rows != rows ||Columns != columns)
+                throw new NotImplementedException();
+            return this;
+        }
+
+        public override VectorValue BroadcastToVector(int size)
+        {
+            throw new InvalidOperationException();
+        }
+
+        public override NumericValue Cast(ScalarType type)
+        {
+            return new MatrixValue(type, Rows, Columns, Values.Map(x => x.Select(y => HLSLValueUtils.CastNumeric(type, y)).ToArray()));
+        }
+
+        public override object GetThreadValue(int threadIndex)
+        {
+            return Values.Get(threadIndex);
+        }
+
+        public override NumericValue Map(Func<object, object> mapper)
+        {
+            return new MatrixValue(Type, Rows, Columns, Values.Map(x => x.Select(mapper).ToArray()));
+        }
+
+        public override NumericValue MapThreads(Func<object, int, object> mapper)
+        {
+            return new MatrixValue(Type, Rows, Columns, Values.MapThreads((a, b) => (object[])mapper(a, b)));
+        }
+
+        public override NumericValue Scalarize(int threadIndex)
+        {
+            return new MatrixValue(Type, Rows, Columns, Values.Scalarize(threadIndex));
+        }
+
+        public override NumericValue Vectorize(int threadCount)
+        {
+            return new MatrixValue(Type, Rows, Columns, Values.Vectorize(threadCount));
+        }
+
+        public override NumericValue SetThreadValue(int threadIndex, object set)
+        {
+            return new MatrixValue(Type, Rows, Columns, Values.Set(threadIndex, (object[])set));
         }
 
         public override string ToString()
@@ -308,6 +471,8 @@ namespace UnityShaderParser.Test
             Type = type;
             TemplateArguments = templateArguments;
         }
+        public override int ThreadCount => 1;
+        public override bool IsUniform => true;
 
         public override string ToString()
         {
@@ -319,6 +484,9 @@ namespace UnityShaderParser.Test
     public sealed class ArrayValue : HLSLValue
     {
         public readonly HLSLValue[] Values;
+
+        public override int ThreadCount => Values.Max(x => x.ThreadCount);
+        public override bool IsUniform => Values.All(x => x.IsUniform);
 
         public ArrayValue(HLSLValue[] values)
         {
@@ -455,50 +623,6 @@ namespace UnityShaderParser.Test
             return ScalarType.Uint;
         }
 
-        public static VectorValue BroadcastToVector(NumericValue value, int size)
-        {
-            if (value is VectorValue vec)
-            {
-                return new VectorValue(vec.Type, vec.Values.Map(x =>
-                {
-                    int sizeDiff = size - x.Length;
-                    if (sizeDiff > 0) // Expansion
-                        return x.Append(Enumerable.Repeat(GetZeroValue(vec.Type), sizeDiff)).ToArray();
-                    else if (size < x.Length) // Truncation
-                        return x.Take(size).ToArray();
-                    else
-                        return x;
-                }));
-            }
-            if (value is ScalarValue scalar)
-                return new VectorValue(scalar.Type, scalar.Value.Map(x => Enumerable.Repeat(x, size).ToArray()));
-            throw new InvalidOperationException();
-        }
-
-        public static MatrixValue BroadcastToMatrix(NumericValue value, int rows, int columns)
-        {
-            if (value is MatrixValue mat)
-            {
-                if (mat.Rows != rows || mat.Columns != columns)
-                    throw new NotImplementedException();
-                return mat;
-            }
-            if (value is ScalarValue scalar)
-                return new MatrixValue(scalar.Type, rows, columns, scalar.Value.Map(x => Enumerable.Repeat(x, rows * columns).ToArray()));
-            throw new InvalidOperationException();
-        }
-
-        public static (int rows, int columns) GetTensorSize(NumericValue value)
-        {
-            if (value is ScalarValue)
-                return (1, 1);
-            if (value is VectorValue vector)
-                return (vector.Size, 1);
-            if (value is MatrixValue matrix)
-                return (matrix.Rows, matrix.Columns);
-            return (0, 0);
-        }
-
         public static object CastNumeric(ScalarType type, object value)
         {
             switch (type)
@@ -537,114 +661,16 @@ namespace UnityShaderParser.Test
             }
         }
 
-        public static NumericValue CastNumeric(ScalarType type, NumericValue value)
-        {
-            if (value is ScalarValue scalar)
-                return new ScalarValue(type, scalar.Value.Map(x => CastNumeric(type, x)));
-            if (value is VectorValue vector)
-                return new VectorValue(type, vector.Values.Map(x => x.Select(y => CastNumeric(type, y)).ToArray()));
-            if (value is MatrixValue matrix)
-                return new MatrixValue(type, matrix.Rows, matrix.Columns, matrix.Values.Map(x => x.Select(y => CastNumeric(type, y)).ToArray()));
-            throw new InvalidOperationException();
-        }
-
-        public static int GetThreadCount(NumericValue value)
-        {
-            switch (value)
-            {
-                case ScalarValue scalar: return scalar.Value.Size;
-                case VectorValue vector: return vector.Values.Size;
-                case MatrixValue matrix: return matrix.Values.Size;
-                default: return 1;
-            }
-        }
-
-        public static bool IsUniform(NumericValue value)
-        {
-            return GetThreadCount(value) == 1;
-        }
-
-        public static bool IsVarying(NumericValue value)
-        {
-            return GetThreadCount(value) > 1;
-        }
-
-        public static NumericValue Vectorize(NumericValue value, int threadCount)
-        {
-            if (value is ScalarValue scalar)
-                return new ScalarValue(scalar.Type, scalar.Value.Vectorize(threadCount));
-            if (value is VectorValue vector)
-                return new VectorValue(vector.Type, vector.Values.Vectorize(threadCount));
-            if (value is MatrixValue matrix)
-                return new MatrixValue(matrix.Type, matrix.Rows, matrix.Columns, matrix.Values.Vectorize(threadCount));
-            throw new InvalidOperationException();
-        }
-
-        public static HLSLValue Vectorize(HLSLValue value, int threadCount)
-        {
-            if (value is NumericValue num)
-                return Vectorize(num, threadCount);
-            if (value is StructValue str)
-                return new StructValue(str.Name, str.Members.Select(x => (x.Key, Vectorize(x.Value, threadCount))).ToDictionary(x => x.Key, y => y.Item2));
-            if (value is ArrayValue arr)
-                return new ArrayValue(arr.Values.Select(x => Vectorize(x, threadCount)).ToArray());
-            throw new InvalidOperationException();
-        }
-
-        public static NumericValue Scalarize(NumericValue value, int threadIndex)
-        {
-            if (value is ScalarValue scalar)
-                return new ScalarValue(scalar.Type, scalar.Value.Scalarize(threadIndex));
-            if (value is VectorValue vector)
-                return new VectorValue(vector.Type, vector.Values.Scalarize(threadIndex));
-            if (value is MatrixValue matrix)
-                return new MatrixValue(matrix.Type, matrix.Rows, matrix.Columns, matrix.Values.Scalarize(threadIndex));
-            throw new InvalidOperationException();
-        }
-
-        public static HLSLValue Scalarize(HLSLValue value, int threadIndex)
-        {
-            if (value is NumericValue num)
-                return Scalarize(num, threadIndex);
-            if (value is StructValue str)
-                return new StructValue(str.Name, str.Members.Select(x => (x.Key, Scalarize(x.Value, threadIndex))).ToDictionary(x => x.Key, y => y.Item2));
-            if (value is ArrayValue arr)
-                return new ArrayValue(arr.Values.Select(x => Scalarize(x, threadIndex)).ToArray());
-            throw new InvalidOperationException();
-        }
-
-        public static object ExtractThread(NumericValue value, int threadIndex)
-        {
-            if (value is ScalarValue scalar)
-                return scalar.Value.Get(threadIndex);
-            if (value is VectorValue vector)
-                return vector.Values.Get(threadIndex);
-            if (value is MatrixValue matrix)
-                return matrix.Values.Get(threadIndex);
-            throw new InvalidOperationException();
-        }
-
-        public static NumericValue SetThreadValue(NumericValue value, int threadIndex, object set)
-        {
-            if (value is ScalarValue scalar)
-                return new ScalarValue(scalar.Type, scalar.Value.Set(threadIndex, set));
-            if (value is VectorValue vector)
-                return new VectorValue(vector.Type, vector.Values.Set(threadIndex, (object[])set));
-            if (value is MatrixValue matrix)
-                return new MatrixValue(matrix.Type, matrix.Rows, matrix.Columns, matrix.Values.Set(threadIndex, (object[])set));
-            throw new InvalidOperationException();
-        }
-
         // Given 2 params, promote such that no information is lost.
         // This includes promoting SGPR to VGPR.
         public static (NumericValue newLeft, NumericValue newRight) Promote(NumericValue left, NumericValue right, bool bitwiseOp)
         {
-            int leftThreadCount = GetThreadCount(left);
-            int rightThreadCount = GetThreadCount(right);
+            int leftThreadCount = left.ThreadCount;
+            int rightThreadCount = right.ThreadCount;
             if (leftThreadCount < rightThreadCount)
-                left = Vectorize(left, rightThreadCount);
+                left = left.Vectorize(rightThreadCount);
             else if (rightThreadCount < leftThreadCount)
-                right = Vectorize(right, leftThreadCount);
+                right = right.Vectorize(leftThreadCount);
 
             ScalarType type = bitwiseOp
                 ? PromoteForBitwiseBinOp(left.Type, right.Type)
@@ -655,38 +681,28 @@ namespace UnityShaderParser.Test
 
             if (needMatrix)
             {
-                (int leftRows, int leftColumns) = GetTensorSize(left);
-                (int rightRows, int rightColumns) = GetTensorSize(right);
+                (int leftRows, int leftColumns) = left.TensorSize;
+                (int rightRows, int rightColumns) = right.TensorSize;
                 int newRows = Math.Max(leftRows, rightRows);
                 int newColumns = Math.Max(rightRows, rightColumns);
-                var resizedLeft = BroadcastToMatrix(left, newRows, newColumns);
-                var resizedRight = BroadcastToMatrix(right, newRows, newColumns);
-                return (CastNumeric(type, resizedLeft), CastNumeric(type, resizedRight));
+                var resizedLeft = left.BroadcastToMatrix(newRows, newColumns);
+                var resizedRight = right.BroadcastToMatrix(newRows, newColumns);
+                return (resizedLeft.Cast(type), resizedRight.Cast(type));
             }
 
             if (needVector)
             {
-                (int leftSize, _) = GetTensorSize(left);
-                (int rightSize, _) = GetTensorSize(right);
+                (int leftSize, _) = left.TensorSize;
+                (int rightSize, _) = right.TensorSize;
                 int newSize = Math.Max(leftSize, rightSize);
-                var resizedLeft = BroadcastToVector(left, newSize);
-                var resizedRight = BroadcastToVector(right, newSize);
-                return (CastNumeric(type, resizedLeft),  CastNumeric(type, resizedRight));
+                var resizedLeft = left.BroadcastToVector(newSize);
+                var resizedRight = right.BroadcastToVector(newSize);
+                return (resizedLeft.Cast(type), resizedRight.Cast(type));
             }
 
-            return (CastNumeric(type, left), CastNumeric(type, right));
+            return (left.Cast(type), right.Cast(type));
         }
 
-        public static NumericValue Map(NumericValue value, Func<object, object> mapper)
-        {
-            if (value is ScalarValue scalar)
-                return new ScalarValue(scalar.Type, scalar.Value.Map(mapper));
-            if (value is VectorValue vector)
-                return new VectorValue(vector.Type, vector.Values.Map(x => x.Select(mapper).ToArray()));
-            if (value is MatrixValue matrix)
-                return new MatrixValue(matrix.Type, matrix.Rows, matrix.Columns, matrix.Values.Map(x => x.Select(mapper).ToArray()));
-            throw new InvalidOperationException();
-        }
 
         private static HLSLRegister<T> Map2Registers<T>(HLSLRegister<T> left, HLSLRegister<T> right, Func<T, T, T> mapper)
         {
@@ -707,8 +723,7 @@ namespace UnityShaderParser.Test
 
         public static NumericValue Map2(NumericValue left, NumericValue right, Func<object, object, object> mapper)
         {
-
-            if (GetTensorSize(left) != GetTensorSize(right))
+            if (left.TensorSize != right.TensorSize)
                 throw new ArgumentException("Sizes of operands must match.");
             if (left is ScalarValue scalarLeft && right is ScalarValue scalarRight)
                 return new ScalarValue(scalarLeft.Type, Map2Registers(scalarLeft.Value, scalarRight.Value, mapper));
@@ -734,17 +749,6 @@ namespace UnityShaderParser.Test
                 });
                 return new MatrixValue(matrixLeft.Type, matrixLeft.Rows, matrixLeft.Columns, mapped);
             }
-            throw new InvalidOperationException();
-        }
-
-        public static NumericValue MapThreads(NumericValue value, Func<object, int, object> mapper)
-        {
-            if (value is ScalarValue scalar)
-                return new ScalarValue(scalar.Type, scalar.Value.MapThreads(mapper));
-            if (value is VectorValue vector)
-                return new VectorValue(vector.Type, vector.Values.MapThreads((a, b) => (object[])mapper(a, b)));
-            if (value is MatrixValue matrix)
-                return new MatrixValue(matrix.Type, matrix.Rows, matrix.Columns, matrix.Values.MapThreads((a, b) => (object[])mapper(a, b)));
             throw new InvalidOperationException();
         }
 

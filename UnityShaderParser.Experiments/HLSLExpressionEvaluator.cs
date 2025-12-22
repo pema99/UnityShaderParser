@@ -105,10 +105,10 @@ namespace UnityShaderParser.Test
                             var arrElem = arrValue.Values[myIndex] as NumericValue;
 
                             // Expand it to a VGPR.
-                            arrElem = HLSLValueUtils.Vectorize(arrElem, executionState.GetThreadCount());
+                            arrElem = arrElem.Vectorize(executionState.GetThreadCount());
 
                             // Splat to the element for the correct thread.
-                            arrValue.Values[myIndex] = HLSLValueUtils.SetThreadValue(arrElem, threadIndex, value);
+                            arrValue.Values[myIndex] = arrElem.SetThreadValue(threadIndex, value);
                         }
                     }
                     return value;
@@ -316,7 +316,7 @@ namespace UnityShaderParser.Test
                 if (args[i] is null)
                     throw new Exception("Expected numeric arguments as inputs to vector constructor.");
 
-                int argThreadCount = HLSLValueUtils.GetThreadCount(args[i]);
+                int argThreadCount = args[i].ThreadCount;
                 maxThreadCount = Math.Max(maxThreadCount, argThreadCount);
                 anyUniform |= argThreadCount == 1;
             }
@@ -326,7 +326,7 @@ namespace UnityShaderParser.Test
             {
                 for (int i = 0; i < args.Length; i++)
                 {
-                    args[i] = HLSLValueUtils.Vectorize(args[i], maxThreadCount);
+                    args[i] = args[i].Vectorize(maxThreadCount);
                 }
             }
 
@@ -409,13 +409,13 @@ namespace UnityShaderParser.Test
             (left, right) = HLSLValueUtils.Promote(left, right, false);
             if (cond is MatrixValue matrix)
             {
-                left = HLSLValueUtils.BroadcastToMatrix(left, matrix.Rows, matrix.Columns);
-                right = HLSLValueUtils.BroadcastToMatrix(right, matrix.Rows, matrix.Columns);
+                left = left.BroadcastToMatrix(matrix.Rows, matrix.Columns);
+                right = right.BroadcastToMatrix(matrix.Rows, matrix.Columns);
             }
             else if (cond is VectorValue vector)
             {
-                left = HLSLValueUtils.BroadcastToVector(left, vector.Size);
-                right = HLSLValueUtils.BroadcastToVector(right, vector.Size);
+                left = left.BroadcastToVector(vector.Size);
+                right = right.BroadcastToVector(vector.Size);
             }
 
             object[] values = new object[executionState.GetThreadCount()];

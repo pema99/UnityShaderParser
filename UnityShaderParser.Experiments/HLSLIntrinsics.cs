@@ -52,8 +52,8 @@ namespace UnityShaderParser.Test
 
         public static NumericValue Exp(NumericValue x)
         {
-            var casted = HLSLValueUtils.CastNumeric(ScalarType.Float, x);
-            return HLSLValueUtils.Map(casted, val => Math.Exp((float)val));
+            var casted = x.Cast(ScalarType.Float);
+            return casted.Map(val => Math.Exp((float)val));
         }
 
         #region Special intrinsics that touch execution state
@@ -61,13 +61,7 @@ namespace UnityShaderParser.Test
         {
             if (args.Length > 0)
             {
-                int maxThreadCount = args.Max(x =>
-                {
-                    if (x is NumericValue num)
-                        return HLSLValueUtils.GetThreadCount(num);
-                    else
-                        return 1;
-                });
+                int maxThreadCount = args.Max(x => x.ThreadCount);
 
                 bool scalarizeLoop = executionState.IsVaryingExecution() || maxThreadCount > 1;
                 int numThreads = scalarizeLoop ? Math.Max(maxThreadCount, executionState.GetThreadCount()) : 1;
@@ -90,7 +84,7 @@ namespace UnityShaderParser.Test
                             var arg = args[argCounter++];
                             if (arg is NumericValue num)
                             {
-                                sb.Append(Convert.ToString(HLSLValueUtils.Scalarize(num, threadIndex), CultureInfo.InvariantCulture));
+                                sb.Append(Convert.ToString(num.Scalarize(threadIndex), CultureInfo.InvariantCulture));
                             }
                             else
                             {
@@ -134,69 +128,69 @@ namespace UnityShaderParser.Test
 
         public static NumericValue DdxFine(HLSLExecutionState executionState, NumericValue val)
         {
-            if (HLSLValueUtils.IsUniform(val))
+            if (val.IsUniform)
                 return val - val;
 
-            return HLSLValueUtils.MapThreads(val, (laneValue, threadIndex) =>
+            return val.MapThreads((laneValue, threadIndex) =>
             {
                 (int x, int y) = executionState.GetThreadPosition(threadIndex);
                 int offset = (x % 2 == 0) ? 1 : -1;
 
-                var me = HLSLValueUtils.Scalarize(val, threadIndex);
-                var other = HLSLValueUtils.Scalarize(val, executionState.GetThreadIndex(x + offset, y));
-                return HLSLValueUtils.ExtractThread((other - me) * offset, 0);
+                var me = val.Scalarize(threadIndex);
+                var other = val.Scalarize(executionState.GetThreadIndex(x + offset, y));
+                return ((other - me) * offset).GetThreadValue(0);
             });
         }
 
         public static NumericValue DdyFine(HLSLExecutionState executionState, NumericValue val)
         {
-            if (HLSLValueUtils.IsUniform(val))
+            if (val.IsUniform)
                 return val - val;
 
-            return HLSLValueUtils.MapThreads(val, (laneValue, threadIndex) =>
+            return val.MapThreads((laneValue, threadIndex) =>
             {
                 (int x, int y) = executionState.GetThreadPosition(threadIndex);
                 int offset = (y % 2 == 0) ? 1 : -1;
 
-                var me = HLSLValueUtils.Scalarize(val, threadIndex);
-                var other = HLSLValueUtils.Scalarize(val, executionState.GetThreadIndex(x, y + offset));
-                return HLSLValueUtils.ExtractThread((other - me) * offset, 0);
+                var me = val.Scalarize(threadIndex);
+                var other = val.Scalarize(executionState.GetThreadIndex(x, y + offset));
+                return ((other - me) * offset).GetThreadValue(0);
             });
         }
 
         public static NumericValue Ddx(HLSLExecutionState executionState, NumericValue val)
         {
-            if (HLSLValueUtils.IsUniform(val))
+            if (val.IsUniform)
                 return val - val;
 
-            return HLSLValueUtils.MapThreads(val, (laneValue, threadIndex) =>
+            return val.MapThreads((laneValue, threadIndex) =>
             {
                 (int x, int y) = executionState.GetThreadPosition(threadIndex);
                 y -= (y & 1);
                 threadIndex = executionState.GetThreadIndex(x, y);
                 int offset = (x % 2 == 0) ? 1 : -1;
 
-                var me = HLSLValueUtils.Scalarize(val, threadIndex);
-                var other = HLSLValueUtils.Scalarize(val, executionState.GetThreadIndex(x + offset, y));
-                return HLSLValueUtils.ExtractThread((other - me) * offset, 0);
+                var me = val.Scalarize(threadIndex);
+                var other = val.Scalarize(executionState.GetThreadIndex(x + offset, y));
+                return ((other - me) * offset).GetThreadValue(0);
             });
         }
 
         public static NumericValue Ddy(HLSLExecutionState executionState, NumericValue val)
         {
-            if (HLSLValueUtils.IsUniform(val))
+            if (val.IsUniform)
                 return val - val;
 
-            return HLSLValueUtils.MapThreads(val, (laneValue, threadIndex) =>
+            return val.MapThreads((laneValue, threadIndex) =>
             {
                 (int x, int y) = executionState.GetThreadPosition(threadIndex);
                 x -= (x & 1);
                 threadIndex = executionState.GetThreadIndex(x, y);
                 int offset = (y % 2 == 0) ? 1 : -1;
 
-                var me = HLSLValueUtils.Scalarize(val, threadIndex);
-                var other = HLSLValueUtils.Scalarize(val, executionState.GetThreadIndex(x, y + offset));
-                return HLSLValueUtils.ExtractThread((other - me) * offset, 0);
+                var me = val.Scalarize(threadIndex);
+                var other = val.Scalarize(executionState.GetThreadIndex(x, y + offset));
+                return ((other - me) * offset).GetThreadValue(0);
             });
         }
         #endregion

@@ -308,17 +308,17 @@ namespace UnityShaderParser.Test
 
         public static NumericValue Negate(NumericValue left)
         {
-            return HLSLValueUtils.Map(left, Negate);
+            return left.Map(Negate);
         }
 
         public static NumericValue BoolNegate(NumericValue left)
         {
-            return HLSLValueUtils.Map(left, BoolNegate);
+            return left.Map(BoolNegate);
         }
 
         public static NumericValue BitNot(NumericValue left)
         {
-            return HLSLValueUtils.Map(left, BitNot);
+            return left.Map(BitNot);
         }
 
         public static NumericValue Less(NumericValue left, NumericValue right)
