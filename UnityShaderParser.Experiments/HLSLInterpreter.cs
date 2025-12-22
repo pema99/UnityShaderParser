@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityShaderParser.Common;
 using UnityShaderParser.HLSL;
 
 namespace UnityShaderParser.Test
@@ -18,6 +19,7 @@ namespace UnityShaderParser.Test
             expressionEvaluator = new HLSLExpressionEvaluator(this, context, executionState);
         }
 
+        // Public interface
         public void SetWarpSize(int threadsX, int threadsY)
         {
             executionState = new HLSLExecutionState(threadsX, threadsY);
@@ -67,8 +69,50 @@ namespace UnityShaderParser.Test
 
         public FunctionDefinitionNode[] GetFunctions() => context.GetFunctions();
 
-        public HLSLValue RunExpression(ExpressionNode node) => expressionEvaluator.Visit(node);
+        public HLSLValue EvaluateExpression(ExpressionNode node) => expressionEvaluator.Visit(node);
 
+        // Helpers
+        private Exception Error(HLSLSyntaxNode node, string message)
+        {
+            return new Exception($"Error at line {node.Span.Start.Line}, column {node.Span.Start.Column}: {message}");
+        }
+
+        private Exception Error(string message)
+        {
+            return new Exception($"Error: {message}");
+        }
+
+        private NumericValue EvaluateNumeric(ExpressionNode node, ScalarType type = ScalarType.Void)
+        {
+            var value = EvaluateExpression(node);
+            if (value is NumericValue num)
+            {
+                if (type != ScalarType.Void && num.Type != type)
+                    throw Error(node, $"Expected an expression of type '{PrintingUtil.GetEnumName(type)}', but got one of type '{PrintingUtil.GetEnumName(num.Type)}'.");
+                return num;
+            }
+            else
+            {
+                throw Error(node, $"Expected a numeric expression, but got a {value.GetType().Name}.");
+            }
+        }
+
+        private ScalarValue EvaluateScalar(ExpressionNode node, ScalarType type = ScalarType.Void)
+        {
+            var value = EvaluateExpression(node);
+            if (value is ScalarValue num)
+            {
+                if (type != ScalarType.Void && num.Type != type)
+                    throw Error(node, $"Expected an expression of type '{PrintingUtil.GetEnumName(type)}', but got one of type '{PrintingUtil.GetEnumName(num.Type)}'.");
+                return num;
+            }
+            else
+            {
+                throw Error(node, $"Expected a scalar expression, but got a {value.GetType().Name}.");
+            }
+        }
+
+        // Visitor implementation
         public override void VisitVariableDeclarationStatementNode(VariableDeclarationStatementNode node)
         {
             // TODO: Modifiers
@@ -81,25 +125,21 @@ namespace UnityShaderParser.Test
                 var initializer = decl.Initializer as ValueInitializerNode;
                 if (initializer != null)
                 {
-                    var initializerValue = expressionEvaluator.Visit(initializer.Expression);
-
-                    NumericValue numeric = initializerValue as NumericValue;
-                    if (node.Kind is NumericTypeNode && (object)numeric == null)
-                        throw new Exception("Invalid cast.");
+                    var initializerValue = EvaluateNumeric(initializer.Expression);
 
                     switch (node.Kind)
                     {
                         case ScalarTypeNode scalarType:
-                            initializerValue = numeric.Cast(scalarType.Kind);
+                            initializerValue = initializerValue.Cast(scalarType.Kind);
                             break;
                         case VectorTypeNode vectorType:
-                            initializerValue = numeric.Cast(vectorType.Kind).BroadcastToVector(vectorType.Dimension);
+                            initializerValue = initializerValue.Cast(vectorType.Kind).BroadcastToVector(vectorType.Dimension);
                             break;
                         case MatrixTypeNode matrixType:
-                            initializerValue = numeric.Cast(matrixType.Kind).BroadcastToMatrix(matrixType.FirstDimension, matrixType.SecondDimension);
+                            initializerValue = initializerValue.Cast(matrixType.Kind).BroadcastToMatrix(matrixType.FirstDimension, matrixType.SecondDimension);
                             break;
                         case PredefinedObjectTypeNode predefinedObjectType:
-                            throw new Exception("Invalid cast.");
+                            throw Error(node, "Invalid cast.");
                         case QualifiedNamedTypeNode qualifiedNamedTypeNodeType:
                         case NamedTypeNode namedTypeNodeType:
                         case GenericVectorTypeNode genVectorType:
@@ -144,13 +184,7 @@ namespace UnityShaderParser.Test
 
         public override void VisitIfStatementNode(IfStatementNode node)
         {
-            NumericValue condValue = expressionEvaluator.Visit(node.Condition) as NumericValue;
-            if (condValue is null)
-                throw new Exception("Expected a numeric value for the condition.");
-
-            ScalarValue boolCondValue = condValue.Cast(ScalarType.Bool) as ScalarValue;
-            if (boolCondValue is null)
-                throw new Exception("Expected a scalar boolean value for the condition.");
+            ScalarValue boolCondValue = EvaluateScalar(node.Condition, ScalarType.Bool);
 
             executionState.PushExecutionMask();
             for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
@@ -174,13 +208,7 @@ namespace UnityShaderParser.Test
             {
                 anyRunning = false;
 
-                NumericValue condValue = expressionEvaluator.Visit(node.Condition) as NumericValue;
-                if (condValue is null)
-                    throw new Exception("Expected a numeric value for the condition.");
-
-                ScalarValue boolCondValue = condValue.Cast(ScalarType.Bool) as ScalarValue;
-                if (boolCondValue is null)
-                    throw new Exception("Expected a scalar boolean value for the condition.");
+                ScalarValue boolCondValue = EvaluateScalar(node.Condition, ScalarType.Bool);
 
                 for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
                 {
@@ -201,6 +229,7 @@ namespace UnityShaderParser.Test
 
         public override void VisitReturnStatementNode(ReturnStatementNode node)
         {
+            // TODO: Actually break execution flow
             if (node.Expression != null)
                 context.PushReturn(expressionEvaluator.Visit(node.Expression));
         }

@@ -62,9 +62,9 @@ namespace UnityShaderParser.Test
                 {
                     string message = null;
                     if (args.Length > 1)
-                        message = (interpreter.RunExpression(args[1]) as ScalarValue).Value.Get(0) as string;
+                        message = (interpreter.EvaluateExpression(args[1]) as ScalarValue).Value.Get(0) as string;
 
-                    HLSLValue val = interpreter.RunExpression(args[0]);
+                    HLSLValue val = interpreter.EvaluateExpression(args[0]);
                     if (val is ScalarValue sv)
                     {
                         bool allPass = false;
@@ -98,7 +98,7 @@ namespace UnityShaderParser.Test
             interpreter.AddCallback("PASS_TEST", args =>
             {
                 if (args.Length > 0)
-                    throw new TestPassException(interpreter.RunExpression(args[0]).ToString());
+                    throw new TestPassException(interpreter.EvaluateExpression(args[0]).ToString());
                 else
                     throw new TestPassException();
             });
@@ -106,7 +106,7 @@ namespace UnityShaderParser.Test
             interpreter.AddCallback("FAIL_TEST", args =>
             {
                 if (args.Length > 0)
-                    throw new TestFailException(interpreter.RunExpression(args[0]).ToString());
+                    throw new TestFailException(interpreter.EvaluateExpression(args[0]).ToString());
                 else
                     throw new TestFailException();
             });
@@ -177,13 +177,13 @@ namespace UnityShaderParser.Test
                             if (attribute.Arguments.Count > 1)
                             {
                                 testRun.customWarpSize = true;
-                                testRun.threadsX = Convert.ToInt32((interpreter.RunExpression(attribute.Arguments[0]) as ScalarValue).GetThreadValue(0));
-                                testRun.threadsY = Convert.ToInt32((interpreter.RunExpression(attribute.Arguments[1]) as ScalarValue).GetThreadValue(0));
+                                testRun.threadsX = Convert.ToInt32((interpreter.EvaluateExpression(attribute.Arguments[0]) as ScalarValue).GetThreadValue(0));
+                                testRun.threadsY = Convert.ToInt32((interpreter.EvaluateExpression(attribute.Arguments[1]) as ScalarValue).GetThreadValue(0));
                             }
                             else if (attribute.Arguments.Count > 0)
                             {
                                 testRun.customWarpSize = true;
-                                testRun.threadsX = Convert.ToInt32((interpreter.RunExpression(attribute.Arguments[0]) as ScalarValue).GetThreadValue(0));
+                                testRun.threadsX = Convert.ToInt32((interpreter.EvaluateExpression(attribute.Arguments[0]) as ScalarValue).GetThreadValue(0));
                                 testRun.threadsY = 1;
                             }
                             break;
@@ -194,7 +194,7 @@ namespace UnityShaderParser.Test
                                 {
                                     List<HLSLValue> inputs = new List<HLSLValue>();
                                     for (int i = 0; i < attribute.Arguments.Count; i++)
-                                        inputs.Add(interpreter.RunExpression(attribute.Arguments[i]));
+                                        inputs.Add(interpreter.EvaluateExpression(attribute.Arguments[i]));
                                     return inputs;
                                 });
                             }

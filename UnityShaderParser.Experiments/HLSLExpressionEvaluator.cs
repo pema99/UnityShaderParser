@@ -22,6 +22,7 @@ namespace UnityShaderParser.Test
             this.executionState = executionState;
         }
 
+        // Public API
         public void AddCallback(string name, Func<ExpressionNode[], HLSLValue> callback) => callbacks.Add(name, callback);
         public void RemoveCallback(string name) => callbacks.Remove(name);
 
@@ -58,7 +59,7 @@ namespace UnityShaderParser.Test
             if (func != null)
             {
                 if (args.Length != func.Parameters.Count)
-                    throw new Exception($"Argument count mismatch in call to '{name}'.");
+                    throw Error($"Argument count mismatch in call to '{name}'.");
 
                 context.PushScope();
                 for (int i = 0; i < func.Parameters.Count; i++)
@@ -77,12 +78,54 @@ namespace UnityShaderParser.Test
                     return context.PopReturn();
             }
 
-            throw new Exception($"Unknown function '{name}' called.");
+            throw Error($"Unknown function '{name}' called.");
         }
 
+        // Helpers
+        private Exception Error(HLSLSyntaxNode node, string message)
+        {
+            return new Exception($"Error at line {node.Span.Start.Line}, column {node.Span.Start.Column}: {message}");
+        }
+
+        private Exception Error(string message)
+        {
+            return new Exception($"Error: {message}");
+        }
+
+        private NumericValue EvaluateNumeric(ExpressionNode node, ScalarType type = ScalarType.Void)
+        {
+            var value = Visit(node);
+            if (value is NumericValue num)
+            {
+                if (type != ScalarType.Void && num.Type != type)
+                    throw Error(node, $"Expected an expression of type '{PrintingUtil.GetEnumName(type)}', but got one of type '{PrintingUtil.GetEnumName(num.Type)}'.");
+                return num;
+            }
+            else
+            {
+                throw Error(node, $"Expected a numeric expression, but got a {value.GetType().Name}.");
+            }
+        }
+
+        private ScalarValue EvaluateScalar(ExpressionNode node, ScalarType type = ScalarType.Void)
+        {
+            var value = Visit(node);
+            if (value is ScalarValue num)
+            {
+                if (type != ScalarType.Void && num.Type != type)
+                    throw Error(node, $"Expected an expression of type '{PrintingUtil.GetEnumName(type)}', but got one of type '{PrintingUtil.GetEnumName(num.Type)}'.");
+                return num;
+            }
+            else
+            {
+                throw Error(node, $"Expected a scalar expression, but got a {value.GetType().Name}.");
+            }
+        }
+
+        // Visit implementation
         protected override HLSLValue DefaultVisit(HLSLSyntaxNode node)
         {
-            throw new InvalidOperationException($"{nameof(HLSLExpressionEvaluator)} should only be used to evaluate expressions.");
+            throw new Exception($"{nameof(HLSLExpressionEvaluator)} should only be used to evaluate expressions.");
         }
 
         public override HLSLValue VisitQualifiedIdentifierExpressionNode(QualifiedIdentifierExpressionNode node)
@@ -90,7 +133,7 @@ namespace UnityShaderParser.Test
             if (context.TryGetVariable(node.GetName(), out var variable))
                 return variable;
             else
-                throw new Exception($"Unknown variable '{node.GetName()}' referenced.");
+                throw Error(node, $"Use of unknown variable '{node.GetName()}'.");
         }
         
         public override HLSLValue VisitIdentifierExpressionNode(IdentifierExpressionNode node)
@@ -98,7 +141,7 @@ namespace UnityShaderParser.Test
             if (context.TryGetVariable(node.GetName(), out var variable))
                 return variable;
             else
-                throw new Exception($"Unknown variable '{node.GetName()}' referenced.");
+                throw Error(node, $"Use of unknown variable '{node.GetName()}'.");
         }
         
         public override HLSLValue VisitLiteralExpressionNode(LiteralExpressionNode node)
@@ -111,26 +154,26 @@ namespace UnityShaderParser.Test
                     if (float.TryParse(node.Lexeme, NumberStyles.Any, CultureInfo.InvariantCulture, out float parsedFloat))
                         return new ScalarValue(ScalarType.Float, new HLSLRegister<object>(parsedFloat));
                     else
-                        throw new Exception($"Failed to parse float '{node.Lexeme}'.");
+                        throw Error(node, $"Invalid float literal '{node.Lexeme}'.");
                 case LiteralKind.Integer:
                     if (int.TryParse(node.Lexeme, NumberStyles.Any, CultureInfo.InvariantCulture, out int parsedInt))
                         return new ScalarValue(ScalarType.Int, new HLSLRegister<object>(parsedInt));
                     else
-                        throw new Exception($"Failed to parse float '{node.Lexeme}'.");
+                        throw Error(node, $"Invalid integer literal '{node.Lexeme}'.");
                 case LiteralKind.Character:
                     if (char.TryParse(node.Lexeme, out char parsedChar))
                         return new ScalarValue(ScalarType.Char, new HLSLRegister<object>(parsedChar));
                     else
-                        throw new Exception($"Failed to parse float '{node.Lexeme}'.");
+                        throw Error(node, $"Invalid character literal '{node.Lexeme}'.");
                 case LiteralKind.Boolean:
                     if (bool.TryParse(node.Lexeme, out bool parsedBool))
                         return new ScalarValue(ScalarType.Bool, new HLSLRegister<object>(parsedBool));
                     else
-                        throw new Exception($"Failed to parse float '{node.Lexeme}'.");
+                        throw Error(node, $"Invalid boolean literal '{node.Lexeme}'.");
                 case LiteralKind.Null:
                     return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
                 default:
-                    throw new Exception($"Unknown literal '{node.Lexeme}'.");
+                    throw Error(node, $"Unknown literal '{node.Lexeme}'.");
             }
         }
         
@@ -174,7 +217,7 @@ namespace UnityShaderParser.Test
                 // TODO: StructuredBuffer/Resource writes
                 // TODO: Write to struct array
                 else
-                    throw new Exception("Invalid assignment");
+                    throw Error(node, $"Invalid assignment.");
             }
 
             var leftNum = left as NumericValue;
@@ -205,19 +248,21 @@ namespace UnityShaderParser.Test
                     return SetValue(leftNum | rightNum);
             }
 
-            throw new Exception("Invalid assignment.");
+            throw Error(node, $"Invalid assignment.");
         }
         
         public override HLSLValue VisitBinaryExpressionNode(BinaryExpressionNode node)
         {
-            HLSLValue left = Visit(node.Left);
-            HLSLValue right = Visit(node.Right);
             if (node.Operator == OperatorKind.Compound)
             {
-                return right;
+                Visit(node.Left);
+                return Visit(node.Right);
             }
-            else if (left is NumericValue nl && right is NumericValue nr)
+            else
             {
+                NumericValue nl = EvaluateNumeric(node.Left);
+                NumericValue nr = EvaluateNumeric(node.Right);
+
                 switch (node.Operator)
                 {
                     case OperatorKind.LogicalOr: return HLSLOperators.BoolOr(nl, nr);
@@ -239,12 +284,8 @@ namespace UnityShaderParser.Test
                     case OperatorKind.Div: return nl / nr;
                     case OperatorKind.Mod: return nl % nr;
                     default:
-                        throw new Exception($"Unexpected operator '{PrintingUtil.GetEnumName(node.Operator)}' in binary expression.");
+                        throw Error(node, $"Unexpected operator '{PrintingUtil.GetEnumName(node.Operator)}' in binary expression.");
                 }
-            }
-            else
-            {
-                throw new Exception("Expected numeric types for binary operator.");
             }
         }
         
@@ -256,42 +297,36 @@ namespace UnityShaderParser.Test
         
         public override HLSLValue VisitPrefixUnaryExpressionNode(PrefixUnaryExpressionNode node)
         {
-            var value = Visit(node.Expression);
-            if (value is NumericValue num)
+            var num = EvaluateNumeric(node.Expression);
+            switch (node.Operator)
             {
-                switch (node.Operator)
-                {
-                    case OperatorKind.Plus: return num;
-                    case OperatorKind.Minus: return -num;
-                    case OperatorKind.Not: return !num;
-                    case OperatorKind.BitFlip: return ~num;
-                    case OperatorKind.Increment when node.Expression is NamedExpressionNode named:
-                        context.SetVariable(named.GetName(), num + 1);
-                        return num + 1;
-                    case OperatorKind.Decrement when node.Expression is NamedExpressionNode named:
-                        context.SetVariable(named.GetName(), num - 1);
-                        return num - 1;
-                }
+                case OperatorKind.Plus: return num;
+                case OperatorKind.Minus: return -num;
+                case OperatorKind.Not: return !num;
+                case OperatorKind.BitFlip: return ~num;
+                case OperatorKind.Increment when node.Expression is NamedExpressionNode named:
+                    context.SetVariable(named.GetName(), num + 1);
+                    return num + 1;
+                case OperatorKind.Decrement when node.Expression is NamedExpressionNode named:
+                    context.SetVariable(named.GetName(), num - 1);
+                    return num - 1;
             }
-            throw new Exception("Invalid prefix unary operation.");
+            throw Error(node, "Invalid prefix unary expression.");
         }
         
         public override HLSLValue VisitPostfixUnaryExpressionNode(PostfixUnaryExpressionNode node)
         {
-            var value = Visit(node.Expression);
-            if (value is NumericValue num)
+            var num = EvaluateNumeric(node.Expression);
+            switch (node.Operator)
             {
-                switch (node.Operator)
-                {
-                    case OperatorKind.Increment when node.Expression is NamedExpressionNode named:
-                        context.SetVariable(named.GetName(), num + 1);
-                        return num;
-                    case OperatorKind.Decrement when node.Expression is NamedExpressionNode named:
-                        context.SetVariable(named.GetName(), num - 1);
-                        return num;
-                }
+                case OperatorKind.Increment when node.Expression is NamedExpressionNode named:
+                    context.SetVariable(named.GetName(), num + 1);
+                    return num;
+                case OperatorKind.Decrement when node.Expression is NamedExpressionNode named:
+                    context.SetVariable(named.GetName(), num - 1);
+                    return num;
             }
-            throw new Exception("Invalid postfix unary operation.");
+            throw Error(node, "Invalid postfix unary expression.");
         }
         
         public override HLSLValue VisitFieldAccessExpressionNode(FieldAccessExpressionNode node)
@@ -327,7 +362,7 @@ namespace UnityShaderParser.Test
             {
                 args[i] = Visit(node.Arguments[i]) as NumericValue;
                 if (args[i] is null)
-                    throw new Exception("Expected numeric arguments as inputs to vector constructor.");
+                    throw Error(node, "Expected numeric arguments as inputs to vector constructor.");
 
                 int argThreadCount = args[i].ThreadCount;
                 maxThreadCount = Math.Max(maxThreadCount, argThreadCount);
@@ -378,31 +413,31 @@ namespace UnityShaderParser.Test
                     else
                         return new MatrixValue(node.Kind.Kind, Convert.ToInt32(d1.Value), Convert.ToInt32(d2.Value), new HLSLRegister<object[]>(lanes));
                 default:
-                    throw new Exception("Unknown numeric constructor");
+                    throw Error(node, "Unknown numeric constructor.");
             }
         }
 
         public override HLSLValue VisitElementAccessExpressionNode(ElementAccessExpressionNode node)
         {
             HLSLValue arr = Visit(node.Target);
-            HLSLValue target = Visit(node.Index);
-            if (arr is ArrayValue arrValue && target is ScalarValue targetValue)
+            ScalarValue target = EvaluateScalar(node.Index);
+            if (arr is ArrayValue arrValue)
             {
-                if (targetValue.Value.IsVarying)
+                if (target.Value.IsVarying)
                 {
                     object[] values = new object[executionState.GetThreadCount()];
                     for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
                     {
-                        var index = targetValue.Value.Get(threadIndex);
+                        var index = target.Value.Get(threadIndex);
                         values[threadIndex] = arrValue.Values[Convert.ToInt32(index)];
                     }
                 }
                 else
                 {
-                    return arrValue.Values[Convert.ToInt32(targetValue.Value.UniformValue)];
+                    return arrValue.Values[Convert.ToInt32(target.Value.UniformValue)];
                 }
             }
-            throw new Exception("Invalid element access.");
+            throw Error(node, "Invalid element access.");
         }
 
         public override HLSLValue VisitCastExpressionNode(CastExpressionNode node) => throw new NotImplementedException();
@@ -415,9 +450,9 @@ namespace UnityShaderParser.Test
 
         public override HLSLValue VisitTernaryExpressionNode(TernaryExpressionNode node)
         {
-            var cond = Visit(node.Condition) as NumericValue;
-            var left = Visit(node.TrueCase) as NumericValue;
-            var right = Visit(node.FalseCase) as NumericValue;
+            var cond = EvaluateNumeric(node.Condition);
+            var left = EvaluateNumeric(node.TrueCase);
+            var right = EvaluateNumeric(node.FalseCase);
 
             (left, right) = HLSLValueUtils.Promote(left, right, false);
             if (cond is MatrixValue matrix)
@@ -464,7 +499,7 @@ namespace UnityShaderParser.Test
                     values[threadIndex] = channels;
                 }
                 else
-                    throw new Exception("Invalid ternary.");
+                    throw Error(node, "Invalid ternary expression.");
             }
 
             if (cond is ScalarValue)
@@ -473,7 +508,7 @@ namespace UnityShaderParser.Test
                 return new VectorValue(left.Type, new HLSLRegister<object[]>(values.Select(x => (object[])x).ToArray()).Converge());
             if (cond is MatrixValue finalMatrix)
                 return new MatrixValue(left.Type, finalMatrix.Rows, finalMatrix.Columns, new HLSLRegister<object[]>(values.Select(x => (object[])x).ToArray()).Converge());
-            throw new Exception("Invalid ternary.");
+            throw Error(node, "Invalid ternary expression.");
         }
 
         public override HLSLValue VisitSamplerStateLiteralExpressionNode(SamplerStateLiteralExpressionNode node) => throw new NotImplementedException();
