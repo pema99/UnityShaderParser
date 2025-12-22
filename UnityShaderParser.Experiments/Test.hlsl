@@ -21,9 +21,24 @@ int add(int a, int b)
     return a + b;
 }
 
+int testReturn()
+{
+    printf("BOO");
+    if (WaveGetLaneIndex() < 2)
+    {
+        if (true)
+        {
+            return 1;
+        }
+    }
+    printf("FOO");
+}
+
 [Test]
 void main()
 {    
+    testReturn();
+    
     printf("Printing stuff %f!", 42.69);
     
     // Values varying per thread

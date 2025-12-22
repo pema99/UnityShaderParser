@@ -186,9 +186,12 @@ namespace UnityShaderParser.Test
         {
             ScalarValue boolCondValue = EvaluateScalar(node.Condition, ScalarType.Bool);
 
-            executionState.PushExecutionMask();
+            executionState.PushExecutionMask(ExecutionScope.Conditional);
             for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
-                executionState.SetThreadState(threadIndex, (bool)boolCondValue.Value.Get(threadIndex));
+            {
+                if (!(bool)boolCondValue.Value.Get(threadIndex))
+                    executionState.DisableThread(threadIndex);
+            }
 
             Visit(node.Body);
 
@@ -202,7 +205,7 @@ namespace UnityShaderParser.Test
 
         public override void VisitWhileStatementNode(WhileStatementNode node)
         {
-            executionState.PushExecutionMask();
+            executionState.PushExecutionMask(ExecutionScope.Conditional);
             bool anyRunning = true;
             while (anyRunning)
             {
@@ -213,7 +216,8 @@ namespace UnityShaderParser.Test
                 for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
                 {
                     bool threadCond = (bool)boolCondValue.Value.Get(threadIndex);
-                    executionState.SetThreadState(threadIndex, threadCond);
+                    if (!threadCond)
+                        executionState.DisableThread(threadIndex);
                     anyRunning |= threadCond;
                 }
 
@@ -231,7 +235,28 @@ namespace UnityShaderParser.Test
         {
             // TODO: Actually break execution flow
             if (node.Expression != null)
+            {
                 context.PushReturn(expressionEvaluator.Visit(node.Expression));
+                for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+                {
+                    if (executionState.IsThreadActive(threadIndex))
+                        executionState.KillThreadInFunction(threadIndex);
+                }
+            }
+        }
+
+        public override void VisitDiscardStatementNode(DiscardStatementNode node)
+        {
+            for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+            {
+                if (executionState.IsThreadActive(threadIndex))
+                    executionState.KillThreadGlobally(threadIndex);
+            }
+        }
+
+        public override void VisitBlockNode(BlockNode node)
+        {
+            VisitMany(node.Statements);
         }
 
         public override void VisitExpressionStatementNode(ExpressionStatementNode node)

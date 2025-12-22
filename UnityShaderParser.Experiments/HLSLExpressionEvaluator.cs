@@ -62,6 +62,8 @@ namespace UnityShaderParser.Test
                     throw Error($"Argument count mismatch in call to '{name}'.");
 
                 context.PushScope();
+                executionState.PushExecutionMask(ExecutionScope.Function);
+
                 for (int i = 0; i < func.Parameters.Count; i++)
                 {
                     var param = func.Parameters[i];
@@ -69,6 +71,8 @@ namespace UnityShaderParser.Test
                     context.SetVariable(declarator.Name, args[i]);
                 }
                 interpreter.Visit(func.Body);
+
+                executionState.PopExecutionMask();
                 context.PopScope();
 
                 bool voidReturn = func.ReturnType is ScalarTypeNode scalarType && scalarType.Kind == ScalarType.Void;
