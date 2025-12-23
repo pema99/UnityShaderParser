@@ -211,11 +211,11 @@ namespace UnityShaderParser.Test
             {
                 anyRunning = false;
 
-                ScalarValue boolCondValue = EvaluateScalar(node.Condition, ScalarType.Bool);
+                ScalarValue boolCondValue = EvaluateScalar(node.Condition);
 
                 for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
                 {
-                    bool threadCond = (bool)boolCondValue.Value.Get(threadIndex);
+                    bool threadCond = Convert.ToBoolean(boolCondValue.Value.Get(threadIndex));
                     if (!threadCond)
                         executionState.DisableThread(threadIndex);
                     anyRunning |= threadCond;
