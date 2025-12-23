@@ -23,21 +23,15 @@ int add(int a, int b)
 
 int testReturn()
 {
-    printf("BOO");
     if (WaveGetLaneIndex() < 2)
-    {
-        if (true)
-        {
-            return 1;
-        }
-    }
-    printf("FOO");
+        return 1;
+    return 2;
 }
 
 [Test]
 void main()
 {    
-    testReturn();
+    printf("FOO - %d", testReturn());
     
     printf("Printing stuff %f!", 42.69);
     

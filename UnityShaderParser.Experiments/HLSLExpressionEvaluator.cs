@@ -62,6 +62,7 @@ namespace UnityShaderParser.Test
                     throw Error($"Argument count mismatch in call to '{name}'.");
 
                 context.PushScope();
+                context.PushReturn();
                 executionState.PushExecutionMask(ExecutionScope.Function);
 
                 for (int i = 0; i < func.Parameters.Count; i++)
@@ -74,12 +75,8 @@ namespace UnityShaderParser.Test
 
                 executionState.PopExecutionMask();
                 context.PopScope();
-
-                bool voidReturn = func.ReturnType is ScalarTypeNode scalarType && scalarType.Kind == ScalarType.Void;
-                if (voidReturn)
-                    return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
-                else
-                    return context.PopReturn();
+                
+                return context.PopReturn();
             }
 
             throw Error($"Unknown function '{name}' called.");

@@ -184,12 +184,12 @@ namespace UnityShaderParser.Test
 
         public override void VisitIfStatementNode(IfStatementNode node)
         {
-            ScalarValue boolCondValue = EvaluateScalar(node.Condition, ScalarType.Bool);
+            ScalarValue boolCondValue = EvaluateScalar(node.Condition);
 
             executionState.PushExecutionMask(ExecutionScope.Conditional);
             for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
             {
-                if (!(bool)boolCondValue.Value.Get(threadIndex))
+                if (!Convert.ToBoolean(boolCondValue.Value.Get(threadIndex)))
                     executionState.DisableThread(threadIndex);
             }
 
@@ -205,7 +205,7 @@ namespace UnityShaderParser.Test
 
         public override void VisitWhileStatementNode(WhileStatementNode node)
         {
-            executionState.PushExecutionMask(ExecutionScope.Conditional);
+            executionState.PushExecutionMask(ExecutionScope.Loop);
             bool anyRunning = true;
             while (anyRunning)
             {
@@ -233,14 +233,22 @@ namespace UnityShaderParser.Test
 
         public override void VisitReturnStatementNode(ReturnStatementNode node)
         {
-            // TODO: Actually break execution flow
             if (node.Expression != null)
             {
-                context.PushReturn(expressionEvaluator.Visit(node.Expression));
+                var returnValue = expressionEvaluator.Visit(node.Expression);
+
+                // If we are in varying control flow, vectorize the value so we can splat each active thread.
+                if (executionState.IsVaryingExecution())
+                    returnValue = HLSLValueUtils.Vectorize(returnValue, executionState.GetThreadCount());
+
+                // For each active thread, kill the thread and splat the return.
                 for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
                 {
                     if (executionState.IsThreadActive(threadIndex))
+                    {
+                        context.SetReturn(threadIndex, returnValue);
                         executionState.KillThreadInFunction(threadIndex);
+                    }
                 }
             }
         }

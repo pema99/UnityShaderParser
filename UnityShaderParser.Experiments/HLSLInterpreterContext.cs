@@ -142,9 +142,26 @@ namespace UnityShaderParser.Test
             overloads.Add(func);
         }
 
-        public void PushReturn(HLSLValue value)
+        public void PushReturn()
         {
-            returnStack.Push(value);
+            // We don't know the type yet, so just put a dummy object
+            returnStack.Push(new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null)));
+        }
+
+        public void SetReturn(int threadIndex, HLSLValue value)
+        {
+            var oldReturn = returnStack.Pop();
+            // If this is the first return, just use it directly.
+            if (oldReturn is ScalarValue sv && sv.Type == ScalarType.Void)
+            {
+                returnStack.Push(value);
+            }
+            // Otherwise splat the thread value
+            else
+            {
+                var newReturn = HLSLValueUtils.SetThreadValue(oldReturn, threadIndex, value);
+                returnStack.Push(newReturn);
+            }
         }
 
         public HLSLValue PopReturn()

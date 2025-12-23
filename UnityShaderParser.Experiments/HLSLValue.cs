@@ -752,6 +752,96 @@ namespace UnityShaderParser.Test
             throw new InvalidOperationException();
         }
 
+        public static HLSLValue Scalarize(HLSLValue value, int threadIndex)
+        {
+            switch (value)
+            {
+                case NumericValue num:
+                    return num.Scalarize(threadIndex);
+                case StructValue str:
+                    Dictionary<string, HLSLValue> members = new Dictionary<string, HLSLValue>();
+                    foreach (var kvp in members)
+                        members.Add(kvp.Key, Scalarize(kvp.Value, threadIndex));
+                    return new StructValue(str.Name, members);
+                case PredefinedObjectValue pre:
+                    HLSLValue[] templates = new HLSLValue[pre.TemplateArguments.Length];
+                    for (int i = 0; i < templates.Length; i++)
+                        templates[i] = Scalarize(pre.TemplateArguments[i], threadIndex);
+                    return new PredefinedObjectValue(pre.Type, templates);
+                case ArrayValue arr:
+                    HLSLValue[] vals = new HLSLValue[arr.Values.Length];
+                    for (int i = 0; i < vals.Length; i++)
+                        vals[i] = Scalarize(arr.Values[i], threadIndex);
+                    return new ArrayValue(vals);
+                default:
+                    throw new InvalidOperationException();
+            }
+        }
+
+        public static HLSLValue Vectorize(HLSLValue value, int threadCount)
+        {
+            switch (value)
+            {
+                case NumericValue num:
+                    return num.Vectorize(threadCount);
+                case StructValue str:
+                    Dictionary<string, HLSLValue> members = new Dictionary<string, HLSLValue>();
+                    foreach (var kvp in members)
+                        members.Add(kvp.Key, Vectorize(kvp.Value, threadCount));
+                    return new StructValue(str.Name, members);
+                case PredefinedObjectValue pre:
+                    HLSLValue[] templates = new HLSLValue[pre.TemplateArguments.Length];
+                    for (int i = 0; i < templates.Length; i++)
+                        templates[i] = Vectorize(pre.TemplateArguments[i], threadCount);
+                    return new PredefinedObjectValue(pre.Type, templates);
+                case ArrayValue arr:
+                    HLSLValue[] vals = new HLSLValue[arr.Values.Length];
+                    for (int i = 0; i < vals.Length; i++)
+                        vals[i] = Vectorize(arr.Values[i], threadCount);
+                    return new ArrayValue(vals);
+                default:
+                    throw new InvalidOperationException();
+            }
+        }
+
+        public static HLSLValue SetThreadValue(HLSLValue allValue, int threadIndex, HLSLValue threadValue)
+        {
+            if (allValue is NumericValue numLeft && threadValue is NumericValue numRight)
+            {
+                (numLeft, numRight) = Promote(numLeft, numRight, false);
+                return numLeft.SetThreadValue(threadIndex, numRight.GetThreadValue(threadIndex));
+            }
+
+            if (allValue is StructValue strLeft && threadValue is StructValue strRight)
+            {
+                Dictionary<string, HLSLValue> members = new Dictionary<string, HLSLValue>();
+                foreach (var kvp in members)
+                {
+                    if (strRight.Members.TryGetValue(kvp.Key, out var rightV))
+                        members.Add(kvp.Key, SetThreadValue(kvp.Value, threadIndex, rightV));
+                }
+                return new StructValue(strLeft.Name, members);
+            }
+
+            if (allValue is PredefinedObjectValue preLeft && threadValue is PredefinedObjectValue preRight)
+            {
+                HLSLValue[] vals = new HLSLValue[preLeft.TemplateArguments.Length];
+                for (int i = 0; i < vals.Length; i++)
+                    vals[i] = SetThreadValue(preLeft.TemplateArguments[i], threadIndex, preRight.TemplateArguments[i]);
+                return new PredefinedObjectValue(preLeft.Type, vals);
+            }
+
+            if (allValue is ArrayValue arrLeft && threadValue is ArrayValue arrRight)
+            {
+                HLSLValue[] vals = new HLSLValue[arrLeft.Values.Length];
+                for (int i = 0; i < vals.Length; i++)
+                    vals[i] = SetThreadValue(arrLeft.Values[i], threadIndex, arrRight.Values[i]);
+                return new ArrayValue(vals);
+            }
+
+            throw new InvalidOperationException();
+        }
+
         public static HLSLRegister<object> MakeScalarSGPR<T>(T val)
         {
             return new HLSLRegister<object>(val);
