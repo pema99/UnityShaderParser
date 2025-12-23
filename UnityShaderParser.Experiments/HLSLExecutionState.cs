@@ -91,6 +91,17 @@ namespace UnityShaderParser.Test
             }
         }
 
+        // Kill thread for the current loop, i.e. 'break'
+        public void KillThreadInLoop(int threadIndex)
+        {
+            foreach (var level in executionMask)
+            {
+                level.mask[threadIndex] = false;
+                if (level.scope == ExecutionScope.Loop)
+                    break;
+            }
+        }
+
         public bool IsUniformExecution() => executionMask.Peek().mask.All(x => x);
         public bool IsVaryingExecution() => !IsUniformExecution();
 

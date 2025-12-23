@@ -253,6 +253,17 @@ namespace UnityShaderParser.Test
             }
         }
 
+        public override void VisitBreakStatementNode(BreakStatementNode node)
+        {
+            for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+            {
+                if (executionState.IsThreadActive(threadIndex))
+                {
+                    executionState.KillThreadInLoop(threadIndex);
+                }
+            }
+        }
+
         public override void VisitDiscardStatementNode(DiscardStatementNode node)
         {
             for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
