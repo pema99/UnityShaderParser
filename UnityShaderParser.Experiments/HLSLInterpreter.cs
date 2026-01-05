@@ -6,6 +6,23 @@ using UnityShaderParser.HLSL;
 
 namespace UnityShaderParser.Test
 {
+    // TODO:
+    // 
+    // Statements:
+    //     public class StructDefinitionNode : StatementNode
+    //     public class InterfaceDefinitionNode : StatementNode
+    //     public class TypedefNode : StatementNode
+    //     public class SwitchStatementNode : StatementNode
+    //     public class StatePropertyNode : StatementNode
+    // 
+    // Expressions:
+    //     VisitMethodCallExpressionNode
+    //     VisitCastExpressionNode
+    //     VisitSamplerStateLiteralExpressionNode
+    // 
+    // Semantics support
+    // More test attributes
+
     public class HLSLInterpreter : HLSLSyntaxVisitor
     {
         protected HLSLInterpreterContext context;
