@@ -113,6 +113,14 @@ namespace UnityShaderParser.Test
         }
 
         // Visitor implementation
+        protected override void DefaultVisit(HLSLSyntaxNode node)
+        {
+            if (node is ExpressionNode expr)
+                expressionEvaluator.Visit(expr);
+            else
+                base.DefaultVisit(node);
+        }
+
         public override void VisitVariableDeclarationStatementNode(VariableDeclarationStatementNode node)
         {
             // TODO: Modifiers
@@ -186,6 +194,7 @@ namespace UnityShaderParser.Test
         {
             ScalarValue boolCondValue = EvaluateScalar(node.Condition);
 
+            context.PushScope();
             executionState.PushExecutionMask(ExecutionScope.Conditional);
             for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
             {
@@ -195,16 +204,20 @@ namespace UnityShaderParser.Test
 
             Visit(node.Body);
 
+            context.PopScope();
             executionState.FlipExecutionMask();
+            context.PushScope();
 
             if (node.ElseClause != null)
                 Visit(node.ElseClause);
 
             executionState.PopExecutionMask();
+            context.PopScope();
         }
 
         public override void VisitWhileStatementNode(WhileStatementNode node)
         {
+            context.PushScope();
             executionState.PushExecutionMask(ExecutionScope.Loop);
             bool anyRunning = true;
             while (anyRunning)
@@ -222,8 +235,70 @@ namespace UnityShaderParser.Test
                 }
 
                 Visit(node.Body);
+                executionState.ResumeSuspendedThreadsInLoop();
             }
             executionState.PopExecutionMask();
+            context.PopScope();
+        }
+
+        public override void VisitDoWhileStatementNode(DoWhileStatementNode node)
+        {
+            context.PushScope();
+            executionState.PushExecutionMask(ExecutionScope.Loop);
+            bool anyRunning = true;
+            while (anyRunning)
+            {
+                anyRunning = false;
+
+                Visit(node.Body);
+                executionState.ResumeSuspendedThreadsInLoop();
+
+                ScalarValue boolCondValue = EvaluateScalar(node.Condition);
+
+                for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+                {
+                    bool threadCond = Convert.ToBoolean(boolCondValue.Value.Get(threadIndex));
+                    if (!threadCond)
+                        executionState.DisableThread(threadIndex);
+                    anyRunning |= threadCond;
+                }
+            }
+            executionState.PopExecutionMask();
+            context.PopScope();
+        }
+
+        public override void VisitForStatementNode(ForStatementNode node)
+        {
+            // For loops are weird in HLSL, they declare a variable in outer scope
+            if (node.Declaration != null)
+                Visit(node.Declaration);
+            else if (node.Initializer != null)
+                Visit(node.Initializer);
+
+            context.PushScope();
+            executionState.PushExecutionMask(ExecutionScope.Loop);
+            bool anyRunning = true;
+            while (anyRunning)
+            {
+                anyRunning = false;
+
+                ScalarValue boolCondValue = EvaluateScalar(node.Condition);
+
+                for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+                {
+                    bool threadCond = Convert.ToBoolean(boolCondValue.Value.Get(threadIndex));
+                    if (!threadCond)
+                        executionState.DisableThread(threadIndex);
+                    anyRunning |= threadCond;
+                }
+
+                Visit(node.Body);
+                executionState.ResumeSuspendedThreadsInLoop();
+
+                Visit(node.Increment);
+            }
+            executionState.PopExecutionMask();
+            context.PopScope();
         }
 
         public override void VisitFunctionDefinitionNode(FunctionDefinitionNode node)
@@ -253,6 +328,17 @@ namespace UnityShaderParser.Test
             }
         }
 
+        public override void VisitContinueStatementNode(ContinueStatementNode node)
+        {
+            for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+            {
+                if (executionState.IsThreadActive(threadIndex))
+                {
+                    executionState.SuspendThreadInLoop(threadIndex);
+                }
+            }
+        }
+
         public override void VisitBreakStatementNode(BreakStatementNode node)
         {
             for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
@@ -275,7 +361,9 @@ namespace UnityShaderParser.Test
 
         public override void VisitBlockNode(BlockNode node)
         {
+            context.PushScope();
             VisitMany(node.Statements);
+            context.PopScope();
         }
 
         public override void VisitExpressionStatementNode(ExpressionStatementNode node)

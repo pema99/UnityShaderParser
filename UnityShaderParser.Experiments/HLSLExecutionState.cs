@@ -14,23 +14,25 @@ namespace UnityShaderParser.Test
 
     public class HLSLExecutionState
     {
+        private enum ThreadState : byte
+        {
+            Active,    // Alive
+            Inactive,  // Helper lane or disabled by return, break
+            Suspended, // Disabled by continue
+        }
+
         private int threadsX, threadsY;
-        private Stack<(ExecutionScope scope, bool[] mask)> executionMask;
+        private Stack<(ExecutionScope scope, ThreadState[] mask)> executionMask;
 
         public HLSLExecutionState(int threadsX, int threadsY)
         {
             this.threadsX = threadsX;
             this.threadsY = threadsY;
-            executionMask = new Stack<(ExecutionScope, bool[])>();
+            executionMask = new Stack<(ExecutionScope, ThreadState[])>();
 
-            var initial = new bool[threadsX * threadsY];
-            Array.Fill(initial, true);
+            var initial = new ThreadState[threadsX * threadsY];
+            Array.Fill(initial, ThreadState.Active);
             executionMask.Push((ExecutionScope.Function, initial));
-        }
-
-        public void PushExecutionMask(ExecutionScope scope, bool[] mask)
-        {
-            executionMask.Push((ExecutionScope.Function, mask));
         }
 
         public void PushExecutionMask(ExecutionScope scope)
@@ -47,28 +49,27 @@ namespace UnityShaderParser.Test
         {
             for (int threadIndex = 0; threadIndex < GetThreadCount(); threadIndex++)
             {
-                SetThreadState(threadIndex, !IsThreadActive(threadIndex));
+                var threadState = executionMask.Peek().mask[threadIndex];
+                if (threadState == ThreadState.Active)
+                    DisableThread(threadIndex);
+                else if (threadState == ThreadState.Inactive)
+                    EnableThread(threadIndex);
             }
         }
 
         public bool IsThreadActive(int threadIndex)
         {
-            return executionMask.Peek().mask[threadIndex];
+            return executionMask.Peek().mask[threadIndex] == ThreadState.Active;
         }
 
         public void DisableThread(int threadIndex)
         {
-            executionMask.Peek().mask[threadIndex] = false;
+            executionMask.Peek().mask[threadIndex] = ThreadState.Inactive;
         }
 
         public void EnableThread(int threadIndex)
         {
-            executionMask.Peek().mask[threadIndex] = true;
-        }
-
-        public void SetThreadState(int threadIndex, bool state)
-        {
-            executionMask.Peek().mask[threadIndex] = state;
+            executionMask.Peek().mask[threadIndex] = ThreadState.Active;
         }
 
         // Kill thread for the entire execution, i.e. 'discard'
@@ -76,7 +77,7 @@ namespace UnityShaderParser.Test
         {
             foreach (var level in executionMask)
             {
-                level.mask[threadIndex] = false;
+                level.mask[threadIndex] = ThreadState.Inactive;
             }
         }
 
@@ -85,7 +86,7 @@ namespace UnityShaderParser.Test
         {
             foreach (var level in executionMask)
             {
-                level.mask[threadIndex] = false;
+                level.mask[threadIndex] = ThreadState.Inactive;
                 if (level.scope == ExecutionScope.Function)
                     break;
             }
@@ -96,13 +97,42 @@ namespace UnityShaderParser.Test
         {
             foreach (var level in executionMask)
             {
-                level.mask[threadIndex] = false;
+                level.mask[threadIndex] = ThreadState.Inactive;
                 if (level.scope == ExecutionScope.Loop)
                     break;
             }
         }
 
-        public bool IsUniformExecution() => executionMask.Peek().mask.All(x => x);
+        // Suspend thread for the current loop, i.e. 'continue'
+        public void SuspendThreadInLoop(int threadIndex)
+        {
+            foreach (var level in executionMask)
+            {
+                if (level.mask[threadIndex] == ThreadState.Active)
+                    level.mask[threadIndex] = ThreadState.Suspended;
+
+                if (level.scope == ExecutionScope.Loop)
+                    break;
+            }
+        }
+
+        // Resume previously suspended threads in loop body
+        public void ResumeSuspendedThreadsInLoop()
+        {
+            foreach (var level in executionMask)
+            {
+                for (int threadIndex = 0; threadIndex < GetThreadCount(); threadIndex++)
+                {
+                    if (level.mask[threadIndex] == ThreadState.Suspended)
+                        level.mask[threadIndex] = ThreadState.Active;
+                }
+
+                if (level.scope == ExecutionScope.Loop)
+                    break;
+            }
+        }
+
+        public bool IsUniformExecution() => executionMask.Peek().mask.All(x => x == ThreadState.Active);
         public bool IsVaryingExecution() => !IsUniformExecution();
 
         public int GetThreadIndex(int threadX, int threadY) => threadY * threadsX + threadX;
