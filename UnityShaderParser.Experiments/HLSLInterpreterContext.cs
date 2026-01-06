@@ -75,12 +75,54 @@ namespace UnityShaderParser.Test
             return GetVariable(name) != null;
         }
 
-        public void SetVariable(string name, HLSLValue type)
+        public void SetVariable(string name, HLSLValue val)
         {
             if (environment.Count <= 1)
-                SetGlobalVariable(name, type);
+            {
+                SetGlobalVariable(name, val);
+                return;
+            }
+
+            // Local scope
+            var localScope = environment.Take(environment.Count - 1);
+            foreach (var scope in localScope)
+            {
+                if (scope.TryGetValue(name, out var type))
+                {
+                    scope[name] = val;
+                    return;
+                }
+            }
+
+            // Not in local scope, try global scope
+            var globalScope = environment.Last();
+            if (namespaceStack.Count > 0)
+            {
+                // In a namespace, start with most specific prefix, and try each possible prefix
+                var reverseNamespace = namespaceStack.Reverse().ToArray();
+                for (int i = 0; i < namespaceStack.Count + 1; i++)
+                {
+                    int prefixLength = namespaceStack.Count - i;
+                    string currPrefix = string.Join("::", reverseNamespace.Take(prefixLength));
+                    string qualifiedName = string.IsNullOrEmpty(currPrefix) ? name : $"{currPrefix}::{name}";
+                    if (globalScope.TryGetValue(qualifiedName, out var type))
+                    {
+                        globalScope[name] = val;
+                        return;
+                    }
+                }
+            }
             else
-                environment.Peek()[name] = type;
+            {
+                // No namespace, resolve the name directly
+                if (globalScope.TryGetValue(name, out var type))
+                {
+                    globalScope[name] = val;
+                    return;
+                }
+            }
+
+            environment.Peek()[name] = val;
         }
 
         public void SetGlobalVariable(string name, HLSLValue type)

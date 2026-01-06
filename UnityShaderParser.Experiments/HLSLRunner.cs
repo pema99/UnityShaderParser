@@ -238,7 +238,7 @@ namespace UnityShaderParser.Test
                     }
                     else
                     {
-                        interpreter.CallFunction(testsToRun[i].name);
+                        interpreter.CallFunction(testsToRun[i].name, Array.Empty<object>());
                     }
                     results[i] = new TestResult
                     {
