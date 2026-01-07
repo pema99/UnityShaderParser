@@ -33,6 +33,14 @@ namespace UnityShaderParser.Test
             else
                 return v.BroadcastToVector(1);
         }
+
+        private static MatrixValue CastToMatrix(NumericValue v)
+        {
+            if (v is MatrixValue mat)
+                return mat;
+            else
+                return v.BroadcastToMatrix(1, 1);
+        }
         
         private static NumericValue ToFloatLike(NumericValue value)
         {
@@ -90,10 +98,13 @@ namespace UnityShaderParser.Test
             ["saturate"] = N1(Saturate),
             ["sign"] = N1(Sign),
             ["frac"] = N1(Frac),
+            ["transpose"] = N1(Transpose),
+            ["isnan"] = N1(Isnan),
 
             ["dot"] = N2(Dot),
             ["min"] = N2(Min),
             ["max"] = N2(Max),
+            ["fmod"] = N2(Fmod),
 
             ["lerp"] = N3(Lerp),
             ["clamp"] = N3(Clamp),
@@ -161,6 +172,33 @@ namespace UnityShaderParser.Test
             return Atan(ToFloatLike(y) / x);
         }
         
+        public static NumericValue Select(NumericValue cond, NumericValue a, NumericValue b)
+        {
+            (cond, a) = HLSLValueUtils.Promote(cond, a, false);
+            (a, b) = HLSLValueUtils.Promote(a, b, false);
+
+            return cond.MapThreads((condVal, threadIndex) =>
+            {
+                if (condVal is object[] arr)
+                {
+                    object[] result = new object[arr.Length];
+                    for (int i = 0; i < arr.Length; i++)
+                    {
+                        if (Convert.ToBoolean(arr[i]))
+                            result[i] = ((object[])a.GetThreadValue(threadIndex))[i];
+                        else
+                            result[i] = ((object[])b.GetThreadValue(threadIndex))[i];
+                    }
+                    return result;
+                }
+                
+                if (Convert.ToBoolean(cond.GetThreadValue(threadIndex)))
+                    return a.GetThreadValue(threadIndex);
+                else
+                    return b.GetThreadValue(threadIndex);
+            });
+        }
+        
         public static NumericValue Sqrt(NumericValue x)
         {
             return ToFloatLike(x).Map(val => MathF.Sqrt(Convert.ToSingle(val)));
@@ -205,10 +243,33 @@ namespace UnityShaderParser.Test
         {
             return a * b + c;
         }
+        
+        public static NumericValue Fmod(NumericValue a, NumericValue b)
+        {
+            a = ToFloatLike(a);
+            b = ToFloatLike(b);
+            var c = Frac(Abs(a/b))*Abs(b);
+            return Select(a < 0, -c, c);
+        }
 
         public static NumericValue Frac(NumericValue x)
         {
             return ToFloatLike(x).Map(val => Convert.ToSingle(val) % 1.0f);
+        }
+        
+        public static NumericValue Isnan(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => float.IsNaN(Convert.ToSingle(val))).Cast(ScalarType.Bool);
+        }
+        
+        public static NumericValue Isfinite(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => float.IsFinite(Convert.ToSingle(val))).Cast(ScalarType.Bool);
+        }
+        
+        public static NumericValue Isinf(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => !float.IsFinite(Convert.ToSingle(val))).Cast(ScalarType.Bool);
         }
 
         public static NumericValue Ldexp(NumericValue x, NumericValue exp)
@@ -229,6 +290,102 @@ namespace UnityShaderParser.Test
         public static NumericValue Mad(NumericValue m, NumericValue a, NumericValue b)
         {
             return m * a + b;
+        }
+
+        public static NumericValue Noise(NumericValue x)
+        {
+            return 1; // Not supported since SM2.0
+        }
+        
+        public static NumericValue Pow(NumericValue x, NumericValue y)
+        {
+            x = ToFloatLike(x);
+            y = ToFloatLike(y);
+            (x, y) = HLSLValueUtils.Promote(x, y, false);
+            return HLSLValueUtils.Map2(x, y, (fx, fy) => MathF.Pow(Convert.ToSingle(fx), Convert.ToSingle(fy)));
+        }
+
+        public static NumericValue Radians(NumericValue x)
+        {
+            return x / (180f / MathF.PI);
+        }
+        
+        public static NumericValue Rcp(NumericValue x)
+        {
+            return 1.0f / x;
+        }
+        
+        public static NumericValue Reflect(NumericValue i, NumericValue n)
+        {
+            return i - 2.0f * n * Dot(n,i);
+        }
+
+        public static NumericValue Refract(NumericValue i, NumericValue n, NumericValue eta)
+        {
+            var cosi = Dot(-i, n);
+            var cost2 = 1.0f - eta * eta * (1.0f - cosi*cosi);
+            var t = eta*i + ((eta*cosi - Sqrt(Abs(cost2))) * n);
+            return t * (cost2 > 0);
+        }
+        
+        public static NumericValue Round(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => MathF.Round(Convert.ToSingle(val)));
+        }
+        
+        public static NumericValue Rsqrt(NumericValue x)
+        {
+            return 1.0f / Sqrt(x);
+        }
+        
+        public static NumericValue Sin(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => MathF.Sin(Convert.ToSingle(val)));
+        }
+        
+        public static NumericValue Sinh(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => MathF.Sinh(Convert.ToSingle(val)));
+        }
+        
+        // https://developer.download.nvidia.com/cg/smoothstep.html
+        public static NumericValue Smoothstep(NumericValue a, NumericValue b, NumericValue x)
+        {
+            var t = Saturate((x - a)/(b - a));
+            return t*t*(3.0f - (2.0f*t));
+        }
+        
+        public static NumericValue Tan(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => MathF.Tan(Convert.ToSingle(val)));
+        }
+        
+        public static NumericValue Tanh(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => MathF.Tanh(Convert.ToSingle(val)));
+        }
+
+        public static NumericValue Transpose(NumericValue m)
+        {
+            var mat = CastToMatrix(m);
+            var reg = mat.Values.Map(x =>
+            {
+                object[] values = new object[x.Length];
+                for (int col = 0; col < mat.Columns; col++)
+                {
+                    for (int row = 0; row < mat.Rows; row++)
+                    {
+                        values[row * mat.Columns + col] = x[col * mat.Rows + row];
+                    }
+                }
+                return values;
+            });
+            return new MatrixValue(mat.Type, mat.Columns, mat.Rows, reg);
+        }
+        
+        public static NumericValue Trunc(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => MathF.Truncate(Convert.ToSingle(val)));
         }
         
         public static NumericValue Dot(NumericValue x, NumericValue y)
@@ -381,7 +538,7 @@ namespace UnityShaderParser.Test
             if (val.IsUniform)
                 return val - val;
 
-            return val.MapThreads((laneValue, threadIndex) =>
+            return val.MapThreads((_, threadIndex) =>
             {
                 (int x, int y) = executionState.GetThreadPosition(threadIndex);
                 int offset = (x % 2 == 0) ? 1 : -1;
@@ -397,7 +554,7 @@ namespace UnityShaderParser.Test
             if (val.IsUniform)
                 return val - val;
 
-            return val.MapThreads((laneValue, threadIndex) =>
+            return val.MapThreads((_, threadIndex) =>
             {
                 (int x, int y) = executionState.GetThreadPosition(threadIndex);
                 int offset = (y % 2 == 0) ? 1 : -1;
@@ -413,7 +570,7 @@ namespace UnityShaderParser.Test
             if (val.IsUniform)
                 return val - val;
 
-            return val.MapThreads((laneValue, threadIndex) =>
+            return val.MapThreads((_, threadIndex) =>
             {
                 (int x, int y) = executionState.GetThreadPosition(threadIndex);
                 y -= (y & 1);
@@ -431,7 +588,7 @@ namespace UnityShaderParser.Test
             if (val.IsUniform)
                 return val - val;
 
-            return val.MapThreads((laneValue, threadIndex) =>
+            return val.MapThreads((_, threadIndex) =>
             {
                 (int x, int y) = executionState.GetThreadPosition(threadIndex);
                 x -= (x & 1);

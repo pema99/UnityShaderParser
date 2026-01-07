@@ -475,7 +475,7 @@ namespace UnityShaderParser.Test
         public string ToString(int threadIndex)
         {
             string type = PrintingUtil.GetEnumName(Type);
-            return $"{type}{Rows}{Columns}({string.Join(", ", Values.Get(threadIndex).Select(x => Convert.ToString(x, CultureInfo.InvariantCulture)))})"; // TODO: not thread 0
+            return $"{type}{Rows}x{Columns}({string.Join(", ", Values.Get(threadIndex).Select(x => Convert.ToString(x, CultureInfo.InvariantCulture)))})"; // TODO: not thread 0
         }
     }
 
