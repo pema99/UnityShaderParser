@@ -22,6 +22,7 @@ namespace UnityShaderParser.Test
     // 
     // Semantics support
     // More test attributes
+    // Out/Inout parameters
 
     public class HLSLInterpreter : HLSLSyntaxVisitor
     {
