@@ -90,24 +90,118 @@ namespace UnityShaderParser.Test
 
         private static readonly Dictionary<string, (int arity, BasicIntrinsic fn)> basicIntrinsics = new Dictionary<string, (int arity, BasicIntrinsic fn)>()
         {
+            //abort
             ["abs"] = N1(Abs),
+            ["acos"] = N1(Acos),
+            //all
+            //AllMemoryBarrier
+            //AllMemoryBarrierWithGroupSync
+            //any
+            //asdouble
+            //asfloat
+            ["asin"] = N1(Asin),
+            //asint
+            //asuint
+            ["atan"] = N1(Atan),
+            ["atan2"] = N2(Atan2),
+            ["ceil"] = N1(Ceil),
+            // CheckAccessFullyMapped
+            ["clamp"] = N3(Clamp),
+            //clip
+            //cos
+            //cosh
+            //countbits
+            //cross
+            //D3DCOLORtoUBYTE4
+            ["degrees"] = N1(Degrees),
+            //determinant
+            //DeviceMemoryBarrier
+            //DeviceMemoryBarrierWithGroupSync
+            ["distance"] = N2(Distance),
+            ["dot"] = N2(Dot),
+            //dst
+            //errorf
+            //EvaluateAttributeCentroid
+            //EvaluateAttributeAtSample
+            //EvaluateAttributeSnapped
             ["exp"] = N1(Exp),
-            ["sqrt"] = N1(Sqrt),
+            ["exp2"] = N1(Exp2),
+            //f16tof32
+            //f32tof16
+            ["faceforward"] = N3(Faceforward),
+            //firstbithigh
+            //firstbitlow
+            ["floor"] = N1(Floor),
+            ["fma"] = N3(Fma),
+            ["fmod"] = N2(Fmod),
+            ["frac"] = N1(Frac),
+            //frexp
+            //GetRenderTargetSampleCount
+            //GetRenderTargetSamplePosition
+            //GroupMemoryBarrier
+            //GroupMemoryBarrierWithGroupSync
+            //InterlockedAdd
+            //InterlockedAnd
+            //InterlockedCompareExchange
+            //InterlockedCompareStore
+            //InterlockedExchange
+            //InterlockedMax
+            //InterlockedMin
+            //InterlockedOr
+            //InterlockedXor
+            ["isfinite"] = N1(Isfinite),
+            ["isinf"] = N1(Isinf),
+            ["isnan"] = N1(Isnan),
+            ["ldexp"] = N2(Ldexp),
             ["length"] = N1(Length),
+            ["lerp"] = N3(Lerp),
+            //lit
+            ["log"] = N1(Log),
+            //log10
+            ["log2"] = N1(Log2),
+            ["mad"] = N3(Mad),
+            ["max"] = N2(Max),
+            ["min"] = N2(Min),
+            //modf
+            //msad4
+            //mul
+            ["noise"] = N1(Noise),
             ["normalize"] = N1(Normalize),
+            ["pow"] = N2(Pow),
+            //Process2DQuadTessFactorsAvg
+            //Process2DQuadTessFactorsMax
+            //Process2DQuadTessFactorsMin
+            //ProcessIsolineTessFactors
+            //ProcessQuadTessFactorsAvg
+            //ProcessQuadTessFactorsMax
+            //ProcessQuadTessFactorsMin
+            //ProcessTriTessFactorsAvg
+            //ProcessTriTessFactorsMax
+            //ProcessTriTessFactorsMin
+            ["radians"] = N1(Radians),
+            ["rcp"] = N1(Rcp),
+            ["reflect"] = N2(Reflect),
+            ["refract"] = N3(Refract),
+            //reversebits
+            ["round"] = N1(Round),
+            ["rsqrt"] = N1(Rsqrt),
             ["saturate"] = N1(Saturate),
             ["sign"] = N1(Sign),
-            ["frac"] = N1(Frac),
+            ["sin"] = N1(Sin),
+            //sincos
+            ["sinh"] = N1(Sinh),
+            ["smoothstep"] = N3(Smoothstep),
+            ["sqrt"] = N1(Sqrt),
+            //step
+            ["tan"] = N1(Tan),
+            ["tanh"] = N1(Tanh),
+            //tex1/2/3D/CUBE
+            //tex1/2/3D/CUBEbias
+            //tex1/2/3D/CUBEgrad
+            //tex1/2/3D/CUBElod
+            //tex1/2/3D/CUBEproj
             ["transpose"] = N1(Transpose),
-            ["isnan"] = N1(Isnan),
-
-            ["dot"] = N2(Dot),
-            ["min"] = N2(Min),
-            ["max"] = N2(Max),
-            ["fmod"] = N2(Fmod),
-
-            ["lerp"] = N3(Lerp),
-            ["clamp"] = N3(Clamp),
+            ["trunc"] = N1(Trunc),
         };
 
         public static bool TryInvokeIntrinsic(string name, HLSLValue[] args, out HLSLValue result)
@@ -222,6 +316,11 @@ namespace UnityShaderParser.Test
         public static NumericValue Degrees(NumericValue x)
         {
             return x * (180f / MathF.PI);
+        }
+        
+        public static NumericValue Distance(NumericValue x, NumericValue y)
+        {
+            return Length(y - x);
         }
         
         public static NumericValue Sign(NumericValue x)
