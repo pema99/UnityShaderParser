@@ -23,15 +23,18 @@ namespace UnityShaderParser.Test
             environment.Pop();
         }
 
-        public HLSLValue GetVariable(string name)
+        private bool TryFindVariable(string name, out Dictionary<string, HLSLValue> resolvedScope, out string resolvedName, out HLSLValue resolvedValue)
         {
             // Local scope
             var localScope = environment.Take(environment.Count - 1);
             foreach (var scope in localScope)
             {
-                if (scope.TryGetValue(name, out var type))
+                if (scope.TryGetValue(name, out var val))
                 {
-                    return type;
+                    resolvedScope = scope;
+                    resolvedName = name;
+                    resolvedValue = val;
+                    return true;
                 }
             }
 
@@ -46,62 +49,43 @@ namespace UnityShaderParser.Test
                     int prefixLength = namespaceStack.Count - i;
                     string currPrefix = string.Join("::", reverseNamespace.Take(prefixLength));
                     string qualifiedName = string.IsNullOrEmpty(currPrefix) ? name : $"{currPrefix}::{name}";
-                    if (globalScope.TryGetValue(qualifiedName, out var type))
+                    if (globalScope.TryGetValue(qualifiedName, out var val))
                     {
-                        return type;
+                        resolvedScope = globalScope;
+                        resolvedName = qualifiedName;
+                        resolvedValue = val;
+                        return true;
                     }
                 }
             }
             else
             {
                 // No namespace, resolve the name directly
-                if (globalScope.TryGetValue(name, out var type))
+                if (globalScope.TryGetValue(name, out var val))
                 {
-                    return type;
+                    resolvedScope = globalScope;
+                    resolvedName = name;
+                    resolvedValue = val;
+                    return true;
                 }
             }
 
-            return null;
+            resolvedScope = null;
+            resolvedName = null;
+            resolvedValue = null;
+            return false;
+        }
+        
+        public HLSLValue GetVariable(string name)
+        {
+            TryFindVariable(name, out _, out _, out HLSLValue value);
+            return value;
         }
 
         public ReferenceValue GetReference(string name)
         {
-            // Local scope
-            var localScope = environment.Take(environment.Count - 1);
-            foreach (var scope in localScope)
-            {
-                if (scope.TryGetValue(name, out _))
-                {
-                    return new ReferenceValue(() => scope[name], val => scope[name] = val);
-                }
-            }
-
-            // Not in local scope, try global scope
-            var globalScope = environment.Last();
-            if (namespaceStack.Count > 0)
-            {
-                // In a namespace, start with most specific prefix, and try each possible prefix
-                var reverseNamespace = namespaceStack.Reverse().ToArray();
-                for (int i = 0; i < namespaceStack.Count + 1; i++)
-                {
-                    int prefixLength = namespaceStack.Count - i;
-                    string currPrefix = string.Join("::", reverseNamespace.Take(prefixLength));
-                    string qualifiedName = string.IsNullOrEmpty(currPrefix) ? name : $"{currPrefix}::{name}";
-                    if (globalScope.TryGetValue(qualifiedName, out _))
-                    {
-                        return new ReferenceValue(() => globalScope[qualifiedName], val => globalScope[qualifiedName] = val);
-                    }
-                }
-            }
-            else
-            {
-                // No namespace, resolve the name directly
-                if (globalScope.TryGetValue(name, out _))
-                {
-                    return new ReferenceValue(() => globalScope[name], val => globalScope[name] = val);
-                }
-            }
-
+            if (TryFindVariable(name, out var scope, out var resolvedName, out _))
+                return new ReferenceValue(() => scope[resolvedName], val => scope[resolvedName] = val);
             return null;
         }
 
@@ -124,43 +108,10 @@ namespace UnityShaderParser.Test
                 return;
             }
 
-            // Local scope
-            var localScope = environment.Take(environment.Count - 1);
-            foreach (var scope in localScope)
+            if (TryFindVariable(name, out var scope, out var resolvedName, out _))
             {
-                if (scope.TryGetValue(name, out _))
-                {
-                    scope[name] = val;
-                    return;
-                }
-            }
-
-            // Not in local scope, try global scope
-            var globalScope = environment.Last();
-            if (namespaceStack.Count > 0)
-            {
-                // In a namespace, start with most specific prefix, and try each possible prefix
-                var reverseNamespace = namespaceStack.Reverse().ToArray();
-                for (int i = 0; i < namespaceStack.Count + 1; i++)
-                {
-                    int prefixLength = namespaceStack.Count - i;
-                    string currPrefix = string.Join("::", reverseNamespace.Take(prefixLength));
-                    string qualifiedName = string.IsNullOrEmpty(currPrefix) ? name : $"{currPrefix}::{name}";
-                    if (globalScope.TryGetValue(qualifiedName, out _))
-                    {
-                        globalScope[qualifiedName] = val;
-                        return;
-                    }
-                }
-            }
-            else
-            {
-                // No namespace, resolve the name directly
-                if (globalScope.TryGetValue(name, out _))
-                {
-                    globalScope[name] = val;
-                    return;
-                }
+                scope[resolvedName] = val;
+                return;
             }
 
             environment.Peek()[name] = val;

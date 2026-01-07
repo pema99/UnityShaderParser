@@ -127,6 +127,7 @@ namespace UnityShaderParser.Test
         public bool IsVarying => !IsUniform;
     }
     
+    // Reference to another value, i.e. refcell (in/inout)
     public class ReferenceValue : HLSLValue
     {
         public readonly Func<HLSLValue> Get;
