@@ -126,6 +126,23 @@ namespace UnityShaderParser.Test
         public abstract bool IsUniform { get; }
         public bool IsVarying => !IsUniform;
     }
+    
+    public class ReferenceValue : HLSLValue
+    {
+        public readonly Func<HLSLValue> Get;
+        public readonly Action<HLSLValue> Set;
+
+        public override int ThreadCount => Get().ThreadCount;
+        public override bool IsUniform => Get().IsUniform;
+
+        public ReferenceValue(Func<HLSLValue> get, Action<HLSLValue> set)
+        {
+            Get = get;
+            Set = set;
+        }
+
+        public override string ToString() => $"Ref({Get()})";
+    }
 
     // TODO: Use a union over "object" to avoid boxing of every individual value.
     public abstract class NumericValue : HLSLValue

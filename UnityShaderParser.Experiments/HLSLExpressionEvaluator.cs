@@ -28,6 +28,30 @@ namespace UnityShaderParser.Test
 
         public HLSLValue CallFunction(string name, params HLSLValue[] args)
         {
+            FunctionDefinitionNode func = context.GetFunction(name, args);
+            if (func != null)
+            {
+                if (args.Length != func.Parameters.Count)
+                    throw Error($"Argument count mismatch in call to '{name}'.");
+
+                context.PushScope();
+                context.PushReturn();
+                executionState.PushExecutionMask(ExecutionScope.Function);
+
+                for (int i = 0; i < func.Parameters.Count; i++)
+                {
+                    var param = func.Parameters[i];
+                    var declarator = param.Declarator;
+                    context.SetVariable(declarator.Name, args[i]);
+                }
+                interpreter.Visit(func.Body);
+
+                executionState.PopExecutionMask();
+                context.PopScope();
+                
+                return context.PopReturn();
+            }
+            
             // Try to invoke basic intrinsics
             if (HLSLIntrinsics.TryInvokeIntrinsic(name, args, out HLSLValue result))
                 return result;
@@ -53,30 +77,6 @@ namespace UnityShaderParser.Test
                     return HLSLIntrinsics.DdyFine(executionState, (NumericValue)args[0]);
                 default:
                     break;
-            }
-
-            FunctionDefinitionNode func = context.GetFunction(name, args);
-            if (func != null)
-            {
-                if (args.Length != func.Parameters.Count)
-                    throw Error($"Argument count mismatch in call to '{name}'.");
-
-                context.PushScope();
-                context.PushReturn();
-                executionState.PushExecutionMask(ExecutionScope.Function);
-
-                for (int i = 0; i < func.Parameters.Count; i++)
-                {
-                    var param = func.Parameters[i];
-                    var declarator = param.Declarator;
-                    context.SetVariable(declarator.Name, args[i]);
-                }
-                interpreter.Visit(func.Body);
-
-                executionState.PopExecutionMask();
-                context.PopScope();
-                
-                return context.PopReturn();
             }
 
             throw Error($"Unknown function '{name}' called.");
@@ -132,17 +132,31 @@ namespace UnityShaderParser.Test
         public override HLSLValue VisitQualifiedIdentifierExpressionNode(QualifiedIdentifierExpressionNode node)
         {
             if (context.TryGetVariable(node.GetName(), out var variable))
-                return variable;
+            {
+                if (variable is ReferenceValue reference)
+                    return reference.Get();
+                else
+                    return variable;
+            }
             else
+            {
                 throw Error(node, $"Use of unknown variable '{node.GetName()}'.");
+            }
         }
         
         public override HLSLValue VisitIdentifierExpressionNode(IdentifierExpressionNode node)
         {
             if (context.TryGetVariable(node.GetName(), out var variable))
-                return variable;
+            {
+                if (variable is ReferenceValue reference)
+                    return reference.Get();
+                else
+                    return variable;
+            }
             else
+            {
                 throw Error(node, $"Use of unknown variable '{node.GetName()}'.");
+            }
         }
         
         public override HLSLValue VisitLiteralExpressionNode(LiteralExpressionNode node)
@@ -187,7 +201,16 @@ namespace UnityShaderParser.Test
             {
                 if (node.Left is NamedExpressionNode named)
                 {
-                    context.SetVariable(named.GetName(), value);
+                    string name = named.GetName();
+                    if (context.TryGetVariable(name, out var variable) &&
+                        variable is ReferenceValue reference)
+                    {
+                        reference.Set(value);
+                    }
+                    else
+                    {
+                        context.SetVariable(name, value);
+                    }
                     return value;
                 }
                 else if (node.Left is ElementAccessExpressionNode elem && elem.Target is NamedExpressionNode arr)
@@ -349,6 +372,24 @@ namespace UnityShaderParser.Test
             string name = node.Name.GetName();
             if (callbacks.ContainsKey(name))
                 return callbacks[name](node.Arguments.ToArray());
+            
+            // Handle out/inout parameters
+            FunctionDefinitionNode func = context.GetFunction(name, args);
+            if (func != null)
+            {
+                for (int i = 0; i < func.Parameters.Count; i++)
+                {
+                    if (func.Parameters[i].Modifiers.Contains(BindingModifier.Inout) ||
+                        func.Parameters[i].Modifiers.Contains(BindingModifier.Out))
+                    {
+                        // TODO: Other kinds of Lvalues
+                        if (node.Arguments[i] is NamedExpressionNode named)
+                        {
+                            args[i] = context.GetReference(named.GetName());
+                        }
+                    }
+                }
+            }
 
             return CallFunction(name, args);
         }

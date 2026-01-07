@@ -28,6 +28,8 @@ int testReturn()
     return 2;
 }
 
+void foo(inout float f) {f += 3;}
+
 [Test]
 void main()
 {    
@@ -60,4 +62,9 @@ void main()
 
     // Function calls
     printf("Func call: %d", add(laneIndex, 2));
+
+    // Inout
+    float aa = 2;
+    foo(aa);
+    printf("%d", aa);
 }

@@ -64,6 +64,47 @@ namespace UnityShaderParser.Test
             return null;
         }
 
+        public ReferenceValue GetReference(string name)
+        {
+            // Local scope
+            var localScope = environment.Take(environment.Count - 1);
+            foreach (var scope in localScope)
+            {
+                if (scope.TryGetValue(name, out _))
+                {
+                    return new ReferenceValue(() => scope[name], val => scope[name] = val);
+                }
+            }
+
+            // Not in local scope, try global scope
+            var globalScope = environment.Last();
+            if (namespaceStack.Count > 0)
+            {
+                // In a namespace, start with most specific prefix, and try each possible prefix
+                var reverseNamespace = namespaceStack.Reverse().ToArray();
+                for (int i = 0; i < namespaceStack.Count + 1; i++)
+                {
+                    int prefixLength = namespaceStack.Count - i;
+                    string currPrefix = string.Join("::", reverseNamespace.Take(prefixLength));
+                    string qualifiedName = string.IsNullOrEmpty(currPrefix) ? name : $"{currPrefix}::{name}";
+                    if (globalScope.TryGetValue(qualifiedName, out _))
+                    {
+                        return new ReferenceValue(() => globalScope[qualifiedName], val => globalScope[qualifiedName] = val);
+                    }
+                }
+            }
+            else
+            {
+                // No namespace, resolve the name directly
+                if (globalScope.TryGetValue(name, out _))
+                {
+                    return new ReferenceValue(() => globalScope[name], val => globalScope[name] = val);
+                }
+            }
+
+            return null;
+        }
+
         public bool TryGetVariable(string name, out HLSLValue variable)
         {
             variable = GetVariable(name);
@@ -87,7 +128,7 @@ namespace UnityShaderParser.Test
             var localScope = environment.Take(environment.Count - 1);
             foreach (var scope in localScope)
             {
-                if (scope.TryGetValue(name, out var type))
+                if (scope.TryGetValue(name, out _))
                 {
                     scope[name] = val;
                     return;
@@ -105,9 +146,9 @@ namespace UnityShaderParser.Test
                     int prefixLength = namespaceStack.Count - i;
                     string currPrefix = string.Join("::", reverseNamespace.Take(prefixLength));
                     string qualifiedName = string.IsNullOrEmpty(currPrefix) ? name : $"{currPrefix}::{name}";
-                    if (globalScope.TryGetValue(qualifiedName, out var type))
+                    if (globalScope.TryGetValue(qualifiedName, out _))
                     {
-                        globalScope[name] = val;
+                        globalScope[qualifiedName] = val;
                         return;
                     }
                 }
@@ -115,7 +156,7 @@ namespace UnityShaderParser.Test
             else
             {
                 // No namespace, resolve the name directly
-                if (globalScope.TryGetValue(name, out var type))
+                if (globalScope.TryGetValue(name, out _))
                 {
                     globalScope[name] = val;
                     return;
