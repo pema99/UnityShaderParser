@@ -25,6 +25,7 @@ namespace UnityShaderParser.Test
                     throw new ArgumentException($"Expected argument in position '{i}' to builtin '{name}' to be a numeric value.");
             }
         }
+        
         private static VectorValue CastToVector(NumericValue v)
         {
             if (v is VectorValue vec)
@@ -32,6 +33,14 @@ namespace UnityShaderParser.Test
             else
                 return v.BroadcastToVector(1);
         }
+        
+        private static NumericValue ToFloatLike(NumericValue value)
+        {
+            if (HLSLValueUtils.IsFloat(value.Type))
+                return value;
+            return value.Cast(ScalarType.Float);
+        }
+        
         private static object Min(object left, object right)
         {
             switch (left)
@@ -103,13 +112,6 @@ namespace UnityShaderParser.Test
 
             result = entry.fn(args);
             return true;
-        }
-
-        private static NumericValue ToFloatLike(NumericValue value)
-        {
-            if (HLSLValueUtils.IsFloat(value.Type))
-                return value;
-            return value.Cast(ScalarType.Float);
         }
 
         // https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-lerp
@@ -300,7 +302,7 @@ namespace UnityShaderParser.Test
 
         public static NumericValue Saturate(NumericValue x)
         {
-            return Clamp(x, 0, 1);
+            return Clamp(x, 0f, 1f);
         }
         #endregion
 
