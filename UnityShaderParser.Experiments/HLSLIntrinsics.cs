@@ -73,11 +73,14 @@ namespace UnityShaderParser.Test
 
         private static readonly Dictionary<string, (int arity, BasicIntrinsic fn)> basicIntrinsics = new Dictionary<string, (int arity, BasicIntrinsic fn)>()
         {
+            ["abs"] = N1(Abs),
             ["exp"] = N1(Exp),
             ["sqrt"] = N1(Sqrt),
             ["length"] = N1(Length),
             ["normalize"] = N1(Normalize),
             ["saturate"] = N1(Saturate),
+            ["sign"] = N1(Sign),
+            ["frac"] = N1(Frac),
 
             ["dot"] = N2(Dot),
             ["min"] = N2(Min),
@@ -102,24 +105,130 @@ namespace UnityShaderParser.Test
             return true;
         }
 
+        private static NumericValue ToFloatLike(NumericValue value)
+        {
+            if (HLSLValueUtils.IsFloat(value.Type))
+                return value;
+            return value.Cast(ScalarType.Float);
+        }
+
         // https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-lerp
         public static NumericValue Lerp(NumericValue x, NumericValue y, NumericValue s)
         {
             return x * (1 - s) + y * s;
         }
-
+        
         public static NumericValue Exp(NumericValue x)
         {
-            var casted = x.Cast(ScalarType.Float);
-            return casted.Map(val => Math.Exp((float)val));
+            return ToFloatLike(x).Map(val => MathF.Exp(Convert.ToSingle(val)));
+        }
+        
+        public static NumericValue Exp2(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => MathF.Pow(2.0f, Convert.ToSingle(val)));
         }
 
+        public static NumericValue Abs(NumericValue x)
+        {
+            if (HLSLValueUtils.IsInt(x.Type))
+                return x.Map(val => Math.Abs(Convert.ToInt32(val)));
+
+            if (HLSLValueUtils.IsUint(x.Type))
+                return x;
+
+            return x.Map(val => Math.Abs(Convert.ToSingle(val)));
+        }
+        
+        public static NumericValue Acos(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => MathF.Acos(Convert.ToSingle(val)));
+        }
+        
+        public static NumericValue Asin(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => MathF.Asin(Convert.ToSingle(val)));
+        }
+
+        public static NumericValue Atan(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => MathF.Asin(Convert.ToSingle(val)));
+        }
+        
+        public static NumericValue Atan2(NumericValue y, NumericValue x)
+        {
+            return Atan(ToFloatLike(y) / x);
+        }
+        
         public static NumericValue Sqrt(NumericValue x)
         {
-            var casted = x.Cast(ScalarType.Float);
-            return casted.Map(val => Math.Sqrt((float)val));
+            return ToFloatLike(x).Map(val => MathF.Sqrt(Convert.ToSingle(val)));
+        }
+        
+        public static NumericValue Ceil(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => MathF.Sqrt(Convert.ToSingle(val)));
+        }
+        
+        public static NumericValue Cos(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => MathF.Cos(Convert.ToSingle(val)));
+        }
+        
+        public static NumericValue Cosh(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => MathF.Cosh(Convert.ToSingle(val)));
+        }
+        
+        public static NumericValue Degrees(NumericValue x)
+        {
+            return x * (180f / MathF.PI);
+        }
+        
+        public static NumericValue Sign(NumericValue x)
+        {
+            return Lerp(-1, 1, Saturate(x)).Cast(ScalarType.Int);
         }
 
+        public static NumericValue Faceforward(NumericValue n, NumericValue i, NumericValue ng)
+        {
+            return -n * Sign(Dot(i, ng));
+        }
+
+        public static NumericValue Floor(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => MathF.Floor(Convert.ToSingle(val)));
+        }
+
+        public static NumericValue Fma(NumericValue a, NumericValue b, NumericValue c)
+        {
+            return a * b + c;
+        }
+
+        public static NumericValue Frac(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => Convert.ToSingle(val) % 1.0f);
+        }
+
+        public static NumericValue Ldexp(NumericValue x, NumericValue exp)
+        {
+            return x * Exp2(exp);
+        }
+        
+        public static NumericValue Log(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => MathF.Log(Convert.ToSingle(val)));
+        }
+        
+        public static NumericValue Log2(NumericValue x)
+        {
+            return ToFloatLike(x).Map(val => MathF.Log(Convert.ToSingle(val)) / MathF.Log(2));
+        }
+
+        public static NumericValue Mad(NumericValue m, NumericValue a, NumericValue b)
+        {
+            return m * a + b;
+        }
+        
         public static NumericValue Dot(NumericValue x, NumericValue y)
         {
             (x, y) = HLSLValueUtils.Promote(x, y, false);
@@ -332,6 +441,10 @@ namespace UnityShaderParser.Test
                 return ((other - me) * offset).GetThreadValue(0);
             });
         }
+
+        public static NumericValue Fwidth(HLSLExecutionState executionState, NumericValue val) =>
+            Abs(Ddx(executionState, val)) + Abs(Ddy(executionState, val));
+
         #endregion
     }
 }
