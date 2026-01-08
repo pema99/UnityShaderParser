@@ -12,7 +12,6 @@ namespace UnityShaderParser.Test
     //     public class StructDefinitionNode : StatementNode
     //     public class InterfaceDefinitionNode : StatementNode
     //     public class TypedefNode : StatementNode
-    //     public class SwitchStatementNode : StatementNode
     //     public class StatePropertyNode : StatementNode
     // 
     // Expressions:
@@ -228,6 +227,70 @@ namespace UnityShaderParser.Test
 
             if (node.ElseClause != null)
                 Visit(node.ElseClause);
+
+            executionState.PopExecutionMask();
+            context.PopScope();
+        }
+
+        public override void VisitSwitchStatementNode(SwitchStatementNode node)
+        {
+            NumericValue expr = EvaluateNumeric(node.Expression);
+            context.PushScope();
+            executionState.PushExecutionMask(ExecutionScope.Conditional);
+
+            foreach (var clause in node.Clauses)
+            {
+                executionState.PushExecutionMask(ExecutionScope.Block);
+
+                // For each thread, check if a label matches
+                bool[] pass = new bool[executionState.GetThreadCount()];
+                foreach (var label in clause.Labels)
+                {
+                    if (label is SwitchDefaultLabelNode)
+                    {
+                        // Default matches everything
+                        Array.Fill(pass, true);
+                    }
+                    else if (label is SwitchCaseLabelNode caseLabel)
+                    {
+                        // Do comparison for each thread
+                        var labelValue = EvaluateNumeric(caseLabel.Value);
+                        var cond = labelValue == expr;
+                        
+                        for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+                        {
+                            var boolCondValue = cond.GetThreadValue(threadIndex);
+                            if (cond is ScalarValue sv)
+                                pass[threadIndex] |= Convert.ToBoolean(boolCondValue);
+                            else
+                                pass[threadIndex] |= boolCondValue is object[] components && components.All(x => Convert.ToBoolean(x));
+                        }
+                    }
+                }
+
+                // Disable all threads which didn't pass
+                for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+                {
+                    if (!pass[threadIndex])
+                        executionState.DisableThread(threadIndex);
+                }
+
+                // Run body
+                foreach (var stmt in clause.Statements)
+                {
+                    if (stmt is BreakStatementNode)
+                        break;
+                    Visit(stmt);
+                }
+
+                // Disable all threads that passed for the rest of the switch statement
+                for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+                {
+                    if (pass[threadIndex])
+                        executionState.KillThreadInConditional(threadIndex);
+                }
+                executionState.PopExecutionMask();
+            }
 
             executionState.PopExecutionMask();
             context.PopScope();

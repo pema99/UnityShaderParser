@@ -10,6 +10,7 @@ namespace UnityShaderParser.Test
         Function,
         Conditional,
         Loop,
+        Block,
     }
 
     public class HLSLExecutionState
@@ -99,6 +100,17 @@ namespace UnityShaderParser.Test
             {
                 level.mask[threadIndex] = ThreadState.Inactive;
                 if (level.scope == ExecutionScope.Loop)
+                    break;
+            }
+        }
+
+        // Kill thread for the current conditional, used for switch statements
+        public void KillThreadInConditional(int threadIndex)
+        {
+            foreach (var level in executionMask)
+            {
+                level.mask[threadIndex] = ThreadState.Inactive;
+                if (level.scope == ExecutionScope.Conditional)
                     break;
             }
         }
