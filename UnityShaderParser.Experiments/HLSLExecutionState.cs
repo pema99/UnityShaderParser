@@ -82,38 +82,25 @@ namespace UnityShaderParser.Test
             }
         }
 
-        // Kill thread for the current function, i.e. 'return'
-        public void KillThreadInFunction(int threadIndex)
+        // Kill a thread in all scopes until a specific scope type is reached
+        public void KillThreadUntilScope(int threadIndex, ExecutionScope scope)
         {
             foreach (var level in executionMask)
             {
                 level.mask[threadIndex] = ThreadState.Inactive;
-                if (level.scope == ExecutionScope.Function)
+                if (level.scope == scope)
                     break;
             }
         }
+
+        // Kill thread for the current function, i.e. 'return'
+        public void KillThreadInFunction(int threadIndex) => KillThreadUntilScope(threadIndex, ExecutionScope.Function);
 
         // Kill thread for the current loop, i.e. 'break'
-        public void KillThreadInLoop(int threadIndex)
-        {
-            foreach (var level in executionMask)
-            {
-                level.mask[threadIndex] = ThreadState.Inactive;
-                if (level.scope == ExecutionScope.Loop)
-                    break;
-            }
-        }
+        public void KillThreadInLoop(int threadIndex) => KillThreadUntilScope(threadIndex, ExecutionScope.Loop);
 
         // Kill thread for the current conditional, used for switch statements
-        public void KillThreadInConditional(int threadIndex)
-        {
-            foreach (var level in executionMask)
-            {
-                level.mask[threadIndex] = ThreadState.Inactive;
-                if (level.scope == ExecutionScope.Conditional)
-                    break;
-            }
-        }
+        public void KillThreadInConditional(int threadIndex) => KillThreadUntilScope(threadIndex, ExecutionScope.Conditional);
 
         // Suspend thread for the current loop, i.e. 'continue'
         public void SuspendThreadInLoop(int threadIndex)
