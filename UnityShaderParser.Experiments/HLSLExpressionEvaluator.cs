@@ -7,6 +7,7 @@ using UnityShaderParser.HLSL;
 
 namespace UnityShaderParser.Test
 {
+    // TODO: Put this functionality as recursive functions in interpreter rather than using SyntaxVisitor
     public class HLSLExpressionEvaluator : HLSLSyntaxVisitor<HLSLValue>
     {
         protected HLSLInterpreter interpreter;
@@ -83,12 +84,12 @@ namespace UnityShaderParser.Test
         }
 
         // Helpers
-        private Exception Error(HLSLSyntaxNode node, string message)
+        private static Exception Error(HLSLSyntaxNode node, string message)
         {
             return new Exception($"Error at line {node.Span.Start.Line}, column {node.Span.Start.Column}: {message}");
         }
 
-        private Exception Error(string message)
+        private static Exception Error(string message)
         {
             return new Exception($"Error: {message}");
         }
@@ -196,7 +197,11 @@ namespace UnityShaderParser.Test
         {
             var left = Visit(node.Left);
             var right = Visit(node.Right);
+            right = HLSLValueUtils.CastForAssignment(left, right);
 
+            // TODO: Inout/Out array
+            // TODO: Inout/Out struct
+            // TODO: Handle stuff like `(a) = 3;`
             HLSLValue SetValue(HLSLValue value)
             {
                 if (node.Left is NamedExpressionNode named)
@@ -211,6 +216,14 @@ namespace UnityShaderParser.Test
                     {
                         context.SetVariable(name, value);
                     }
+                    return value;
+                }
+                else if (node.Left is FieldAccessExpressionNode fieldAccess && fieldAccess.Target is NamedExpressionNode namedTarget)
+                {
+                    string name = namedTarget.GetName();
+                    var targetVar = context.GetVariable(name);
+                    if (targetVar is StructValue structVal)
+                        structVal.Members[fieldAccess.Name.Identifier] = value;
                     return value;
                 }
                 else if (node.Left is ElementAccessExpressionNode elem && elem.Target is NamedExpressionNode arr)
@@ -249,7 +262,7 @@ namespace UnityShaderParser.Test
             switch (node.Operator)
             {
                 case OperatorKind.Assignment:
-                    return SetValue(right);
+                    return SetValue(right.Copy());
                 case OperatorKind.PlusAssignment:
                     return SetValue(leftNum + rightNum);
                 case OperatorKind.MinusAssignment:
@@ -355,7 +368,10 @@ namespace UnityShaderParser.Test
         
         public override HLSLValue VisitFieldAccessExpressionNode(FieldAccessExpressionNode node)
         {
+            // TODO: Swizzle
             var target = Visit(node.Target) as StructValue;
+            if (target == null)
+                Error(node.Target, "Expected a struct type for field access.");
             return target.Members[node.Name];
         }
         

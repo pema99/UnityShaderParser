@@ -33,6 +33,19 @@ namespace UnityShaderParser.Test
             IsVarying = true;
         }
 
+        public HLSLRegister<T> Copy()
+        {
+            if (IsVarying)
+            {
+                T[] input = VaryingValues;
+                return new HLSLRegister<T>(input.ToArray());
+            }
+            else
+            {
+                return new HLSLRegister<T>(UniformValue);
+            }
+        }
+
         public HLSLRegister<U> Map<U>(Func<T, U> mapper)
         {
             if (IsVarying)
@@ -125,6 +138,8 @@ namespace UnityShaderParser.Test
         public abstract int ThreadCount { get; }
         public abstract bool IsUniform { get; }
         public bool IsVarying => !IsUniform;
+
+        public abstract HLSLValue Copy();
     }
     
     // Reference to another value, i.e. refcell (in/inout)
@@ -135,6 +150,11 @@ namespace UnityShaderParser.Test
 
         public override int ThreadCount => Get().ThreadCount;
         public override bool IsUniform => Get().IsUniform;
+
+        public override HLSLValue Copy()
+        {
+            return new ReferenceValue(Get, Set);
+        }
 
         public ReferenceValue(Func<HLSLValue> get, Action<HLSLValue> set)
         {
@@ -196,23 +216,33 @@ namespace UnityShaderParser.Test
 
     public sealed class StructValue : HLSLValue
     {
-        public readonly string Name;
+        public readonly StructTypeNode Type;
         public readonly Dictionary<string, HLSLValue> Members;
 
-        public StructValue(string name, Dictionary<string, HLSLValue> members)
+        public StructValue(StructTypeNode type, Dictionary<string, HLSLValue> members)
         {
-            Name = name;
+            Type = type;
             Members = members;
         }
 
         public override int ThreadCount => Members.Max(x => x.Value.ThreadCount);
         public override bool IsUniform => Members.All(x => x.Value.IsUniform);
 
+        public override HLSLValue Copy()
+        {
+            Dictionary<string, HLSLValue> members = new Dictionary<string, HLSLValue>();
+            foreach (KeyValuePair<string, HLSLValue> member in Members)
+            {
+                members.Add(member.Key, member.Value.Copy());
+            }
+            return new StructValue(Type, members);
+        }
+
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("struct ");
-            sb.AppendLine(Name);
+            sb.AppendLine(Type.Name.GetName());
             sb.AppendLine("{");
             foreach (var kvp in Members)
             {
@@ -240,6 +270,11 @@ namespace UnityShaderParser.Test
         public override (int rows, int columns) TensorSize => (1, 1);
         public override int ThreadCount => Value.Size;
         public override bool IsUniform => Value.IsUniform;
+
+        public override HLSLValue Copy()
+        {
+            return new ScalarValue(Type, Value.Copy());
+        }
 
         public override MatrixValue BroadcastToMatrix(int rows, int columns)
         {
@@ -317,6 +352,11 @@ namespace UnityShaderParser.Test
         public override (int rows, int columns) TensorSize => (Size, 1);
         public override int ThreadCount => Values.Size;
         public override bool IsUniform => Values.IsUniform;
+
+        public override HLSLValue Copy()
+        {
+            return new VectorValue(Type, Values.Copy());
+        }
 
         public override MatrixValue BroadcastToMatrix(int rows, int columns)
         {
@@ -411,6 +451,11 @@ namespace UnityShaderParser.Test
         public override int ThreadCount => Values.Size;
         public override bool IsUniform => Values.IsUniform;
 
+        public override HLSLValue Copy()
+        {
+            return new MatrixValue(Type, Rows, Columns, Values.Copy());
+        }
+
         public override MatrixValue BroadcastToMatrix(int rows, int columns)
         {
             if (Rows != rows ||Columns != columns)
@@ -492,6 +537,11 @@ namespace UnityShaderParser.Test
         public override int ThreadCount => 1;
         public override bool IsUniform => true;
 
+        public override HLSLValue Copy()
+        {
+            return new PredefinedObjectValue(Type, TemplateArguments.Select(x => x.Copy()).ToArray());
+        }
+
         public override string ToString()
         {
             string type = PrintingUtil.GetEnumName(Type);
@@ -506,6 +556,11 @@ namespace UnityShaderParser.Test
         public override int ThreadCount => Values.Max(x => x.ThreadCount);
         public override bool IsUniform => Values.All(x => x.IsUniform);
 
+        public override HLSLValue Copy()
+        {
+            return new ArrayValue(Values.Select(x => x.Copy()).ToArray());
+        }
+        
         public ArrayValue(HLSLValue[] values)
         {
             Values = values;
@@ -721,6 +776,43 @@ namespace UnityShaderParser.Test
             return (left.Cast(type), right.Cast(type));
         }
 
+        // Cast "right" to match the type of "left" and return it.
+        // Performs any implicit conversions, either promotion or demotion, needed for an assignment,
+        public static HLSLValue CastForAssignment(HLSLValue left, HLSLValue right)
+        {
+            if (left is NumericValue leftNum && right is NumericValue rightNum)
+            {
+                int leftThreadCount = leftNum.ThreadCount;
+                int rightThreadCount = rightNum.ThreadCount;
+                if (leftThreadCount < rightThreadCount)
+                    leftNum = leftNum.Vectorize(rightThreadCount);
+                else if (rightThreadCount < leftThreadCount)
+                    rightNum = rightNum.Vectorize(leftThreadCount);
+
+                ScalarType type = leftNum.Type;
+
+                bool needMatrix = leftNum is MatrixValue;
+                bool needVector = leftNum is VectorValue;
+
+                if (needMatrix)
+                {
+                    (int newRows, int newColumns) = leftNum.TensorSize;
+                    var resizedRight = rightNum.BroadcastToMatrix(newRows, newColumns);
+                    return resizedRight.Cast(type);
+                }
+
+                if (needVector)
+                {
+                    int newSize = leftNum.TensorSize.rows;
+                    var resizedRight = rightNum.BroadcastToVector(newSize);
+                    return resizedRight.Cast(type);
+                }
+
+                return rightNum.Cast(type);
+            }
+
+            return right;
+        }
 
         private static HLSLRegister<T> Map2Registers<T>(HLSLRegister<T> left, HLSLRegister<T> right, Func<T, T, T> mapper)
         {
@@ -780,7 +872,7 @@ namespace UnityShaderParser.Test
                     Dictionary<string, HLSLValue> members = new Dictionary<string, HLSLValue>();
                     foreach (var kvp in members)
                         members.Add(kvp.Key, Scalarize(kvp.Value, threadIndex));
-                    return new StructValue(str.Name, members);
+                    return new StructValue(str.Type, members);
                 case PredefinedObjectValue pre:
                     HLSLValue[] templates = new HLSLValue[pre.TemplateArguments.Length];
                     for (int i = 0; i < templates.Length; i++)
@@ -806,7 +898,7 @@ namespace UnityShaderParser.Test
                     Dictionary<string, HLSLValue> members = new Dictionary<string, HLSLValue>();
                     foreach (var kvp in members)
                         members.Add(kvp.Key, Vectorize(kvp.Value, threadCount));
-                    return new StructValue(str.Name, members);
+                    return new StructValue(str.Type, members);
                 case PredefinedObjectValue pre:
                     HLSLValue[] templates = new HLSLValue[pre.TemplateArguments.Length];
                     for (int i = 0; i < templates.Length; i++)
@@ -838,7 +930,7 @@ namespace UnityShaderParser.Test
                     if (strRight.Members.TryGetValue(kvp.Key, out var rightV))
                         members.Add(kvp.Key, SetThreadValue(kvp.Value, threadIndex, rightV));
                 }
-                return new StructValue(strLeft.Name, members);
+                return new StructValue(strLeft.Type, members);
             }
 
             if (allValue is PredefinedObjectValue preLeft && threadValue is PredefinedObjectValue preRight)

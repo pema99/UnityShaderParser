@@ -13,15 +13,20 @@ namespace UnityShaderParser.Test
     //     public class InterfaceDefinitionNode : StatementNode
     //     public class TypedefNode : StatementNode
     //     public class StatePropertyNode : StatementNode
+    //     CBuffer/TBuffer
+    //     Namespace
     // 
     // Expressions:
     //     VisitMethodCallExpressionNode
     //     VisitCastExpressionNode
     //     VisitSamplerStateLiteralExpressionNode
+    //     Swizzling
     // 
     // Semantics support
     // More test attributes
     // Out/Inout parameters
+    // Texture/StructuredBuffer
+    // Function overloading
 
     public class HLSLInterpreter : HLSLSyntaxVisitor
     {
@@ -128,6 +133,20 @@ namespace UnityShaderParser.Test
                 throw Error(node, $"Expected a scalar expression, but got a {value.GetType().Name}.");
             }
         }
+        
+        private StructValue CreateStructValue(StructTypeNode structType)
+        {
+            // TODO: Inheritance
+            Dictionary<string, HLSLValue> members = new Dictionary<string, HLSLValue>();
+            foreach (var field in structType.Fields)
+            {
+                foreach (var decl in field.Declarators)
+                {
+                    members[decl.Name] = expressionEvaluator.Visit(decl.Initializer);
+                }
+            }
+            return new StructValue(structType, members);
+        }
 
         // Visitor implementation
         protected override void DefaultVisit(HLSLSyntaxNode node)
@@ -150,29 +169,37 @@ namespace UnityShaderParser.Test
                 var initializer = decl.Initializer as ValueInitializerNode;
                 if (initializer != null)
                 {
-                    var initializerValue = EvaluateNumeric(initializer.Expression);
-
-                    switch (node.Kind)
+                    HLSLValue initializerValue;
+                    if (node.Kind is NumericTypeNode)
                     {
-                        case ScalarTypeNode scalarType:
-                            initializerValue = initializerValue.Cast(scalarType.Kind);
-                            break;
-                        case VectorTypeNode vectorType:
-                            initializerValue = initializerValue.Cast(vectorType.Kind).BroadcastToVector(vectorType.Dimension);
-                            break;
-                        case MatrixTypeNode matrixType:
-                            initializerValue = initializerValue.Cast(matrixType.Kind).BroadcastToMatrix(matrixType.FirstDimension, matrixType.SecondDimension);
-                            break;
-                        case PredefinedObjectTypeNode predefinedObjectType:
-                            throw Error(node, "Invalid cast.");
-                        case QualifiedNamedTypeNode qualifiedNamedTypeNodeType:
-                        case NamedTypeNode namedTypeNodeType:
-                        case GenericVectorTypeNode genVectorType:
-                        case GenericMatrixTypeNode genMatrixType:
-                        case StructTypeNode structType:
-                        default:
-                            throw new NotImplementedException();
+                        NumericValue numericInitializerValue = EvaluateNumeric(initializer.Expression);
+
+                        switch (node.Kind)
+                        {
+                            case ScalarTypeNode scalarType:
+                                initializerValue = numericInitializerValue.Cast(scalarType.Kind);
+                                break;
+                            case VectorTypeNode vectorType:
+                                initializerValue = numericInitializerValue.Cast(vectorType.Kind)
+                                    .BroadcastToVector(vectorType.Dimension);
+                                break;
+                            case MatrixTypeNode matrixType:
+                                initializerValue = numericInitializerValue.Cast(matrixType.Kind)
+                                    .BroadcastToMatrix(matrixType.FirstDimension, matrixType.SecondDimension);
+                                break;
+
+                            case GenericVectorTypeNode genVectorType:
+                            case GenericMatrixTypeNode genMatrixType:
+                            case StructTypeNode structType:
+                            default:
+                                throw new NotImplementedException();
+                        }
                     }
+                    else
+                    {
+                        initializerValue = expressionEvaluator.Visit(initializer);
+                    }
+
                     context.SetVariable(decl.Name, initializerValue);
                 }
                 else
@@ -195,7 +222,17 @@ namespace UnityShaderParser.Test
                             defaultValue = new PredefinedObjectValue(predefinedObjectType.Kind, null);
                             break;
                         case QualifiedNamedTypeNode qualifiedNamedTypeNodeType:
+                            var qualNamedStruct = context.GetStruct(qualifiedNamedTypeNodeType.GetName());
+                            if (qualNamedStruct == null)
+                                throw Error($"Undefined named type '{qualifiedNamedTypeNodeType.GetName()}'.");
+                            defaultValue = CreateStructValue(qualNamedStruct);
+                            break;
                         case NamedTypeNode namedTypeNodeType:
+                            var namedStruct = context.GetStruct(namedTypeNodeType.GetName());
+                            if (namedStruct == null)
+                                throw Error($"Undefined named type '{namedTypeNodeType.GetName()}'.");
+                            defaultValue = CreateStructValue(namedStruct);
+                            break;
                         case GenericVectorTypeNode genVectorType:
                         case GenericMatrixTypeNode genMatrixType:
                         case StructTypeNode structType:
@@ -385,6 +422,19 @@ namespace UnityShaderParser.Test
         public override void VisitFunctionDefinitionNode(FunctionDefinitionNode node)
         {
             context.AddFunction(node.Name.GetName(), node);
+        }
+
+        public override void VisitStructDefinitionNode(StructDefinitionNode node)
+        {
+            // TODO: Inline struct types
+            context.AddStruct(node.StructType.Name.GetName(), node.StructType);
+        }
+
+        public override void VisitNamespaceNode(NamespaceNode node)
+        {
+            context.EnterNamespace(node.Name.GetName());
+            base.VisitNamespaceNode(node);
+            context.ExitNamespace();
         }
 
         public override void VisitReturnStatementNode(ReturnStatementNode node)

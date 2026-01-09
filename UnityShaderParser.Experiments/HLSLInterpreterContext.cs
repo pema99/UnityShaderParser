@@ -11,8 +11,19 @@ namespace UnityShaderParser.Test
         private Stack<Dictionary<string, HLSLValue>> environment = new Stack<Dictionary<string, HLSLValue>>(new[] { new Dictionary<string, HLSLValue>() });
         private Stack<string> namespaceStack = new Stack<string>();
         private Dictionary<string, List<FunctionDefinitionNode>> functions = new Dictionary<string, List<FunctionDefinitionNode>>();
+        private Dictionary<string, StructTypeNode> structs = new Dictionary<string, StructTypeNode>();
         private Stack<HLSLValue> returnStack = new Stack<HLSLValue>();
 
+        public void EnterNamespace(string name)
+        {
+            namespaceStack.Push(name);
+        }
+
+        public void ExitNamespace()
+        {
+            namespaceStack.Pop();
+        }
+        
         public void PushScope()
         {
             environment.Push(new Dictionary<string, HLSLValue>());
@@ -174,6 +185,40 @@ namespace UnityShaderParser.Test
                 functions[name] = overloads;
             }
             overloads.Add(func);
+        }
+        
+        public StructTypeNode GetStruct(string name)
+        {
+            if (namespaceStack.Count > 0)
+            {
+                // If we are in a namespace, try to resolve the name with the namespace prefix, starting from the most specific
+                var revNamespace = namespaceStack.Reverse().ToArray();
+                for (int i = 0; i < namespaceStack.Count + 1; i++)
+                {
+                    int prefixLen = namespaceStack.Count - i;
+                    string prefix = string.Join("::", revNamespace.Take(prefixLen));
+                    string fullName = string.IsNullOrEmpty(prefix) ? name : $"{prefix}::{name}";
+                    if (structs.TryGetValue(fullName, out var structType))
+                        return structType;
+                }
+            }
+            else
+            {
+                // If we are not in a namespace, just try to resolve the name directly
+                if (structs.TryGetValue(name, out var structType))
+                    return structType;
+            }
+
+            return null;
+        }
+
+        public void AddStruct(string name, StructTypeNode structType)
+        {
+            if (namespaceStack.Count > 0)
+            {
+                name = $"{string.Join("::", namespaceStack.Reverse())}::{name}";
+            }
+            structs[name] = structType;
         }
 
         public void PushReturn()
