@@ -27,6 +27,7 @@ namespace UnityShaderParser.Test
     // Out/Inout parameters
     // Texture/StructuredBuffer
     // Function overloading
+    // Proper lvalue/rvalue handling. Think stuff like `(a) = 3;`.
 
     public class HLSLInterpreter : HLSLSyntaxVisitor
     {
