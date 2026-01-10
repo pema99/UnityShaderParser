@@ -131,6 +131,7 @@ namespace UnityShaderParser.Test
             }
         }
 
+        public bool IsAnyThreadActive() => executionMask.Peek().mask.Any(x => x == ThreadState.Active);
         public bool IsUniformExecution() => executionMask.Peek().mask.All(x => x == ThreadState.Active);
         public bool IsVaryingExecution() => !IsUniformExecution();
 

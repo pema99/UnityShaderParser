@@ -368,11 +368,64 @@ namespace UnityShaderParser.Test
         
         public override HLSLValue VisitFieldAccessExpressionNode(FieldAccessExpressionNode node)
         {
-            // TODO: Swizzle
-            var target = Visit(node.Target) as StructValue;
-            if (target == null)
-                Error(node.Target, "Expected a struct type for field access.");
-            return target.Members[node.Name];
+            // TODO: Matrix swizzle
+            var target = Visit(node.Target);
+            var targetStruct = target as StructValue;
+            var targetNumeric = target as VectorValue;
+
+            // Vector swizzle
+            if (!(targetNumeric is null))
+            {
+                string swizzle = node.Name;
+                if (swizzle.Length > 4)
+                    throw Error($"Invalid vector swizzle '{node.Name}'.");
+                object[][] perThreadSwizzle = new object[targetNumeric.ThreadCount][];
+                for (int threadIndex = 0; threadIndex < perThreadSwizzle.Length; threadIndex++)
+                {
+                    perThreadSwizzle[threadIndex] = new object[swizzle.Length];
+                    for (int component = 0; component < swizzle.Length; component++)
+                    {
+                        switch (swizzle[component])
+                        {
+                            case 'r':
+                            case 'x':
+                                perThreadSwizzle[threadIndex][component] = targetNumeric.Values.Get(threadIndex)[0];
+                                break;
+                            case 'g':
+                            case 'y':
+                                perThreadSwizzle[threadIndex][component] = targetNumeric.Values.Get(threadIndex)[1];
+                                break;
+                            case 'b':
+                            case 'z':
+                                perThreadSwizzle[threadIndex][component] = targetNumeric.Values.Get(threadIndex)[2];
+                                break;
+                            case 'a':
+                            case 'w':
+                                perThreadSwizzle[threadIndex][component] = targetNumeric.Values.Get(threadIndex)[3];
+                                break;
+                        }
+                    }
+                    if (targetNumeric.ThreadCount == 1)
+                    {
+                        if (swizzle.Length == 1)
+                            return new ScalarValue(targetNumeric.Type, HLSLValueUtils.MakeScalarSGPR(perThreadSwizzle[0][0]));
+                        else
+                            return new VectorValue(targetNumeric.Type, HLSLValueUtils.MakeVectorSGPR(perThreadSwizzle[0]));
+                    }
+                    else
+                    {
+                        if (swizzle.Length == 1)
+                            return new ScalarValue(targetNumeric.Type, HLSLValueUtils.MakeScalarVGPR(perThreadSwizzle.Select(x => x[0])));
+                        else
+                            return new VectorValue(targetNumeric.Type, HLSLValueUtils.MakeVectorVGPR(perThreadSwizzle));
+                    }
+                }
+                return targetNumeric;
+            }
+
+            if (targetStruct is null && targetNumeric is null)
+                throw Error(node.Target, "Expected a struct or numeric type for field access.");
+            return targetStruct.Members[node.Name];
         }
         
         public override HLSLValue VisitMethodCallExpressionNode(MethodCallExpressionNode node) => throw new NotImplementedException();

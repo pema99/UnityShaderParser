@@ -144,12 +144,14 @@ namespace UnityShaderParser.Test
 
         public void Reset() => interpreter.Reset();
 
-        public void CallFunction(string name, params object[] args) => interpreter.CallFunction(name, args);
         public void SetWarpSize(int threadsX, int threadsY) => interpreter.SetWarpSize(threadsX, threadsY);
-        public void CallFunctionWithWarpSize(string name, int threadsX, int threadsY, params object[] args)
+        public void SetVariable(string name, HLSLValue value) => interpreter.SetVariable(name, value);
+        public HLSLValue GetVariable(string name) => interpreter.GetVariable(name);
+        public HLSLValue CallFunction(string name, params HLSLValue[] args) => interpreter.CallFunction(name, args);
+        public HLSLValue CallFunctionWithWarpSize(string name, int threadsX, int threadsY, params HLSLValue[] args)
         {
             interpreter.SetWarpSize(threadsX, threadsY);
-            interpreter.CallFunction(name, args);
+            return interpreter.CallFunction(name, args);
         }
 
         public TestResult[] RunTests() => RunTests(null);

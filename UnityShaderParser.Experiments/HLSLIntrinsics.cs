@@ -108,8 +108,8 @@ namespace UnityShaderParser.Test
             // CheckAccessFullyMapped
             ["clamp"] = N3(Clamp),
             //clip
-            //cos
-            //cosh
+            ["cos"] = N1(Cos),
+            ["cosh"] = N1(Cosh),
             //countbits
             //cross
             //D3DCOLORtoUBYTE4
@@ -192,7 +192,7 @@ namespace UnityShaderParser.Test
             ["sinh"] = N1(Sinh),
             ["smoothstep"] = N3(Smoothstep),
             ["sqrt"] = N1(Sqrt),
-            //step
+            ["step"] = N2(Step),
             ["tan"] = N1(Tan),
             ["tanh"] = N1(Tanh),
             //tex1/2/3D/CUBE
@@ -296,6 +296,11 @@ namespace UnityShaderParser.Test
         public static NumericValue Sqrt(NumericValue x)
         {
             return ToFloatLike(x).Map(val => MathF.Sqrt(Convert.ToSingle(val)));
+        }
+
+        public static NumericValue Step(NumericValue y, NumericValue x)
+        {
+            return Select(x >= y, 1, 0);
         }
         
         public static NumericValue Ceil(NumericValue x)

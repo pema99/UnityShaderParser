@@ -49,6 +49,9 @@ namespace UnityShaderParser.Test
             expressionEvaluator = new HLSLExpressionEvaluator(this, context, executionState);
         }
 
+        public void SetVariable(string name, HLSLValue value) => context.SetVariable(name, value);
+        public HLSLValue GetVariable(string name) => context.GetVariable(name);
+
         public void Reset()
         {
             context = new HLSLInterpreterContext();
@@ -257,14 +260,18 @@ namespace UnityShaderParser.Test
                     executionState.DisableThread(threadIndex);
             }
 
-            Visit(node.Body);
+            if (executionState.IsAnyThreadActive())
+                Visit(node.Body);
 
             context.PopScope();
             executionState.FlipExecutionMask();
             context.PushScope();
 
             if (node.ElseClause != null)
-                Visit(node.ElseClause);
+            {
+                if (executionState.IsAnyThreadActive())
+                    Visit(node.ElseClause);
+            }
 
             executionState.PopExecutionMask();
             context.PopScope();
@@ -318,7 +325,8 @@ namespace UnityShaderParser.Test
                 {
                     if (stmt is BreakStatementNode)
                         break;
-                    Visit(stmt);
+                    if (executionState.IsAnyThreadActive())
+                        Visit(stmt);
                 }
 
                 // Disable all threads that passed for the rest of the switch statement
@@ -353,7 +361,8 @@ namespace UnityShaderParser.Test
                     anyRunning |= threadCond;
                 }
 
-                Visit(node.Body);
+                if (executionState.IsAnyThreadActive())
+                    Visit(node.Body);
                 executionState.ResumeSuspendedThreadsInLoop();
             }
             executionState.PopExecutionMask();
@@ -369,7 +378,8 @@ namespace UnityShaderParser.Test
             {
                 anyRunning = false;
 
-                Visit(node.Body);
+                if (executionState.IsAnyThreadActive())
+                    Visit(node.Body);
                 executionState.ResumeSuspendedThreadsInLoop();
 
                 ScalarValue boolCondValue = EvaluateScalar(node.Condition);
@@ -411,7 +421,8 @@ namespace UnityShaderParser.Test
                     anyRunning |= threadCond;
                 }
 
-                Visit(node.Body);
+                if (executionState.IsAnyThreadActive())
+                    Visit(node.Body);
                 executionState.ResumeSuspendedThreadsInLoop();
 
                 Visit(node.Increment);
@@ -449,6 +460,8 @@ namespace UnityShaderParser.Test
                     returnValue = HLSLValueUtils.Vectorize(returnValue, executionState.GetThreadCount());
 
                 // For each active thread, kill the thread and splat the return.
+                if (!executionState.IsAnyThreadActive())
+                    ;
                 for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
                 {
                     if (executionState.IsThreadActive(threadIndex))
@@ -458,6 +471,8 @@ namespace UnityShaderParser.Test
                     }
                 }
             }
+            else
+                throw Error(node, "Error evaluating return statement.");
         }
 
         public override void VisitContinueStatementNode(ContinueStatementNode node)
