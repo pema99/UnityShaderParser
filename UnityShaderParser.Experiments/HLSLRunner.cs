@@ -141,6 +141,8 @@ namespace UnityShaderParser.Test
             interpreter.VisitMany(ShaderParser.ParseTopLevelDeclarations(code, out diagnostics, out pragmas));
         public void ProcessCode(string code, HLSLParserConfig config, out List<Diagnostic> diagnostics, out List<string> pragmas) =>
             interpreter.VisitMany(ShaderParser.ParseTopLevelDeclarations(code, AddTestRunnerDefine(config), out diagnostics, out pragmas));
+        public void ProcessCode(IEnumerable<HLSLSyntaxNode> nodes) =>
+            interpreter.VisitMany(nodes);
 
         public void Reset() => interpreter.Reset();
 
