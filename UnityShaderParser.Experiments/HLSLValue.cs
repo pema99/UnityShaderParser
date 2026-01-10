@@ -216,12 +216,12 @@ namespace UnityShaderParser.Test
 
     public sealed class StructValue : HLSLValue
     {
-        public readonly StructTypeNode Type;
+        public readonly string Name;
         public readonly Dictionary<string, HLSLValue> Members;
 
-        public StructValue(StructTypeNode type, Dictionary<string, HLSLValue> members)
+        public StructValue(string name, Dictionary<string, HLSLValue> members)
         {
-            Type = type;
+            Name = name;
             Members = members;
         }
 
@@ -235,14 +235,14 @@ namespace UnityShaderParser.Test
             {
                 members.Add(member.Key, member.Value.Copy());
             }
-            return new StructValue(Type, members);
+            return new StructValue(Name, members);
         }
 
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("struct ");
-            sb.AppendLine(Type.Name.GetName());
+            sb.AppendLine(Name);
             sb.AppendLine("{");
             foreach (var kvp in Members)
             {
@@ -872,7 +872,7 @@ namespace UnityShaderParser.Test
                     Dictionary<string, HLSLValue> members = new Dictionary<string, HLSLValue>();
                     foreach (var kvp in members)
                         members.Add(kvp.Key, Scalarize(kvp.Value, threadIndex));
-                    return new StructValue(str.Type, members);
+                    return new StructValue(str.Name, members);
                 case PredefinedObjectValue pre:
                     HLSLValue[] templates = new HLSLValue[pre.TemplateArguments.Length];
                     for (int i = 0; i < templates.Length; i++)
@@ -898,7 +898,7 @@ namespace UnityShaderParser.Test
                     Dictionary<string, HLSLValue> members = new Dictionary<string, HLSLValue>();
                     foreach (var kvp in members)
                         members.Add(kvp.Key, Vectorize(kvp.Value, threadCount));
-                    return new StructValue(str.Type, members);
+                    return new StructValue(str.Name, members);
                 case PredefinedObjectValue pre:
                     HLSLValue[] templates = new HLSLValue[pre.TemplateArguments.Length];
                     for (int i = 0; i < templates.Length; i++)
@@ -930,7 +930,7 @@ namespace UnityShaderParser.Test
                     if (strRight.Members.TryGetValue(kvp.Key, out var rightV))
                         members.Add(kvp.Key, SetThreadValue(kvp.Value, threadIndex, rightV));
                 }
-                return new StructValue(strLeft.Type, members);
+                return new StructValue(strLeft.Name, members);
             }
 
             if (allValue is PredefinedObjectValue preLeft && threadValue is PredefinedObjectValue preRight)

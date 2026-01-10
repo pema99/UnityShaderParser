@@ -551,7 +551,25 @@ namespace UnityShaderParser.Test
             throw Error(node, "Invalid element access.");
         }
 
-        public override HLSLValue VisitCastExpressionNode(CastExpressionNode node) => throw new NotImplementedException();
+        public override HLSLValue VisitCastExpressionNode(CastExpressionNode node)
+        {
+            // TODO: Array cast
+            // TODO: Struct initialization (0)
+            var numeric = EvaluateNumeric(node.Expression);
+            switch (node.Kind)
+            {
+                case ScalarTypeNode scalarType when numeric is ScalarValue scalar:
+                    return scalar.Cast(scalarType.Kind);
+                case VectorTypeNode vectorType:
+                    return numeric.BroadcastToVector(vectorType.Dimension).Cast(vectorType.Kind);
+                case MatrixTypeNode matrixType:
+                    return numeric.BroadcastToMatrix(matrixType.FirstDimension, matrixType.SecondDimension).Cast(matrixType.Kind);
+                case GenericVectorTypeNode genVectorType:
+                case GenericMatrixTypeNode genMatrixType:
+                default:
+                    throw new NotImplementedException();
+            }
+        }
 
         public override HLSLValue VisitArrayInitializerExpressionNode(ArrayInitializerExpressionNode node)
         {

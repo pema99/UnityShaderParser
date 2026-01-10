@@ -9,25 +9,23 @@ namespace UnityShaderParser.Test
     // TODO:
     // 
     // Statements:
-    //     public class StructDefinitionNode : StatementNode
     //     public class InterfaceDefinitionNode : StatementNode
     //     public class TypedefNode : StatementNode
     //     public class StatePropertyNode : StatementNode
     //     CBuffer/TBuffer
-    //     Namespace
     // 
     // Expressions:
     //     VisitMethodCallExpressionNode
-    //     VisitCastExpressionNode
     //     VisitSamplerStateLiteralExpressionNode
-    //     Swizzling
     // 
     // Semantics support
     // More test attributes
     // Out/Inout parameters
     // Texture/StructuredBuffer
     // Function overloading
-    // Swizzling
+    // Array cast
+    // Struct initialization (0)
+    // Generic vector/matrix types
 
     public class HLSLInterpreter : HLSLSyntaxVisitor
     {
@@ -149,7 +147,7 @@ namespace UnityShaderParser.Test
                     members[decl.Name] = expressionEvaluator.Visit(decl.Initializer);
                 }
             }
-            return new StructValue(structType, members);
+            return new StructValue(structType.Name.GetName(), members);
         }
 
         // Visitor implementation
