@@ -460,8 +460,6 @@ namespace UnityShaderParser.Test
                     returnValue = HLSLValueUtils.Vectorize(returnValue, executionState.GetThreadCount());
 
                 // For each active thread, kill the thread and splat the return.
-                if (!executionState.IsAnyThreadActive())
-                    ;
                 for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
                 {
                     if (executionState.IsThreadActive(threadIndex))
