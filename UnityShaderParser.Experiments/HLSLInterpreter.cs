@@ -26,6 +26,11 @@ namespace UnityShaderParser.Test
     // Array cast
     // Struct initialization (0)
     // Generic vector/matrix types
+    //
+    // Perf:
+    // - Use DU instead of object to avoid 1 layer of boxing
+    // - Use merged struct (non-overlapped DU) for HLSLValue to avoid another level of boxing
+    // - Use fixed size arrays instead of regular arrays to another level of boxing for vector types?
 
     public class HLSLInterpreter : HLSLSyntaxVisitor
     {
