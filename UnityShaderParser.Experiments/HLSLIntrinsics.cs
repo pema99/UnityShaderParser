@@ -528,7 +528,7 @@ namespace UnityShaderParser.Test
                         else
                             valueInt += Convert.ToInt32(vx.Values.Get(threadIndex)[channel]) * Convert.ToInt32(vy.Values.Get(threadIndex)[channel]);
                     }
-                    results[threadCount] = isFloat ? valueFloat : valueInt;
+                    results[threadIndex] = isFloat ? valueFloat : valueInt;
                 }
                 return new ScalarValue(vx.Type, new HLSLRegister<object>(results));
             }

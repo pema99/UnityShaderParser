@@ -405,20 +405,20 @@ namespace UnityShaderParser.Test
                                 break;
                         }
                     }
-                    if (targetNumeric.ThreadCount == 1)
-                    {
-                        if (swizzle.Length == 1)
-                            return new ScalarValue(targetNumeric.Type, HLSLValueUtils.MakeScalarSGPR(perThreadSwizzle[0][0]));
-                        else
-                            return new VectorValue(targetNumeric.Type, HLSLValueUtils.MakeVectorSGPR(perThreadSwizzle[0]));
-                    }
+                }
+                if (targetNumeric.ThreadCount == 1)
+                {
+                    if (swizzle.Length == 1)
+                        return new ScalarValue(targetNumeric.Type, HLSLValueUtils.MakeScalarSGPR(perThreadSwizzle[0][0]));
                     else
-                    {
-                        if (swizzle.Length == 1)
-                            return new ScalarValue(targetNumeric.Type, HLSLValueUtils.MakeScalarVGPR(perThreadSwizzle.Select(x => x[0])));
-                        else
-                            return new VectorValue(targetNumeric.Type, HLSLValueUtils.MakeVectorVGPR(perThreadSwizzle));
-                    }
+                        return new VectorValue(targetNumeric.Type, HLSLValueUtils.MakeVectorSGPR(perThreadSwizzle[0]));
+                }
+                else
+                {
+                    if (swizzle.Length == 1)
+                        return new ScalarValue(targetNumeric.Type, HLSLValueUtils.MakeScalarVGPR(perThreadSwizzle.Select(x => x[0])));
+                    else
+                        return new VectorValue(targetNumeric.Type, HLSLValueUtils.MakeVectorVGPR(perThreadSwizzle));
                 }
                 return targetNumeric;
             }
