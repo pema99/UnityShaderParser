@@ -868,7 +868,9 @@ namespace UnityShaderParser.Test
         {
             if (left.IsVarying && right.IsVarying)
             {
-                T[] mapped = left.VaryingValues.Zip(right.VaryingValues, mapper).ToArray();
+                T[] mapped = new T[left.VaryingValues.Length];
+                for (int i = 0; i < mapped.Length; i++)
+                    mapped[i] = mapper(left.VaryingValues[i], right.VaryingValues[i]);
                 return new HLSLRegister<T>(mapped);
             }
             else if (!left.IsVarying && !right.IsVarying)
