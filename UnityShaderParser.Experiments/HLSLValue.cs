@@ -745,6 +745,10 @@ namespace UnityShaderParser.Test
             else if (rightThreadCount < leftThreadCount)
                 right = right.Vectorize(leftThreadCount);
 
+            // Fast path
+            if (left.Type == right.Type && left.GetType() == right.GetType())
+                return (left, right);
+
             ScalarType type = bitwiseOp
                 ? PromoteForBitwiseBinOp(left.Type, right.Type)
                 : PromoteScalarType(left.Type, right.Type);
@@ -758,19 +762,21 @@ namespace UnityShaderParser.Test
                 (int rightRows, int rightColumns) = right.TensorSize;
                 int newRows = Math.Max(leftRows, rightRows);
                 int newColumns = Math.Max(rightRows, rightColumns);
-                var resizedLeft = left.BroadcastToMatrix(newRows, newColumns);
-                var resizedRight = right.BroadcastToMatrix(newRows, newColumns);
-                return (resizedLeft.Cast(type), resizedRight.Cast(type));
+                if (leftRows != newRows || leftColumns != newColumns)
+                    left = left.BroadcastToMatrix(newRows, newColumns);
+                if (rightRows != newRows || rightColumns != newColumns)
+                    right = right.BroadcastToMatrix(newRows, newColumns);
             }
 
-            if (needVector)
+            else if (needVector)
             {
                 (int leftSize, _) = left.TensorSize;
                 (int rightSize, _) = right.TensorSize;
                 int newSize = Math.Max(leftSize, rightSize);
-                var resizedLeft = left.BroadcastToVector(newSize);
-                var resizedRight = right.BroadcastToVector(newSize);
-                return (resizedLeft.Cast(type), resizedRight.Cast(type));
+                if (leftSize != newSize)
+                    left = left.BroadcastToVector(newSize);
+                if (rightSize != newSize)
+                    right = right.BroadcastToVector(newSize);
             }
 
             return (left.Cast(type), right.Cast(type));
