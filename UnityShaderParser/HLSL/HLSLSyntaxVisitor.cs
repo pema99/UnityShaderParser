@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace UnityShaderParser.HLSL
 {
     public abstract class HLSLSyntaxVisitor
     {
+        [DebuggerStepThrough]
         protected virtual void DefaultVisit(HLSLSyntaxNode node)
         {
             foreach (var child in node.Children)
@@ -32,6 +34,7 @@ namespace UnityShaderParser.HLSL
             }
         }
 
+        [DebuggerStepThrough]
         public virtual void Visit(HLSLSyntaxNode node) => node?.Accept(this);
         public virtual void VisitIdentifierNode(IdentifierNode node) => DefaultVisit(node);
         public virtual void VisitFormalParameterNode(FormalParameterNode node) => DefaultVisit(node);
@@ -113,6 +116,7 @@ namespace UnityShaderParser.HLSL
 
     public abstract class HLSLSyntaxVisitor<TReturn>
     {
+        [DebuggerStepThrough]
         protected virtual TReturn DefaultVisit(HLSLSyntaxNode node)
         {
             foreach (var child in node.Children)
@@ -145,6 +149,7 @@ namespace UnityShaderParser.HLSL
             return result;
         }
 
+        [DebuggerStepThrough]
         public virtual TReturn Visit(HLSLSyntaxNode node) => node == null ? default : node.Accept(this);
         public virtual TReturn VisitIdentifierNode(IdentifierNode node) => DefaultVisit(node);
         public virtual TReturn VisitFormalParameterNode(FormalParameterNode node) => DefaultVisit(node);
