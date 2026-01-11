@@ -346,6 +346,24 @@ namespace UnityShaderParser.Test
             }
         }
         public string ToString(int threadIndex) => Convert.ToString(Value.Get(threadIndex), CultureInfo.InvariantCulture);
+
+        public static ScalarValue operator +(ScalarValue left, ScalarValue right) => (ScalarValue)((NumericValue)left + (NumericValue)right);
+        public static ScalarValue operator -(ScalarValue left, ScalarValue right) => (ScalarValue)((NumericValue)left - (NumericValue)right);
+        public static ScalarValue operator *(ScalarValue left, ScalarValue right) => (ScalarValue)((NumericValue)left * (NumericValue)right);
+        public static ScalarValue operator /(ScalarValue left, ScalarValue right) => (ScalarValue)((NumericValue)left / (NumericValue)right);
+        public static ScalarValue operator %(ScalarValue left, ScalarValue right) => (ScalarValue)((NumericValue)left % (NumericValue)right);
+        public static ScalarValue operator <(ScalarValue left, ScalarValue right) => (ScalarValue)((NumericValue)left < (NumericValue)right);
+        public static ScalarValue operator >(ScalarValue left, ScalarValue right) => (ScalarValue)((NumericValue)left > (NumericValue)right);
+        public static ScalarValue operator <=(ScalarValue left, ScalarValue right) => (ScalarValue)((NumericValue)left <= (NumericValue)right);
+        public static ScalarValue operator >=(ScalarValue left, ScalarValue right) => (ScalarValue)((NumericValue)left >= (NumericValue)right);
+        public static ScalarValue operator ==(ScalarValue left, ScalarValue right) => (ScalarValue)((NumericValue)left == (NumericValue)right);
+        public static ScalarValue operator !=(ScalarValue left, ScalarValue right) => (ScalarValue)((NumericValue)left != (NumericValue)right);
+        public static ScalarValue operator ^(ScalarValue left, ScalarValue right) => (ScalarValue)((NumericValue)left ^ (NumericValue)right);
+        public static ScalarValue operator |(ScalarValue left, ScalarValue right) => (ScalarValue)((NumericValue)left | (NumericValue)right);
+        public static ScalarValue operator &(ScalarValue left, ScalarValue right) => (ScalarValue)((NumericValue)left & (NumericValue)right);
+        public static ScalarValue operator ~(ScalarValue left) => (ScalarValue)(~(NumericValue)left);
+        public static ScalarValue operator !(ScalarValue left) => (ScalarValue)(!(NumericValue)left);
+        public static ScalarValue operator -(ScalarValue left) => (ScalarValue)(-(NumericValue)left);
     }
 
     public sealed class VectorValue : NumericValue
@@ -362,6 +380,56 @@ namespace UnityShaderParser.Test
         public override (int rows, int columns) TensorSize => (Size, 1);
         public override int ThreadCount => Values.Size;
         public override bool IsUniform => Values.IsUniform;
+
+        public ScalarValue this[int channel]
+        {
+            get
+            {
+                if (IsVarying)
+                {
+                    object[] perThreadValue = new object[ThreadCount];
+                    for (int threadIndex = 0; threadIndex < ThreadCount; threadIndex++)
+                        perThreadValue[threadIndex] = Values.Get(threadIndex)[channel];
+                    return new ScalarValue(Type, HLSLValueUtils.MakeScalarVGPR(perThreadValue));
+                }
+                else
+                {
+                    return new ScalarValue(Type, HLSLValueUtils.MakeScalarSGPR(Values.UniformValue[channel]));
+                }
+            }
+        }
+        public ScalarValue x => this[0];
+        public ScalarValue y => this[1];
+        public ScalarValue z => this[2];
+        public ScalarValue w => this[3];
+
+        public static VectorValue FromScalars(params ScalarValue[] scalars)
+        {
+            ScalarType type = scalars[0].Type;
+            foreach (var scalar in scalars)
+            {
+                type = HLSLValueUtils.PromoteScalarType(type, scalar.Type);
+            }
+
+            int maxThreadCount = scalars.Max(x => x.ThreadCount);
+            object[][] result = new object[maxThreadCount][];
+            for (int threadIndex = 0; threadIndex < maxThreadCount; threadIndex++)
+            {
+                result[threadIndex] = new object[scalars.Length];
+                for (int channel = 0; channel < scalars.Length; channel++)
+                {
+                    var scalar = scalars[channel];
+                    if (scalar.Type != type)
+                        scalar = (ScalarValue)scalar.Cast(type);
+                    result[threadIndex][channel] = scalar.GetThreadValue(threadIndex);
+                }
+            }
+
+            if (maxThreadCount == 1)
+                return new VectorValue(type, HLSLValueUtils.MakeVectorSGPR(result[0]));
+            else
+                return new VectorValue(type, HLSLValueUtils.MakeVectorVGPR(result));
+        }
 
         public override HLSLValue Copy()
         {
@@ -463,6 +531,24 @@ namespace UnityShaderParser.Test
             string type = PrintingUtil.GetEnumName(Type);
             return $"{type}{Size}({string.Join(", ", Values.Get(threadIndex).Select(x => Convert.ToString(x, CultureInfo.InvariantCulture)))})"; // TODO: not thread 0
         }
+
+        public static VectorValue operator +(VectorValue left, VectorValue right) => (VectorValue)((NumericValue)left + (NumericValue)right);
+        public static VectorValue operator -(VectorValue left, VectorValue right) => (VectorValue)((NumericValue)left - (NumericValue)right);
+        public static VectorValue operator *(VectorValue left, VectorValue right) => (VectorValue)((NumericValue)left * (NumericValue)right);
+        public static VectorValue operator /(VectorValue left, VectorValue right) => (VectorValue)((NumericValue)left / (NumericValue)right);
+        public static VectorValue operator %(VectorValue left, VectorValue right) => (VectorValue)((NumericValue)left % (NumericValue)right);
+        public static VectorValue operator <(VectorValue left, VectorValue right) => (VectorValue)((NumericValue)left < (NumericValue)right);
+        public static VectorValue operator >(VectorValue left, VectorValue right) => (VectorValue)((NumericValue)left > (NumericValue)right);
+        public static VectorValue operator <=(VectorValue left, VectorValue right) => (VectorValue)((NumericValue)left <= (NumericValue)right);
+        public static VectorValue operator >=(VectorValue left, VectorValue right) => (VectorValue)((NumericValue)left >= (NumericValue)right);
+        public static VectorValue operator ==(VectorValue left, VectorValue right) => (VectorValue)((NumericValue)left == (NumericValue)right);
+        public static VectorValue operator !=(VectorValue left, VectorValue right) => (VectorValue)((NumericValue)left != (NumericValue)right);
+        public static VectorValue operator ^(VectorValue left, VectorValue right) => (VectorValue)((NumericValue)left ^ (NumericValue)right);
+        public static VectorValue operator |(VectorValue left, VectorValue right) => (VectorValue)((NumericValue)left | (NumericValue)right);
+        public static VectorValue operator &(VectorValue left, VectorValue right) => (VectorValue)((NumericValue)left & (NumericValue)right);
+        public static VectorValue operator ~(VectorValue left) => (VectorValue)(~(NumericValue)left);
+        public static VectorValue operator !(VectorValue left) => (VectorValue)(!(NumericValue)left);
+        public static VectorValue operator -(VectorValue left) => (VectorValue)(-(NumericValue)left);
     }
 
     public sealed class MatrixValue : NumericValue
@@ -566,6 +652,24 @@ namespace UnityShaderParser.Test
             string type = PrintingUtil.GetEnumName(Type);
             return $"{type}{Rows}x{Columns}({string.Join(", ", Values.Get(threadIndex).Select(x => Convert.ToString(x, CultureInfo.InvariantCulture)))})"; // TODO: not thread 0
         }
+
+        public static MatrixValue operator +(MatrixValue left, MatrixValue right) => (MatrixValue)((NumericValue)left + (NumericValue)right);
+        public static MatrixValue operator -(MatrixValue left, MatrixValue right) => (MatrixValue)((NumericValue)left - (NumericValue)right);
+        public static MatrixValue operator *(MatrixValue left, MatrixValue right) => (MatrixValue)((NumericValue)left * (NumericValue)right);
+        public static MatrixValue operator /(MatrixValue left, MatrixValue right) => (MatrixValue)((NumericValue)left / (NumericValue)right);
+        public static MatrixValue operator %(MatrixValue left, MatrixValue right) => (MatrixValue)((NumericValue)left % (NumericValue)right);
+        public static MatrixValue operator <(MatrixValue left, MatrixValue right) => (MatrixValue)((NumericValue)left < (NumericValue)right);
+        public static MatrixValue operator >(MatrixValue left, MatrixValue right) => (MatrixValue)((NumericValue)left > (NumericValue)right);
+        public static MatrixValue operator <=(MatrixValue left, MatrixValue right) => (MatrixValue)((NumericValue)left <= (NumericValue)right);
+        public static MatrixValue operator >=(MatrixValue left, MatrixValue right) => (MatrixValue)((NumericValue)left >= (NumericValue)right);
+        public static MatrixValue operator ==(MatrixValue left, MatrixValue right) => (MatrixValue)((NumericValue)left == (NumericValue)right);
+        public static MatrixValue operator !=(MatrixValue left, MatrixValue right) => (MatrixValue)((NumericValue)left != (NumericValue)right);
+        public static MatrixValue operator ^(MatrixValue left, MatrixValue right) => (MatrixValue)((NumericValue)left ^ (NumericValue)right);
+        public static MatrixValue operator |(MatrixValue left, MatrixValue right) => (MatrixValue)((NumericValue)left | (NumericValue)right);
+        public static MatrixValue operator &(MatrixValue left, MatrixValue right) => (MatrixValue)((NumericValue)left & (NumericValue)right);
+        public static MatrixValue operator ~(MatrixValue left) => (MatrixValue)(~(NumericValue)left);
+        public static MatrixValue operator !(MatrixValue left) => (MatrixValue)(!(NumericValue)left);
+        public static MatrixValue operator -(MatrixValue left) => (MatrixValue)(-(NumericValue)left);
     }
 
     public sealed class PredefinedObjectValue : HLSLValue

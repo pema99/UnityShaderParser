@@ -111,7 +111,7 @@ namespace UnityShaderParser.Test
             ["cos"] = N1(Cos),
             ["cosh"] = N1(Cosh),
             //countbits
-            //cross
+            ["cross"] = N2(Cross),
             //D3DCOLORtoUBYTE4
             ["degrees"] = N1(Degrees),
             //determinant
@@ -317,7 +317,18 @@ namespace UnityShaderParser.Test
         {
             return ToFloatLike(x).Map(val => MathF.Cosh(Convert.ToSingle(val)));
         }
-        
+
+        public static NumericValue Cross(NumericValue a, NumericValue b)
+        {
+            var vecA = ToFloatLike(a).BroadcastToVector(3);
+            var vecB = ToFloatLike(b).BroadcastToVector(3);
+            return VectorValue.FromScalars(
+                vecA.y * vecB.z - vecA.z * vecB.y,
+                vecA.z * vecB.x - vecA.x * vecB.z,
+                vecA.x * vecB.y - vecA.y * vecB.x
+            );
+        }
+
         public static NumericValue Degrees(NumericValue x)
         {
             return x * (180f / MathF.PI);

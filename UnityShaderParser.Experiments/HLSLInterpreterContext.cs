@@ -8,7 +8,7 @@ namespace UnityShaderParser.Test
 {
     public class HLSLInterpreterContext
     {
-        private Stack<Dictionary<string, HLSLValue>> environment = new Stack<Dictionary<string, HLSLValue>>(new[] { new Dictionary<string, HLSLValue>() });
+        private Stack<(bool isFunction, Dictionary<string, HLSLValue> table)> environment = new Stack<(bool, Dictionary<string, HLSLValue>)>(new[] { (false, new Dictionary<string, HLSLValue>()) });
         private Stack<string> namespaceStack = new Stack<string>();
         private Dictionary<string, List<FunctionDefinitionNode>> functions = new Dictionary<string, List<FunctionDefinitionNode>>();
         private Dictionary<string, StructTypeNode> structs = new Dictionary<string, StructTypeNode>();
@@ -24,9 +24,9 @@ namespace UnityShaderParser.Test
             namespaceStack.Pop();
         }
         
-        public void PushScope()
+        public void PushScope(bool isFunction = false)
         {
-            environment.Push(new Dictionary<string, HLSLValue>());
+            environment.Push((isFunction, new Dictionary<string, HLSLValue>()));
         }
 
         public void PopScope()
@@ -38,7 +38,7 @@ namespace UnityShaderParser.Test
         {
             // Local scope
             var localScope = environment.Take(environment.Count - 1);
-            foreach (var scope in localScope)
+            foreach (var (isFunction, scope) in localScope)
             {
                 if (scope.TryGetValue(name, out var val))
                 {
@@ -47,6 +47,8 @@ namespace UnityShaderParser.Test
                     resolvedValue = val;
                     return true;
                 }
+                if (isFunction)
+                    break;
             }
 
             // Not in local scope, try global scope
@@ -60,9 +62,9 @@ namespace UnityShaderParser.Test
                     int prefixLength = namespaceStack.Count - i;
                     string currPrefix = string.Join("::", reverseNamespace.Take(prefixLength));
                     string qualifiedName = string.IsNullOrEmpty(currPrefix) ? name : $"{currPrefix}::{name}";
-                    if (globalScope.TryGetValue(qualifiedName, out var val))
+                    if (globalScope.table.TryGetValue(qualifiedName, out var val))
                     {
-                        resolvedScope = globalScope;
+                        resolvedScope = globalScope.table;
                         resolvedName = qualifiedName;
                         resolvedValue = val;
                         return true;
@@ -72,9 +74,9 @@ namespace UnityShaderParser.Test
             else
             {
                 // No namespace, resolve the name directly
-                if (globalScope.TryGetValue(name, out var val))
+                if (globalScope.table.TryGetValue(name, out var val))
                 {
-                    resolvedScope = globalScope;
+                    resolvedScope = globalScope.table;
                     resolvedName = name;
                     resolvedValue = val;
                     return true;
@@ -125,7 +127,7 @@ namespace UnityShaderParser.Test
                 return;
             }
 
-            environment.Peek()[name] = val;
+            environment.Peek().table[name] = val;
         }
 
         public void SetGlobalVariable(string name, HLSLValue type)
@@ -136,7 +138,7 @@ namespace UnityShaderParser.Test
                 name = $"{string.Join("::", namespaceStack.Reverse())}::{name}";
             }
 
-            environment.Peek()[name] = type;
+            environment.Peek().table[name] = type;
         }
 
         public FunctionDefinitionNode GetFunction(string name, IEnumerable<HLSLValue> args)

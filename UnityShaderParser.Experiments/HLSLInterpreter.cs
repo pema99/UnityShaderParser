@@ -120,6 +120,12 @@ namespace UnityShaderParser.Test
                     throw Error(node, $"Expected an expression of type '{PrintingUtil.GetEnumName(type)}', but got one of type '{PrintingUtil.GetEnumName(num.Type)}'.");
                 return num;
             }
+            else if (value is ReferenceValue refVal && refVal.Get() is NumericValue refNum)
+            {
+                if (type != ScalarType.Void && refNum.Type != type)
+                    throw Error(node, $"Expected an expression of type '{PrintingUtil.GetEnumName(type)}', but got one of type '{PrintingUtil.GetEnumName(refNum.Type)}'.");
+                return refNum;
+            }
             else
             {
                 throw Error(node, $"Expected a numeric expression, but got a {value.GetType().Name}.");
@@ -134,6 +140,12 @@ namespace UnityShaderParser.Test
                 if (type != ScalarType.Void && num.Type != type)
                     throw Error(node, $"Expected an expression of type '{PrintingUtil.GetEnumName(type)}', but got one of type '{PrintingUtil.GetEnumName(num.Type)}'.");
                 return num;
+            }
+            else if (value is ReferenceValue refVal && refVal.Get() is ScalarValue refNum)
+            {
+                if (type != ScalarType.Void && refNum.Type != type)
+                    throw Error(node, $"Expected an expression of type '{PrintingUtil.GetEnumName(type)}', but got one of type '{PrintingUtil.GetEnumName(refNum.Type)}'.");
+                return refNum;
             }
             else
             {
