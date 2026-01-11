@@ -278,12 +278,22 @@ namespace UnityShaderParser.Test
 
         public override MatrixValue BroadcastToMatrix(int rows, int columns)
         {
-            return new MatrixValue(Type, rows, columns, Value.Map(x => Enumerable.Repeat(x, rows * columns).ToArray()));
+            return new MatrixValue(Type, rows, columns, Value.Map(x =>
+            {
+                object[] res = new object[rows * columns];
+                Array.Fill(res, x);
+                return res;
+            }));
         }
 
         public override VectorValue BroadcastToVector(int size)
         {
-            return new VectorValue(Type, Value.Map(x => Enumerable.Repeat(x, size).ToArray()));
+            return new VectorValue(Type, Value.Map(x =>
+            {
+                object[] res = new object[size];
+                Array.Fill(res, x);
+                return res;
+            }));
         }
 
         public override NumericValue Cast(ScalarType type)
@@ -369,9 +379,19 @@ namespace UnityShaderParser.Test
             {
                 int sizeDiff = size - x.Length;
                 if (sizeDiff > 0) // Expansion
-                    return x.Append(Enumerable.Repeat(HLSLValueUtils.GetZeroValue(Type), sizeDiff)).ToArray();
+                {
+                    object[] res = new object[size];
+                    Array.Copy(x, res, x.Length);
+                    for (int i = 0; i < sizeDiff; i++)
+                        res[x.Length + i] = HLSLValueUtils.GetZeroValue(Type);
+                    return res;
+                }
                 else if (size < x.Length) // Truncation
-                    return x.Take(size).ToArray();
+                {
+                    object[] res = new object[size];
+                    Array.Copy(x, res, size);
+                    return res;
+                }
                 else
                     return x;
             }));
@@ -379,7 +399,13 @@ namespace UnityShaderParser.Test
 
         public override NumericValue Cast(ScalarType type)
         {
-            return new VectorValue(type, Values.Map(x => x.Select(y => HLSLValueUtils.CastNumeric(type, y)).ToArray()));
+            return new VectorValue(type, Values.Map(x =>
+            {
+                object[] res = new object[x.Length];
+                for (int i = 0; i < res.Length; i++)
+                    res[i] = HLSLValueUtils.CastNumeric(type, x[i]);
+                return res;
+            }));
         }
 
         public override object GetThreadValue(int threadIndex)
@@ -389,7 +415,13 @@ namespace UnityShaderParser.Test
 
         public override NumericValue Map(Func<object, object> mapper)
         {
-            return new VectorValue(Type, Values.Map(x => x.Select(mapper).ToArray()));
+            return new VectorValue(Type, Values.Map(x =>
+            {
+                object[] res = new object[x.Length];
+                for (int i = 0; i < res.Length; i++)
+                    res[i] = mapper(x[i]);
+                return res;
+            }));
         }
 
         public override NumericValue MapThreads(Func<object, int, object> mapper)
@@ -470,7 +502,13 @@ namespace UnityShaderParser.Test
 
         public override NumericValue Cast(ScalarType type)
         {
-            return new MatrixValue(type, Rows, Columns, Values.Map(x => x.Select(y => HLSLValueUtils.CastNumeric(type, y)).ToArray()));
+            return new MatrixValue(type, Rows, Columns, Values.Map(x =>
+            {
+                object[] res = new object[x.Length];
+                for (int i = 0; i < res.Length; i++)
+                    res[i] = HLSLValueUtils.CastNumeric(type, x[i]);
+                return res;
+            }));
         }
 
         public override object GetThreadValue(int threadIndex)
@@ -480,7 +518,13 @@ namespace UnityShaderParser.Test
 
         public override NumericValue Map(Func<object, object> mapper)
         {
-            return new MatrixValue(Type, Rows, Columns, Values.Map(x => x.Select(mapper).ToArray()));
+            return new MatrixValue(Type, Rows, Columns, Values.Map(x =>
+            {
+                object[] res = new object[x.Length];
+                for (int i = 0; i < res.Length; i++)
+                    res[i] = mapper(x[i]);
+                return res;
+            }));
         }
 
         public override NumericValue MapThreads(Func<object, int, object> mapper)
