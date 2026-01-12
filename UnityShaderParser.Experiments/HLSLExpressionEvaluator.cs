@@ -213,7 +213,7 @@ namespace UnityShaderParser.Test
 
             // TODO: Inout/Out array
             // TODO: Inout/Out struct
-            // TODO: Handle stuff like `(a) = 3;`
+            // TODO: Handle assignment in varying control flow
             HLSLValue SetValue(HLSLValue value)
             {
                 if (node.Left is NamedExpressionNode named)
