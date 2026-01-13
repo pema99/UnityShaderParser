@@ -88,6 +88,28 @@ namespace UnityShaderParser.Test
         private static (int arity, BasicIntrinsic) N3(Func<NumericValue, NumericValue, NumericValue, NumericValue> fn) =>
             (3, args => fn((NumericValue)args[0], (NumericValue)args[1], (NumericValue)args[2]));
 
+        private static readonly HashSet<string> unsupportedIntrinsics = new HashSet<string>()
+        {
+            "CheckAccessFullyMapped",
+            "EvaluateAttributeCentroid",
+            "EvaluateAttributeAtSample",
+            "EvaluateAttributeSnapped",
+            "GetRenderTargetSampleCount",
+            "GetRenderTargetSamplePosition",
+            "Process2DQuadTessFactorsAvg",
+            "Process2DQuadTessFactorsMax",
+            "Process2DQuadTessFactorsMin",
+            "ProcessIsolineTessFactors",
+            "ProcessQuadTessFactorsAvg",
+            "ProcessQuadTessFactorsMax",
+            "ProcessQuadTessFactorsMin",
+            "ProcessTriTessFactorsAvg",
+            "ProcessTriTessFactorsMax",
+            "ProcessTriTessFactorsMin",
+        };
+
+        public static bool IsUnsupportedIntrinsic(string name) => unsupportedIntrinsics.Contains(name);
+
         private static readonly Dictionary<string, (int arity, BasicIntrinsic fn)> basicIntrinsics = new Dictionary<string, (int arity, BasicIntrinsic fn)>()
         {
             //abort
@@ -105,7 +127,6 @@ namespace UnityShaderParser.Test
             ["atan"] = N1(Atan),
             ["atan2"] = N2(Atan2),
             ["ceil"] = N1(Ceil),
-            // CheckAccessFullyMapped
             ["clamp"] = N3(Clamp),
             //clip
             ["cos"] = N1(Cos),
@@ -121,9 +142,6 @@ namespace UnityShaderParser.Test
             ["dot"] = N2(Dot),
             //dst
             //errorf
-            //EvaluateAttributeCentroid
-            //EvaluateAttributeAtSample
-            //EvaluateAttributeSnapped
             ["exp"] = N1(Exp),
             ["exp2"] = N1(Exp2),
             //f16tof32
@@ -136,8 +154,6 @@ namespace UnityShaderParser.Test
             ["fmod"] = N2(Fmod),
             ["frac"] = N1(Frac),
             //frexp
-            //GetRenderTargetSampleCount
-            //GetRenderTargetSamplePosition
             //GroupMemoryBarrier
             //GroupMemoryBarrierWithGroupSync
             //InterlockedAdd
@@ -168,16 +184,6 @@ namespace UnityShaderParser.Test
             ["noise"] = N1(Noise),
             ["normalize"] = N1(Normalize),
             ["pow"] = N2(Pow),
-            //Process2DQuadTessFactorsAvg
-            //Process2DQuadTessFactorsMax
-            //Process2DQuadTessFactorsMin
-            //ProcessIsolineTessFactors
-            //ProcessQuadTessFactorsAvg
-            //ProcessQuadTessFactorsMax
-            //ProcessQuadTessFactorsMin
-            //ProcessTriTessFactorsAvg
-            //ProcessTriTessFactorsMax
-            //ProcessTriTessFactorsMin
             ["radians"] = N1(Radians),
             ["rcp"] = N1(Rcp),
             ["reflect"] = N2(Reflect),

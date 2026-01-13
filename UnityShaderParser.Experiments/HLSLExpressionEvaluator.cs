@@ -83,6 +83,9 @@ namespace UnityShaderParser.Test
                     break;
             }
 
+            if (HLSLIntrinsics.IsUnsupportedIntrinsic(name))
+                throw Error($"Intrinsic function '{name}' is not supported.");
+
             throw Error($"Unknown function '{name}' called.");
         }
 
