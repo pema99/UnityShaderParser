@@ -258,12 +258,21 @@ namespace UnityShaderParser.Test
 
         public static NumericValue Atan(NumericValue x)
         {
-            return ToFloatLike(x).Map(val => MathF.Asin(Convert.ToSingle(val)));
+            return ToFloatLike(x).Map(val => MathF.Atan(Convert.ToSingle(val)));
         }
         
         public static NumericValue Atan2(NumericValue y, NumericValue x)
         {
-            return Atan(ToFloatLike(y) / x);
+            x = ToFloatLike(x);
+            y = ToFloatLike(y);
+
+            return 
+            Select(x > 0, Atan(y / x),
+            Select(HLSLOperators.BoolAnd(x < 0, y >= 0), Atan(y / x) + MathF.PI,
+            Select(HLSLOperators.BoolAnd(x < 0, y < 0), Atan(y / x) - MathF.PI,
+            Select(HLSLOperators.BoolAnd(x == 0, y > 0), MathF.PI / 2.0f,
+            Select(HLSLOperators.BoolAnd(x == 0, y < 0), -MathF.PI / 2.0f,
+            0)))));
         }
         
         public static NumericValue Select(NumericValue cond, NumericValue a, NumericValue b)
@@ -305,7 +314,7 @@ namespace UnityShaderParser.Test
         
         public static NumericValue Ceil(NumericValue x)
         {
-            return ToFloatLike(x).Map(val => MathF.Sqrt(Convert.ToSingle(val)));
+            return ToFloatLike(x).Map(val => MathF.Ceiling(Convert.ToSingle(val)));
         }
         
         public static NumericValue Cos(NumericValue x)
@@ -341,7 +350,7 @@ namespace UnityShaderParser.Test
         
         public static NumericValue Sign(NumericValue x)
         {
-            return Lerp(-1, 1, Saturate(x)).Cast(ScalarType.Int);
+            return Select(x == 0, 0, Select(x > 0, 1, -1)).Cast(ScalarType.Int);
         }
 
         public static NumericValue Faceforward(NumericValue n, NumericValue i, NumericValue ng)
@@ -369,7 +378,7 @@ namespace UnityShaderParser.Test
 
         public static NumericValue Frac(NumericValue x)
         {
-            return ToFloatLike(x).Map(val => Convert.ToSingle(val) % 1.0f);
+            return Abs(ToFloatLike(x).Map(val => Convert.ToSingle(val) % 1.0f));
         }
         
         public static NumericValue Isnan(NumericValue x)

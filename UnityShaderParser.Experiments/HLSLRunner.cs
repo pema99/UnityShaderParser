@@ -67,7 +67,6 @@ namespace UnityShaderParser.Test
                     HLSLValue val = interpreter.EvaluateExpression(args[0]);
                     if (val is ScalarValue sv)
                     {
-                        bool allPass = false;
                         for (int i = 0; i < sv.ThreadCount; i++)
                         {
                             if (!Convert.ToBoolean(sv.Value.Get(i)))
@@ -75,7 +74,32 @@ namespace UnityShaderParser.Test
                                 throw new TestFailException(message ?? $"Assertion failed: {args[0].GetPrettyPrintedCode()}");
                             }
                         }
-                        return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+                    }
+                    else if (val is VectorValue vv)
+                    {
+                        for (int i = 0; i < vv.ThreadCount; i++)
+                        {
+                            foreach (var b in vv.Values.Get(i))
+                            {
+                                if (!Convert.ToBoolean(b))
+                                {
+                                    throw new TestFailException(message ?? $"Assertion failed: {args[0].GetPrettyPrintedCode()}");
+                                }
+                            }
+                        }
+                    }
+                    else if (val is MatrixValue mv)
+                    {
+                        for (int i = 0; i < mv.ThreadCount; i++)
+                        {
+                            foreach (var b in mv.Values.Get(i))
+                            {
+                                if (!Convert.ToBoolean(b))
+                                {
+                                    throw new TestFailException(message ?? $"Assertion failed: {args[0].GetPrettyPrintedCode()}");
+                                }
+                            }
+                        }
                     }
                     else
                     {
