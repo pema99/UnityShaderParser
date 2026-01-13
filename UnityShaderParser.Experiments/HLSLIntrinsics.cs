@@ -393,7 +393,7 @@ namespace UnityShaderParser.Test
         
         public static NumericValue Isinf(NumericValue x)
         {
-            return ToFloatLike(x).Map(val => !float.IsFinite(Convert.ToSingle(val))).Cast(ScalarType.Bool);
+            return ToFloatLike(x).Map(val => float.IsInfinity(Convert.ToSingle(val))).Cast(ScalarType.Bool);
         }
 
         public static NumericValue Ldexp(NumericValue x, NumericValue exp)
