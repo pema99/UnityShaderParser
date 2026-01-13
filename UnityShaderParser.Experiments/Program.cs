@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityShaderParser.Common;
@@ -139,10 +140,10 @@ public class Program
                     {
                         var colorVec = ((VectorValue)color).Values.Get(warpY * warpSize + warpX);
                         colors[x * warpSize + warpX, y * warpSize + warpY] = new ColorRGBA(
-                            (byte)(Math.Clamp((float)colorVec[0], 0, 1) * 255),
-                            (byte)(Math.Clamp((float)colorVec[1], 0, 1) * 255),
-                            (byte)(Math.Clamp((float)colorVec[2], 0, 1) * 255),
-                            (byte)(Math.Clamp((float)colorVec[3], 0, 1) * 255)
+                            (byte)(Math.Clamp(Convert.ToSingle(colorVec[0]), 0, 1) * 255),
+                            (byte)(Math.Clamp(Convert.ToSingle(colorVec[1]), 0, 1) * 255),
+                            (byte)(Math.Clamp(Convert.ToSingle(colorVec[2]), 0, 1) * 255),
+                            (byte)(Math.Clamp(Convert.ToSingle(colorVec[3]), 0, 1) * 255)
                         );
                     }
                 }
@@ -158,8 +159,10 @@ public class Program
 
     public static void RunTests()
     {
-        string shaderPath = @"D:\Projects\UnityShaderParser\UnityShaderParser\UnityShaderParser.Experiments\Examples\Test.hlsl";
-        string shaderSource = File.ReadAllText(shaderPath);
+        List<HLSLRunner.TestResult> results = new List<HLSLRunner.TestResult>();
+        foreach (var file in Directory.GetFiles(@"D:\Projects\UnityShaderParser\UnityShaderParser\UnityShaderParser.Experiments\Tests"))
+        {
+            string shaderSource = File.ReadAllText(file);
 
         // Ignore macros for the purpose of editing
         var config = new HLSLParserConfig()
@@ -170,7 +173,8 @@ public class Program
 
         HLSLRunner runner = new HLSLRunner();
         runner.ProcessCode(shaderSource, config, out var diags, out var prags);
-        var results = runner.RunTests();
+            results.AddRange(runner.RunTests());
+        }
 
         foreach (var result in results)
         {
@@ -185,6 +189,8 @@ public class Program
             }
             Console.WriteLine();
         }
+
+        Console.WriteLine($"=== Results: {results.Count(x => x.Pass)} passed, {results.Count(x => !x.Pass)} failed ===");
     }
 
     public static void Main()

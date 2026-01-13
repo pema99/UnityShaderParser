@@ -72,7 +72,7 @@ namespace UnityShaderParser.Test
                         {
                             if (!Convert.ToBoolean(sv.Value.Get(i)))
                             {
-                                throw new TestFailException(message);
+                                throw new TestFailException(message ?? $"Assertion failed: {args[0].GetPrettyPrintedCode()}");
                             }
                         }
                         return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));

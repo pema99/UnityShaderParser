@@ -648,6 +648,25 @@ namespace UnityShaderParser.Test
             return new ScalarValue(ScalarType.Bool, HLSLValueUtils.MakeScalarVGPR(perLaneIsFirst));
         }
 
+        public static NumericValue WaveReadLaneAt(HLSLExecutionState executionState, NumericValue expr, ScalarValue laneIndex)
+        {
+            if (laneIndex.IsUniform)
+                return expr.Scalarize(Convert.ToInt32(laneIndex.Value.UniformValue));
+
+            object[] perLaneValue = new object[laneIndex.ThreadCount];
+            for (int threadIndex = 0; threadIndex < perLaneValue.Length; threadIndex++)
+            {
+                perLaneValue[threadIndex] = expr.Scalarize(Convert.ToInt32(laneIndex.GetThreadValue(threadIndex))).GetThreadValue(0);
+            }
+            if (expr is ScalarValue)
+                return new ScalarValue(expr.Type, HLSLValueUtils.MakeScalarVGPR(perLaneValue));
+            if (expr is VectorValue)
+                return new VectorValue(expr.Type, HLSLValueUtils.MakeVectorVGPR((object[][])perLaneValue));
+            if (expr is MatrixValue mat)
+                return new MatrixValue(expr.Type, mat.Rows, mat.Columns, HLSLValueUtils.MakeVectorVGPR((object[][])perLaneValue));
+            throw new InvalidOperationException();
+        }
+
         public static NumericValue DdxFine(HLSLExecutionState executionState, NumericValue val)
         {
             if (val.IsUniform)

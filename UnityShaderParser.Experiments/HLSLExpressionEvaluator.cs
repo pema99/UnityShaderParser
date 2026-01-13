@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using UnityShaderParser.Common;
 using UnityShaderParser.HLSL;
@@ -68,6 +69,8 @@ namespace UnityShaderParser.Test
                     return HLSLIntrinsics.WaveGetLaneCount(executionState);
                 case "WaveIsFirstLane":
                     return HLSLIntrinsics.WaveIsFirstLane(executionState);
+                case "WaveReadLaneAt":
+                    return HLSLIntrinsics.WaveReadLaneAt(executionState, (NumericValue)args[0], (ScalarValue)args[1]);
                 case "ddx":
                     return HLSLIntrinsics.Ddx(executionState, (NumericValue)args[0]);
                 case "ddy":
@@ -211,6 +214,19 @@ namespace UnityShaderParser.Test
             var right = Visit(node.Right);
             right = HLSLValueUtils.CastForAssignment(left, right);
 
+            HLSLValue SplatActiveThreadValues(HLSLValue prevValue, HLSLValue value)
+            {
+                HLSLValue newValue = HLSLValueUtils.Vectorize(prevValue, executionState.GetThreadCount());
+                for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+                {
+                    if (executionState.IsThreadActive(threadIndex))
+                    {
+                        newValue = HLSLValueUtils.SetThreadValue(newValue, threadIndex, value);
+                    }
+                }
+                return newValue;
+            }
+
             // TODO: Inout/Out array
             // TODO: Inout/Out struct
             // TODO: Handle assignment in varying control flow
@@ -219,23 +235,41 @@ namespace UnityShaderParser.Test
                 if (node.Left is NamedExpressionNode named)
                 {
                     string name = named.GetName();
-                    if (context.TryGetVariable(name, out var variable) &&
-                        variable is ReferenceValue reference)
+                    if (executionState.IsVaryingExecution())
                     {
-                        reference.Set(value);
+                        HLSLValue curr;
+                        if (context.TryGetVariable(name, out var variable) &&
+                            variable is ReferenceValue reference)
+                        {
+                            curr = reference.Get();
+                        }
+                        else
+                        {
+                            curr = context.GetVariable(name);
+                        }
+                        value = SplatActiveThreadValues(curr, value);
                     }
-                    else
+
                     {
-                        context.SetVariable(name, value);
+                        if (context.TryGetVariable(name, out var variable) &&
+                            variable is ReferenceValue reference)
+                        {
+                            reference.Set(value);
+                        }
+                        else
+                        {
+                            context.SetVariable(name, value);
+                        }
                     }
                     return value;
                 }
                 else if (node.Left is FieldAccessExpressionNode fieldAccess && fieldAccess.Target is NamedExpressionNode namedTarget)
                 {
                     string name = namedTarget.GetName();
-                    var targetVar = context.GetVariable(name);
-                    if (targetVar is StructValue structVal)
-                        structVal.Members[fieldAccess.Name.Identifier] = value;
+                    var structVal = (StructValue)context.GetVariable(name);
+                    if (executionState.IsVaryingExecution())
+                        value = SplatActiveThreadValues(structVal.Members[fieldAccess.Name.Identifier], value);
+                    structVal.Members[fieldAccess.Name.Identifier] = value;
                     return value;
                 }
                 else if (node.Left is ElementAccessExpressionNode elem && elem.Target is NamedExpressionNode arr)
@@ -244,12 +278,17 @@ namespace UnityShaderParser.Test
                     var arrValue = (ArrayValue)context.GetVariable(arr.GetName());
                     if (index.Value.IsUniform)
                     {
+                        if (executionState.IsVaryingExecution())
+                            value = SplatActiveThreadValues(arrValue.Values[Convert.ToInt32(index.Value.UniformValue)], value);
                         arrValue.Values[Convert.ToInt32(index.Value.UniformValue)] = value;
                     }
                     else
                     {
                         for (int threadIndex = 0;  threadIndex < executionState.GetThreadCount() ; threadIndex++)
                         {
+                            if (!executionState.IsThreadActive(threadIndex))
+                                continue;
+
                             // Scattered write. First get the array element for this thread.
                             int myIndex = Convert.ToInt32(index.Value.Get(threadIndex));
                             var arrElem = arrValue.Values[myIndex] as NumericValue;
@@ -548,12 +587,18 @@ namespace UnityShaderParser.Test
             {
                 if (target.Value.IsVarying)
                 {
-                    object[] values = new object[executionState.GetThreadCount()];
+                    HLSLValue[] values = new HLSLValue[executionState.GetThreadCount()];
                     for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
                     {
                         var index = target.Value.Get(threadIndex);
-                        values[threadIndex] = arrValue.Values[Convert.ToInt32(index)];
+                        values[threadIndex] = HLSLValueUtils.Scalarize(arrValue.Values[Convert.ToInt32(index)], threadIndex);
                     }
+                    HLSLValue result = HLSLValueUtils.Vectorize(values[0], executionState.GetThreadCount());
+                    for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+                    {
+                        result = HLSLValueUtils.SetThreadValue(result, threadIndex, values[threadIndex]);
+                    }
+                    return result;
                 }
                 else
                 {

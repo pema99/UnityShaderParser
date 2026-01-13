@@ -337,7 +337,7 @@ namespace UnityShaderParser.Test
             {
                 string[] vals = new string[Value.VaryingValues.Length];
                 for (int i = 0; i < vals.Length; i++)
-                    vals[i] = $"{i}: {ToString(i)}";
+                    vals[i] = $"{ToString(i)}";
                 return $"Varying({string.Join(", ", vals)})";
             }
             else
@@ -518,7 +518,7 @@ namespace UnityShaderParser.Test
             {
                 string[] vals = new string[Values.VaryingValues.Length];
                 for (int i = 0; i < vals.Length; i++)
-                    vals[i] = $"{i}: {ToString(i)}";
+                    vals[i] = $"{ToString(i)}";
                 return $"Varying({string.Join(", ", vals)})";
             }
             else
@@ -639,7 +639,7 @@ namespace UnityShaderParser.Test
             {
                 string[] vals = new string[Values.VaryingValues.Length];
                 for (int i = 0; i < vals.Length; i++)
-                    vals[i] = $"{i}: {ToString(i)}";
+                    vals[i] = $"{ToString(i)}";
                 return $"Varying({string.Join(", ", vals)})";
             }
             else

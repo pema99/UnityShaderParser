@@ -184,12 +184,15 @@ namespace UnityShaderParser.Test
 
             foreach (VariableDeclaratorNode decl in node.Declarators)
             {
+                bool isArray = decl.ArrayRanks.Count > 0;
+                int arrayLength = isArray ? Convert.ToInt32(EvaluateNumeric(decl.ArrayRanks[0].Dimension).GetThreadValue(0)) : 0;
+
                 // TODO: StateInitializer, StateArrayInitializer
                 var initializer = decl.Initializer as ValueInitializerNode;
                 if (initializer != null)
                 {
                     HLSLValue initializerValue;
-                    if (node.Kind is NumericTypeNode)
+                    if (node.Kind is NumericTypeNode && !isArray)
                     {
                         NumericValue numericInitializerValue = EvaluateNumeric(initializer.Expression);
 
@@ -258,7 +261,19 @@ namespace UnityShaderParser.Test
                         default:
                             throw new NotImplementedException();
                     }
-                    context.SetVariable(decl.Name, defaultValue);
+                    if (!isArray)
+                    {
+                        context.SetVariable(decl.Name, defaultValue);
+                    }
+                    else
+                    {
+                        HLSLValue[] vals = new HLSLValue[arrayLength];
+                        for (int i = 0; i < vals.Length; i++)
+                        {
+                            vals[i] = defaultValue.Copy();
+                        }
+                        context.SetVariable(decl.Name, new ArrayValue(vals));
+                    }
                 }
             }
         }
