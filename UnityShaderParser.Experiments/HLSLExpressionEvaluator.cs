@@ -265,6 +265,7 @@ namespace UnityShaderParser.Test
                 }
                 else if (node.Left is FieldAccessExpressionNode fieldAccess && fieldAccess.Target is NamedExpressionNode namedTarget)
                 {
+                    // TODO: Swizzle assign
                     string name = namedTarget.GetName();
                     var structVal = (StructValue)context.GetVariable(name);
                     if (executionState.IsVaryingExecution())

@@ -62,7 +62,7 @@ float4 frag (v2f __vertex_output) : SV_Target
     float2 fragCoord = vertex_output.uv * _Resolution;
     float time = 0.;
     float2 uv = fragCoord.xy/iResolution.xy*2.-1.;
-    uv.x *= iResolution.x/iResolution.y;
+    uv = float2(uv.x, uv.y * iResolution.x/iResolution.y);
     float3 dir = normalize(float3(uv, 1.));
     float3 pos = float3(0, 0, time);
     float3 col = ((float3)0.);
@@ -80,7 +80,5 @@ float4 frag (v2f __vertex_output) : SV_Target
     col = ((float3)t*0.1);
     col = sqrt(col);
     fragColor = float4(0.05*t+abs(dir)*col+max(0., map(ip-0.1)-tt), 1.);
-    fragColor.a = 1./(t*t*t*t);
-    if (_GammaCorrect) fragColor.rgb = pow(fragColor.rgb, 2.2);
     return fragColor;
 }
