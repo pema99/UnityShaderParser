@@ -111,12 +111,49 @@ namespace UnityShaderParser.Test
 
         private static readonly Dictionary<string, (int arity, BasicIntrinsic fn)> basicIntrinsics = new Dictionary<string, (int arity, BasicIntrinsic fn)>()
         {
+            // Just ddo:
+            // mul
+            // asint, asuint overload
+
+            // Need to touch execution state:
             //abort
+            //errorf
+            //clip
+
+            // Need multi-group support:
+            //AllMemoryBarrier
+            //AllMemoryBarrierWithGroupSync
+            //DeviceMemoryBarrier
+            //DeviceMemoryBarrierWithGroupSync
+            //GroupMemoryBarrier
+            //GroupMemoryBarrierWithGroupSync
+
+            // Need atomic support:
+            //InterlockedAdd
+            //InterlockedAnd
+            //InterlockedCompareExchange
+            //InterlockedCompareStore
+            //InterlockedExchange
+            //InterlockedMax
+            //InterlockedMin
+            //InterlockedOr
+            //InterlockedXor
+
+            // Need out parameter:
+            //modf // TODO: Needs out parameter
+            //sincos // TODO: Needs out parameter
+            //frexp // TODO: Needs out parameter
+
+            // Need texture support:
+            //tex1/2/3D/CUBE
+            //tex1/2/3D/CUBEbias
+            //tex1/2/3D/CUBEgrad
+            //tex1/2/3D/CUBElod
+            //tex1/2/3D/CUBEproj
+
             ["abs"] = N1(Abs),
             ["acos"] = N1(Acos),
             ["all"] = N1(All),
-            //AllMemoryBarrier
-            //AllMemoryBarrierWithGroupSync
             ["any"] = N1(Any),
             ["asdouble"] = N2(Asdouble),
             ["asfloat"] = N1(Asfloat),
@@ -127,7 +164,6 @@ namespace UnityShaderParser.Test
             ["atan2"] = N2(Atan2),
             ["ceil"] = N1(Ceil),
             ["clamp"] = N3(Clamp),
-            //clip
             ["cos"] = N1(Cos),
             ["cosh"] = N1(Cosh),
             ["countbits"] = N1(Countbits),
@@ -135,12 +171,9 @@ namespace UnityShaderParser.Test
             ["D3DCOLORtoUBYTE4"] = N1(D3DCOLORtoUBYTE4),
             ["degrees"] = N1(Degrees),
             ["determinant"] = N1(Determinant),
-            //DeviceMemoryBarrier
-            //DeviceMemoryBarrierWithGroupSync
             ["distance"] = N2(Distance),
             ["dot"] = N2(Dot),
             ["dst"] = N2(Dst),
-            //errorf
             ["exp"] = N1(Exp),
             ["exp2"] = N1(Exp2),
             ["f16tof32"] = N1(F16tof32),
@@ -152,18 +185,6 @@ namespace UnityShaderParser.Test
             ["fma"] = N3(Fma),
             ["fmod"] = N2(Fmod),
             ["frac"] = N1(Frac),
-            //frexp // TODO: Needs out parameter
-            //GroupMemoryBarrier
-            //GroupMemoryBarrierWithGroupSync
-            //InterlockedAdd
-            //InterlockedAnd
-            //InterlockedCompareExchange
-            //InterlockedCompareStore
-            //InterlockedExchange
-            //InterlockedMax
-            //InterlockedMin
-            //InterlockedOr
-            //InterlockedXor
             ["isfinite"] = N1(Isfinite),
             ["isinf"] = N1(Isinf),
             ["isnan"] = N1(Isnan),
@@ -177,9 +198,8 @@ namespace UnityShaderParser.Test
             ["mad"] = N3(Mad),
             ["max"] = N2(Max),
             ["min"] = N2(Min),
-            //modf // TODO: Needs out parameter
             ["msad4"] = N3(Msad4),
-            //mul
+            //mul // TODO!!!
             ["noise"] = N1(Noise),
             ["normalize"] = N1(Normalize),
             ["pow"] = N2(Pow),
@@ -193,18 +213,12 @@ namespace UnityShaderParser.Test
             ["saturate"] = N1(Saturate),
             ["sign"] = N1(Sign),
             ["sin"] = N1(Sin),
-            //sincos // TODO: Needs out parameter
             ["sinh"] = N1(Sinh),
             ["smoothstep"] = N3(Smoothstep),
             ["sqrt"] = N1(Sqrt),
             ["step"] = N2(Step),
             ["tan"] = N1(Tan),
             ["tanh"] = N1(Tanh),
-            //tex1/2/3D/CUBE
-            //tex1/2/3D/CUBEbias
-            //tex1/2/3D/CUBEgrad
-            //tex1/2/3D/CUBElod
-            //tex1/2/3D/CUBEproj
             ["transpose"] = N1(Transpose),
             ["trunc"] = N1(Trunc),
         };
