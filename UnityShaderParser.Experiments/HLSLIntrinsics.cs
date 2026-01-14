@@ -112,8 +112,7 @@ namespace UnityShaderParser.Test
         private static readonly Dictionary<string, (int arity, BasicIntrinsic fn)> basicIntrinsics = new Dictionary<string, (int arity, BasicIntrinsic fn)>()
         {
             // Just ddo:
-            // mul
-            // asint, asuint overload
+            // asint, asuint overloaded for doubles
 
             // Need to touch execution state:
             //abort
