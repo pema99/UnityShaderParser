@@ -111,9 +111,6 @@ namespace UnityShaderParser.Test
 
         private static readonly Dictionary<string, (int arity, BasicIntrinsic fn)> basicIntrinsics = new Dictionary<string, (int arity, BasicIntrinsic fn)>()
         {
-            // Just ddo:
-            // asint, asuint overloaded for doubles
-
             // Need to touch execution state:
             //abort
             //errorf
@@ -139,9 +136,10 @@ namespace UnityShaderParser.Test
             //InterlockedXor
 
             // Need out parameter:
-            //modf // TODO: Needs out parameter
-            //sincos // TODO: Needs out parameter
-            //frexp // TODO: Needs out parameter
+            // modf
+            // sincos
+            // frexp
+            // asint, asuint overloaded for doubles
 
             // Need texture support:
             //tex1/2/3D/CUBE
@@ -157,8 +155,8 @@ namespace UnityShaderParser.Test
             ["asdouble"] = N2(Asdouble),
             ["asfloat"] = N1(Asfloat),
             ["asin"] = N1(Asin),
-            ["asint"] = N1(Asint), // TODO: Asint overload
-            ["asuint"] = N1(Asuint), // TODO Asuint overload
+            ["asint"] = N1(Asint),
+            ["asuint"] = N1(Asuint),
             ["atan"] = N1(Atan),
             ["atan2"] = N2(Atan2),
             ["ceil"] = N1(Ceil),
