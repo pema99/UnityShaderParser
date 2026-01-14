@@ -190,10 +190,22 @@ namespace UnityShaderParser.Test
                     else
                         throw Error(node, $"Invalid float literal '{node.Lexeme}'.");
                 case LiteralKind.Integer:
-                    if (int.TryParse(node.Lexeme, NumberStyles.Any, CultureInfo.InvariantCulture, out int parsedInt))
-                        return new ScalarValue(ScalarType.Int, new HLSLRegister<object>(parsedInt));
+                    if (node.Lexeme.EndsWith('u'))
+                    {
+                        string lexeme = node.Lexeme.Substring(0, node.Lexeme.Length - 1);
+                        if (uint.TryParse(lexeme, NumberStyles.Any, CultureInfo.InvariantCulture, out uint parsedUint))
+                            return new ScalarValue(ScalarType.Uint, new HLSLRegister<object>(parsedUint));
+                        else if (lexeme.StartsWith("0x") && uint.TryParse(lexeme.Substring(2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint parsedHexUint))
+                            return new ScalarValue(ScalarType.Uint, new HLSLRegister<object>(parsedHexUint));
+                    }
                     else
-                        throw Error(node, $"Invalid integer literal '{node.Lexeme}'.");
+                    {
+                        if (int.TryParse(node.Lexeme, NumberStyles.Any, CultureInfo.InvariantCulture, out int parsedInt))
+                            return new ScalarValue(ScalarType.Int, new HLSLRegister<object>(parsedInt));
+                        else if (node.Lexeme.StartsWith("0x") && int.TryParse(node.Lexeme.Substring(2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int parsedHexInt))
+                            return new ScalarValue(ScalarType.Int, new HLSLRegister<object>(parsedHexInt));
+                    }
+                    throw Error(node, $"Invalid integer literal '{node.Lexeme}'.");
                 case LiteralKind.Character:
                     if (char.TryParse(node.Lexeme, out char parsedChar))
                         return new ScalarValue(ScalarType.Char, new HLSLRegister<object>(parsedChar));
@@ -389,6 +401,15 @@ namespace UnityShaderParser.Test
         
         public override HLSLValue VisitPrefixUnaryExpressionNode(PrefixUnaryExpressionNode node)
         {
+            // Special case for negative to handle INT_MIN
+            if (node.Operator == OperatorKind.Minus && node.Expression is LiteralExpressionNode literal && literal.Kind == LiteralKind.Integer)
+            {
+                if (int.TryParse("-" + literal.Lexeme, NumberStyles.Any, CultureInfo.InvariantCulture, out int parsedInt))
+                    return new ScalarValue(ScalarType.Int, new HLSLRegister<object>(parsedInt));
+                else if (literal.Lexeme.StartsWith("0x") && int.TryParse("-" + literal.Lexeme.Substring(2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int parsedHexInt))
+                    return new ScalarValue(ScalarType.Int, new HLSLRegister<object>(parsedHexInt));
+            }
+
             var num = EvaluateNumeric(node.Expression);
             switch (node.Operator)
             {

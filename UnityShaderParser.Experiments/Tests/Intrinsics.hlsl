@@ -1066,3 +1066,864 @@ void Intrinsic_Trunc()
     ASSERT(trunc(0.9) == 0.0);
     ASSERT(trunc(-0.9) == 0.0);
 }
+
+[Test]
+void Intrinsic_Asfloat()
+{
+    // Convert int to float (bit pattern reinterpretation)
+    // 0x3F800000 is the bit pattern for 1.0f
+    int i1 = 0x3F800000;
+    ASSERT(asfloat(i1) == 1.0);
+    
+    // 0x40000000 is the bit pattern for 2.0f
+    int i2 = 0x40000000;
+    ASSERT(asfloat(i2) == 2.0);
+    
+    // 0xBF800000 is the bit pattern for -1.0f
+    int i3 = 0xBF800000;
+    ASSERT(asfloat(i3) == -1.0);
+    
+    // 0x00000000 is the bit pattern for 0.0f
+    int i4 = 0x00000000;
+    ASSERT(asfloat(i4) == 0.0);
+    
+    // Convert uint to float
+    uint u1 = 0x3F800000u;
+    ASSERT(asfloat(u1) == 1.0);
+    
+    uint u2 = 0x40490FDBu; // Approximately pi
+    ASSERT(abs(asfloat(u2) - 3.1415926) < 0.001);
+    
+    // Test with float input (should return same value)
+    ASSERT(asfloat(5.5) == 5.5);
+    ASSERT(asfloat(-3.25) == -3.25);
+    
+    // Vector conversion
+    int3 iv = int3(0x3F800000, 0x40000000, 0xBF800000);
+    float3 fv = asfloat(iv);
+    ASSERT(fv.x == 1.0 && fv.y == 2.0 && fv.z == -1.0);
+    
+    // Special bit patterns
+    // 0x7F800000 is positive infinity
+    int inf_bits = 0x7F800000;
+    ASSERT(isinf(asfloat(inf_bits)));
+    
+    // 0xFF800000 is negative infinity
+    int neg_inf_bits = 0xFF800000;
+    ASSERT(isinf(asfloat(neg_inf_bits)));
+    
+    // 0x7FC00000 is a NaN pattern
+    int nan_bits = 0x7FC00000;
+    ASSERT(isnan(asfloat(nan_bits)));
+}
+
+[Test]
+void Intrinsic_Asint()
+{
+    // Convert float to int (bit pattern reinterpretation)
+    float f1 = 1.0;
+    ASSERT(asint(f1) == 0x3F800000);
+    
+    float f2 = 2.0;
+    ASSERT(asint(f2) == 0x40000000);
+    
+    float f3 = -1.0;
+    ASSERT(asint(f3) == 0xBF800000);
+    
+    float f4 = 0.0;
+    ASSERT(asint(f4) == 0x00000000);
+    
+    // Convert uint to int (preserves bit pattern)
+    uint u1 = 0x7FFFFFFF;
+    ASSERT(asint(u1) == 0x7FFFFFFF);
+    
+    uint u2 = 0x80000000u;
+    ASSERT(asint(u2) == -2147483648); // Sign bit set
+    
+    uint u3 = 0x00000000u;
+    ASSERT(asint(u3) == 0);
+    
+    uint u4 = 0xFFFFFFFFu;
+    ASSERT(asint(u4) == -1);
+    
+    // Test with int input (should return same value)
+    ASSERT(asint(42) == 42);
+    ASSERT(asint(-42) == -42);
+    ASSERT(asint(0) == 0);
+    
+    // Vector conversion
+    float3 fv = float3(1.0, 2.0, -1.0);
+    int3 iv = asint(fv);
+    ASSERT(iv.x == 0x3F800000 && iv.y == 0x40000000 && iv.z == 0xBF800000);
+    
+    // Mixed uint vector
+    uint3 uv = uint3(0x00000001u, 0x7FFFFFFFu, 0x80000000u);
+    int3 iv2 = asint(uv);
+    ASSERT(iv2.x == 1 && iv2.y == 2147483647 && iv2.z == -2147483648);
+}
+
+[Test]
+void Intrinsic_Asuint()
+{
+    // Convert float to uint (bit pattern reinterpretation)
+    float f1 = 1.0;
+    ASSERT(asuint(f1) == 0x3F800000u);
+    
+    float f2 = 2.0;
+    ASSERT(asuint(f2) == 0x40000000u);
+    
+    float f3 = -1.0;
+    ASSERT(asuint(f3) == 0xBF800000u);
+    
+    float f4 = 0.0;
+    ASSERT(asuint(f4) == 0x00000000u);
+    
+    // Convert int to uint (preserves bit pattern)
+    int i1 = -1;
+    ASSERT(asuint(i1) == 0xFFFFFFFFu);
+    
+    int i2 = -2147483648;
+    ASSERT(asuint(i2) == 0x80000000u);
+    
+    int i3 = 2147483647;
+    ASSERT(asuint(i3) == 0x7FFFFFFFu);
+    
+    int i4 = 0;
+    ASSERT(asuint(i4) == 0u);
+    
+    // Positive int
+    int i5 = 42;
+    ASSERT(asuint(i5) == 42u);
+    
+    // Test with uint input (should return same value)
+    ASSERT(asuint(42u) == 42u);
+    ASSERT(asuint(0u) == 0u);
+    ASSERT(asuint(0xFFFFFFFFu) == 0xFFFFFFFFu);
+    
+    // Vector conversion
+    float3 fv = float3(1.0, 2.0, -1.0);
+    uint3 uv = asuint(fv);
+    ASSERT(uv.x == 0x3F800000u && uv.y == 0x40000000u && uv.z == 0xBF800000u);
+    
+    // Mixed int vector
+    int3 iv = int3(1, -1, 0);
+    uint3 uv2 = asuint(iv);
+    ASSERT(uv2.x == 1u && uv2.y == 0xFFFFFFFFu && uv2.z == 0u);
+    
+    // Verify round-trip conversion
+    float original = 3.14159;
+    uint bits = asuint(original);
+    float restored = asfloat(bits);
+    ASSERT(original == restored);
+}
+
+[Test]
+void Intrinsic_Asdouble()
+{
+    // Convert two uints to double (low bits, high bits)
+    // Double representation of 1.0: 0x3FF0000000000000
+    uint low1 = 0x00000000u;
+    uint high1 = 0x3FF00000u;
+    ASSERT(asdouble(low1, high1) == 1.0);
+    
+    // Double representation of 2.0: 0x4000000000000000
+    uint low2 = 0x00000000u;
+    uint high2 = 0x40000000u;
+    ASSERT(asdouble(low2, high2) == 2.0);
+    
+    // Double representation of -1.0: 0xBFF0000000000000
+    uint low3 = 0x00000000u;
+    uint high3 = 0xBFF00000u;
+    ASSERT(asdouble(low3, high3) == -1.0);
+    
+    // Double representation of 0.0: 0x0000000000000000
+    uint low4 = 0x00000000u;
+    uint high4 = 0x00000000u;
+    ASSERT(asdouble(low4, high4) == 0.0);
+    
+    // Double representation of 0.5: 0x3FE0000000000000
+    uint low5 = 0x00000000u;
+    uint high5 = 0x3FE00000u;
+    ASSERT(asdouble(low5, high5) == 0.5);
+    
+    // Double representation of -0.5: 0xBFE0000000000000
+    uint low6 = 0x00000000u;
+    uint high6 = 0xBFE00000u;
+    ASSERT(asdouble(low6, high6) == -0.5);
+    
+    // Test with non-zero low bits
+    // 1.5: 0x3FF8000000000000
+    uint low7 = 0x00000000u;
+    uint high7 = 0x3FF80000u;
+    ASSERT(asdouble(low7, high7) == 1.5);
+    
+    // 3.0: 0x4008000000000000
+    uint low8 = 0x00000000u;
+    uint high8 = 0x40080000u;
+    ASSERT(asdouble(low8, high8) == 3.0);
+    
+    // Special values - positive infinity: 0x7FF0000000000000
+    uint low_inf = 0x00000000u;
+    uint high_inf = 0x7FF00000u;
+    ASSERT(isinf(asdouble(low_inf, high_inf)));
+    
+    // Negative infinity: 0xFFF0000000000000
+    uint low_neginf = 0x00000000u;
+    uint high_neginf = 0xFFF00000u;
+    ASSERT(isinf(asdouble(low_neginf, high_neginf)));
+    
+    // NaN: 0x7FF8000000000000
+    uint low_nan = 0x00000000u;
+    uint high_nan = 0x7FF80000u;
+    ASSERT(isnan(asdouble(low_nan, high_nan)));
+    
+    // Small positive number
+    uint low9 = 0x00000000u;
+    uint high9 = 0x3F800000u;
+    double small = asdouble(low9, high9);
+    ASSERT(small > 0.0 && small < 1.0);
+}
+
+[Test]
+void Intrinsic_Msad4()
+{
+    // Test 1: Zero accumulator, identical values (should produce all zeros)
+    uint reference = 0x01020304u;
+    uint2 source = uint2(0x01020304u, 0x05060708u);
+    uint4 accum = uint4(0, 0, 0, 0);
+    uint4 result = msad4(reference, source, accum);
+    // First position: bytes match exactly
+    ASSERT(result.x == 0);
+    
+    // Test 2: Zero accumulator, different values
+    reference = 0x00000000u;
+    source = uint2(0x01020304u, 0x05060708u);
+    accum = uint4(0, 0, 0, 0);
+    result = msad4(reference, source, accum);
+    // First position: |0-1| + |0-2| + |0-3| + |0-4| = 10
+    ASSERT(result.x == 10);
+    // Second position: |0-2| + |0-3| + |0-4| + |0-5| = 14
+    ASSERT(result.y == 14);
+    // Third position: |0-3| + |0-4| + |0-5| + |0-6| = 18
+    ASSERT(result.z == 18);
+    // Fourth position: |0-4| + |0-5| + |0-6| + |0-7| = 22
+    ASSERT(result.w == 22);
+    
+    // Test 3: Non-zero accumulator
+    reference = 0x00000000u;
+    source = uint2(0x01010101u, 0x01010101u);
+    accum = uint4(10, 20, 30, 40);
+    result = msad4(reference, source, accum);
+    // Each position: |0-1| + |0-1| + |0-1| + |0-1| = 4, plus accumulator
+    ASSERT(result.x == 14);
+    ASSERT(result.y == 24);
+    ASSERT(result.z == 34);
+    ASSERT(result.w == 44);
+    
+    // Test 4: All bytes same in reference and source
+    reference = 0x05050505u;
+    source = uint2(0x05050505u, 0x05050505u);
+    accum = uint4(0, 0, 0, 0);
+    result = msad4(reference, source, accum);
+    ASSERT(result.x == 0);
+    ASSERT(result.y == 0);
+    ASSERT(result.z == 0);
+    ASSERT(result.w == 0);
+    
+    // Test 5: Maximum difference per byte (255)
+    reference = 0x00000000u;
+    source = uint2(0xFFFFFFFFu, 0xFFFFFFFFu);
+    accum = uint4(0, 0, 0, 0);
+    result = msad4(reference, source, accum);
+    // Each position: |0-255| * 4 = 1020
+    ASSERT(result.x == 1020);
+    ASSERT(result.y == 1020);
+    ASSERT(result.z == 1020);
+    ASSERT(result.w == 1020);
+    
+    // Test 6: Mixed byte values - gradient pattern
+    // Note: 0x00204060 unpacks as bytes [0x60, 0x40, 0x20, 0x00] (little-endian)
+    reference = 0x80808080u; // All bytes are 128
+    source = uint2(0x00204060u, 0x80A0C0E0u);
+    accum = uint4(0, 0, 0, 0);
+    result = msad4(reference, source, accum);
+    // source bytes: [0x60, 0x40, 0x20, 0x00, 0xE0, 0xC0, 0xA0, 0x80]
+    //                 96    64    32     0   224   192   160   128
+    // Position 0: |128-96| + |128-64| + |128-32| + |128-0| = 32 + 64 + 96 + 128 = 320
+    ASSERT(result.x == 320);
+    // Position 1: |128-64| + |128-32| + |128-0| + |128-224| = 64 + 96 + 128 + 96 = 384
+    ASSERT(result.y == 384);
+    // Position 2: |128-32| + |128-0| + |128-224| + |128-192| = 96 + 128 + 96 + 64 = 384
+    ASSERT(result.z == 384);
+    // Position 3: |128-0| + |128-224| + |128-192| + |128-160| = 128 + 96 + 64 + 32 = 320
+    ASSERT(result.w == 320);
+    
+    // Test 7: Alternating high/low bytes
+    reference = 0xFF00FF00u;
+    source = uint2(0x00FF00FFu, 0xFF00FF00u);
+    accum = uint4(0, 0, 0, 0);
+    result = msad4(reference, source, accum);
+    // Position 0: |0-255| + |255-0| + |0-255| + |255-0| = 255 + 255 + 255 + 255 = 1020
+    ASSERT(result.x == 1020);
+    // Position 1: |0-0| + |255-255| + |0-0| + |255-0| = 0 + 0 + 0 + 255 = 255
+    ASSERT(result.y == 255);
+    // Position 2: |0-255| + |255-0| + |0-0| + |255-255| = 255 + 255 + 0 + 0 = 510
+    ASSERT(result.z == 510);
+    // Position 3: |0-0| + |255-0| + |0-255| + |255-0| = 0 + 255 + 255 + 255 = 765
+    ASSERT(result.w == 765);
+    
+    // Test 8: Single byte differences
+    reference = 0x01010101u;
+    source = uint2(0x02020202u, 0x02020202u);
+    accum = uint4(0, 0, 0, 0);
+    result = msad4(reference, source, accum);
+    // Each position: |1-2| * 4 = 4
+    ASSERT(result.x == 4);
+    ASSERT(result.y == 4);
+    ASSERT(result.z == 4);
+    ASSERT(result.w == 4);
+    
+    // Test 9: Asymmetric source pattern
+    // reference = 0x10203040 unpacks as [0x40, 0x30, 0x20, 0x10] = [64, 48, 32, 16]
+    // source.x  = 0x10203040 unpacks as [0x40, 0x30, 0x20, 0x10] = [64, 48, 32, 16]
+    // source.y  = 0x50607080 unpacks as [0x80, 0x70, 0x60, 0x50] = [128, 112, 96, 80]
+    reference = 0x10203040u;
+    source = uint2(0x10203040u, 0x50607080u);
+    accum = uint4(5, 10, 15, 20);
+    result = msad4(reference, source, accum);
+    // Position 0: |64-64| + |48-48| + |32-32| + |16-16| + 5 = 0 + 5 = 5
+    ASSERT(result.x == 5);
+    // Position 1: |64-48| + |48-32| + |32-16| + |16-128| + 10 = 16+16+16+112 + 10 = 170
+    ASSERT(result.y == 170);
+    // Position 2: |64-32| + |48-16| + |32-128| + |16-112| + 15 = 32+32+96+96 + 15 = 271
+    ASSERT(result.z == 271);
+    // Position 3: |64-16| + |48-128| + |32-112| + |16-96| + 20 = 48+80+80+80 + 20 = 308
+    ASSERT(result.w == 308);
+    
+    // Test 10: Large accumulator values
+    reference = 0x00000000u;
+    source = uint2(0x01010101u, 0x01010101u);
+    accum = uint4(1000000, 2000000, 3000000, 4000000);
+    result = msad4(reference, source, accum);
+    // Each position: 4 + large accumulator
+    ASSERT(result.x == 1000004);
+    ASSERT(result.y == 2000004);
+    ASSERT(result.z == 3000004);
+    ASSERT(result.w == 4000004);
+    
+    // Test 11: Byte boundary wrapping behavior
+    reference = 0xFEFEFEFEu;
+    source = uint2(0xFFFFFFFEu, 0xFEFEFEFEu);
+    accum = uint4(0, 0, 0, 0);
+    result = msad4(reference, source, accum);
+    // Position 0: |254-255| + |254-255| + |254-255| + |254-254| = 1+1+1+0 = 3
+    ASSERT(result.x == 3);
+    
+    // Test 12: All different patterns across positions
+    // reference = 0xAAAAAAAA unpacks as [0xAA, 0xAA, 0xAA, 0xAA] = all 170
+    // source.x  = 0x55555555 unpacks as [0x55, 0x55, 0x55, 0x55] = all 85
+    // source.y  = 0xAAAAAAAA unpacks as [0xAA, 0xAA, 0xAA, 0xAA] = all 170
+    reference = 0xAAAAAAAAu; // 10101010 pattern
+    source = uint2(0x55555555u, 0xAAAAAAAAu); // 01010101 and 10101010 patterns
+    accum = uint4(0, 0, 0, 0);
+    result = msad4(reference, source, accum);
+    // 0xAA = 170, 0x55 = 85, difference = 85
+    // Position 0: |170-85| + |170-85| + |170-85| + |170-85| = 340
+    ASSERT(result.x == 340);
+    // Position 1: |170-85| + |170-85| + |170-85| + |170-170| = 255
+    ASSERT(result.y == 255);
+    // Position 2: |170-85| + |170-85| + |170-170| + |170-170| = 170
+    ASSERT(result.z == 170);
+    // Position 3: |170-85| + |170-170| + |170-170| + |170-170| = 85
+    ASSERT(result.w == 85);
+}
+
+
+
+
+///////
+[Test]
+void Intrinsic_All()
+{
+    // All true (non-zero) - scalar
+    ASSERT(all(1.0) == true);
+    ASSERT(all(5.0) == true);
+    ASSERT(all(-1.0) == true);
+    
+    // Zero - scalar
+    ASSERT(all(0.0) == false);
+    
+    // All components non-zero - vector
+    ASSERT(all(float2(1.0, 2.0)) == true);
+    ASSERT(all(float3(1.0, 2.0, 3.0)) == true);
+    ASSERT(all(float4(-1.0, -2.0, -3.0, -4.0)) == true);
+    
+    // Some components zero - vector
+    ASSERT(all(float2(1.0, 0.0)) == false);
+    ASSERT(all(float2(0.0, 1.0)) == false);
+    ASSERT(all(float3(1.0, 2.0, 0.0)) == false);
+    ASSERT(all(float3(0.0, 1.0, 2.0)) == false);
+    ASSERT(all(float4(1.0, 0.0, 2.0, 3.0)) == false);
+    
+    // All components zero - vector
+    ASSERT(all(float2(0.0, 0.0)) == false);
+    ASSERT(all(float3(0.0, 0.0, 0.0)) == false);
+    ASSERT(all(float4(0.0, 0.0, 0.0, 0.0)) == false);
+    
+    // Mixed positive and negative (all non-zero)
+    ASSERT(all(float3(-1.0, 2.0, -3.0)) == true);
+    ASSERT(all(float4(1.0, -1.0, 1.0, -1.0)) == true);
+    
+    // Boolean vectors
+    ASSERT(all(bool2(true, true)) == true);
+    ASSERT(all(bool2(true, false)) == false);
+    ASSERT(all(bool3(true, true, true)) == true);
+    ASSERT(all(bool3(true, true, false)) == false);
+}
+
+[Test]
+void Intrinsic_Any()
+{
+    // Any non-zero - scalar
+    ASSERT(any(1.0) == true);
+    ASSERT(any(-1.0) == true);
+    
+    // Zero - scalar
+    ASSERT(any(0.0) == false);
+    
+    // At least one component non-zero - vector
+    ASSERT(any(float2(1.0, 0.0)) == true);
+    ASSERT(any(float2(0.0, 1.0)) == true);
+    ASSERT(any(float3(0.0, 0.0, 1.0)) == true);
+    ASSERT(any(float3(1.0, 0.0, 0.0)) == true);
+    ASSERT(any(float4(0.0, 0.0, 0.0, 1.0)) == true);
+    
+    // All components non-zero - vector
+    ASSERT(any(float2(1.0, 2.0)) == true);
+    ASSERT(any(float3(1.0, 2.0, 3.0)) == true);
+    ASSERT(any(float4(-1.0, -2.0, -3.0, -4.0)) == true);
+    
+    // All components zero - vector
+    ASSERT(any(float2(0.0, 0.0)) == false);
+    ASSERT(any(float3(0.0, 0.0, 0.0)) == false);
+    ASSERT(any(float4(0.0, 0.0, 0.0, 0.0)) == false);
+    
+    // Mixed signs with at least one non-zero
+    ASSERT(any(float3(-1.0, 0.0, 0.0)) == true);
+    ASSERT(any(float4(0.0, -1.0, 0.0, 0.0)) == true);
+    
+    // Boolean vectors
+    ASSERT(any(bool2(false, false)) == false);
+    ASSERT(any(bool2(true, false)) == true);
+    ASSERT(any(bool2(false, true)) == true);
+    ASSERT(any(bool3(false, false, true)) == true);
+}
+
+[Test]
+void Intrinsic_Log10()
+{
+    // Powers of 10
+    ASSERT(abs(log10(1.0) - 0.0) < 0.001);
+    ASSERT(abs(log10(10.0) - 1.0) < 0.001);
+    ASSERT(abs(log10(100.0) - 2.0) < 0.001);
+    ASSERT(abs(log10(1000.0) - 3.0) < 0.001);
+    
+    // Fractional powers of 10
+    ASSERT(abs(log10(0.1) - (-1.0)) < 0.001);
+    ASSERT(abs(log10(0.01) - (-2.0)) < 0.001);
+    ASSERT(abs(log10(0.001) - (-3.0)) < 0.001);
+    
+    // Non-powers of 10
+    ASSERT(abs(log10(2.0) - 0.301029) < 0.001);
+    ASSERT(abs(log10(5.0) - 0.698970) < 0.001);
+    ASSERT(abs(log10(50.0) - 1.698970) < 0.001);
+    
+    // Special values
+    ASSERT(abs(log10(2.7182818) - 0.4342944) < 0.001);
+}
+
+[Test]
+void Intrinsic_Reversebits()
+{
+    // Simple patterns
+    ASSERT(reversebits(0u) == 0u);
+    ASSERT(reversebits(0xFFFFFFFFu) == 0xFFFFFFFFu);
+    
+    // Single bit set
+    ASSERT(reversebits(0x00000001u) == 0x80000000u);
+    ASSERT(reversebits(0x80000000u) == 0x00000001u);
+    ASSERT(reversebits(0x00000002u) == 0x40000000u);
+    ASSERT(reversebits(0x00000004u) == 0x20000000u);
+    
+    // Multiple bits
+    ASSERT(reversebits(0x0000000Fu) == 0xF0000000u);
+    ASSERT(reversebits(0x000000FFu) == 0xFF000000u);
+    ASSERT(reversebits(0x0000FFFFu) == 0xFFFF0000u);
+    
+    // Patterns
+    ASSERT(reversebits(0x12345678u) == 0x1E6A2C48u);
+    ASSERT(reversebits(0xAAAAAAAAu) == 0x55555555u);
+    ASSERT(reversebits(0x55555555u) == 0xAAAAAAAAu);
+    
+    // Verify double reverse returns original
+    uint original = 0x12345678u;
+    ASSERT(reversebits(reversebits(original)) == original);
+}
+
+[Test]
+void Intrinsic_Lit()
+{
+    // Standard case: positive n·l and n·h
+    float4 result = lit(0.5, 0.8, 32.0);
+    ASSERT(result.x == 1.0); // ambient is always 1
+    ASSERT(result.y == 0.5); // diffuse = n·l
+    ASSERT(result.z > 0.0);  // specular = (n·h)^m when n·l > 0
+    ASSERT(result.w == 1.0); // w is always 1
+    
+    // n·l is zero
+    result = lit(0.0, 0.8, 32.0);
+    ASSERT(result.x == 1.0);
+    ASSERT(result.y == 0.0);
+    ASSERT(result.z == 0.0); // specular is 0 when n·l <= 0
+    ASSERT(result.w == 1.0);
+    
+    // n·l is negative (backfacing)
+    result = lit(-0.5, 0.8, 32.0);
+    ASSERT(result.x == 1.0);
+    ASSERT(result.y == 0.0); // diffuse clamped to 0
+    ASSERT(result.z == 0.0); // specular is 0 when n·l <= 0
+    ASSERT(result.w == 1.0);
+    
+    // n·h is zero (no specular highlight)
+    result = lit(0.5, 0.0, 32.0);
+    ASSERT(result.x == 1.0);
+    ASSERT(result.y == 0.5);
+    ASSERT(result.z == 0.0); // (n·h)^m = 0^32 = 0
+    ASSERT(result.w == 1.0);
+    
+    // n·h is negative
+    result = lit(0.5, -0.5, 32.0);
+    ASSERT(result.x == 1.0);
+    ASSERT(result.y == 0.5);
+    ASSERT(result.z == 0.0); // negative n·h clamped
+    ASSERT(result.w == 1.0);
+    
+    // Maximum values
+    result = lit(1.0, 1.0, 1.0);
+    ASSERT(result.x == 1.0);
+    ASSERT(result.y == 1.0);
+    ASSERT(result.z == 1.0); // 1^1 = 1
+    ASSERT(result.w == 1.0);
+    
+    // Different exponents
+    result = lit(1.0, 0.5, 2.0);
+    ASSERT(result.x == 1.0);
+    ASSERT(result.y == 1.0);
+    ASSERT(abs(result.z - 0.25) < 0.001); // 0.5^2 = 0.25
+    ASSERT(result.w == 1.0);
+}
+
+[Test]
+void Intrinsic_Countbits()
+{
+    // Zero
+    ASSERT(countbits(0u) == 0);
+    
+    // Single bit
+    ASSERT(countbits(1u) == 1);
+    ASSERT(countbits(2u) == 1);
+    ASSERT(countbits(4u) == 1);
+    ASSERT(countbits(0x80000000u) == 1);
+    
+    // Multiple bits
+    ASSERT(countbits(3u) == 2);        // 0b11
+    ASSERT(countbits(7u) == 3);        // 0b111
+    ASSERT(countbits(15u) == 4);       // 0b1111
+    ASSERT(countbits(0xFFu) == 8);     // 8 bits
+    ASSERT(countbits(0xFFFFu) == 16);  // 16 bits
+    
+    // All bits set
+    ASSERT(countbits(0xFFFFFFFFu) == 32);
+    
+    // Patterns
+    ASSERT(countbits(0xAAAAAAAAu) == 16); // alternating bits
+    ASSERT(countbits(0x55555555u) == 16); // alternating bits
+    ASSERT(countbits(0x0F0F0F0Fu) == 16); // pattern
+    
+    // Specific values
+    ASSERT(countbits(0x12345678u) == 13);
+    
+    // Powers of 2 minus 1
+    ASSERT(countbits(0x7FFFFFFFu) == 31);
+}
+
+[Test]
+void Intrinsic_D3DCOLORtoUBYTE4()
+{
+    // r0.xyzw = float4(255.001953,255.001953,255.001953,255.001953) * r0.zyxw;
+    // o0.xyzw = (int4)r0.xyzw;
+    
+    float4 result = D3DCOLORtoUBYTE4(float4(0.0, 0.0, 0.0, 0.0));
+    ASSERT(result.x == 0.0 && result.y == 0.0 && result.z == 0.0 && result.w == 0.0);
+    
+    result = D3DCOLORtoUBYTE4(float4(0.25, 0.5, 0.75, 1.0));
+    ASSERT(result.x == 191.0 && result.y == 127.0 && result.z == 63.0 && result.w == 255.0);
+
+    result = D3DCOLORtoUBYTE4(float4(-0.25, 0.5, 0.75, 1.0));
+    ASSERT(result.x == 191.0 && result.y == 127.0 && result.z == -63.0 && result.w == 255.0);
+}
+
+[Test]
+void Intrinsic_Dst()
+{
+    // Standard distance vector calculation
+    // dst(d1, d2) = (1, d1.y * d2.y, d1.z, d2.w)
+    
+    // Basic case
+    float4 result = dst(float4(1.0, 2.0, 3.0, 4.0), float4(5.0, 6.0, 7.0, 8.0));
+    ASSERT(result.x == 1.0);
+    ASSERT(result.y == 12.0); // 2.0 * 6.0
+    ASSERT(result.z == 3.0);
+    ASSERT(result.w == 8.0);
+    
+    // With zeros
+    result = dst(float4(0.0, 0.0, 0.0, 0.0), float4(1.0, 2.0, 3.0, 4.0));
+    ASSERT(result.x == 1.0);
+    ASSERT(result.y == 0.0);
+    ASSERT(result.z == 0.0);
+    ASSERT(result.w == 4.0);
+    
+    // With negative values
+    result = dst(float4(1.0, -2.0, 3.0, -4.0), float4(5.0, -6.0, 7.0, -8.0));
+    ASSERT(result.x == 1.0);
+    ASSERT(result.y == 12.0); // -2.0 * -6.0 = 12.0
+    ASSERT(result.z == 3.0);
+    ASSERT(result.w == -8.0);
+    
+    // With ones
+    result = dst(float4(1.0, 1.0, 1.0, 1.0), float4(1.0, 1.0, 1.0, 1.0));
+    ASSERT(result.x == 1.0);
+    ASSERT(result.y == 1.0);
+    ASSERT(result.z == 1.0);
+    ASSERT(result.w == 1.0);
+    
+    // Verify first component is always 1
+    result = dst(float4(99.0, 2.0, 3.0, 4.0), float4(88.0, 6.0, 7.0, 8.0));
+    ASSERT(result.x == 1.0);
+}
+
+[Test]
+void Intrinsic_F16tof32()
+{
+    // Zero
+    ASSERT(abs(f16tof32(0x0000) - 0.0) < 0.001);
+    
+    // One
+    ASSERT(abs(f16tof32(0x3C00) - 1.0) < 0.001);
+    
+    // Negative one
+    ASSERT(abs(f16tof32(0xBC00) - (-1.0)) < 0.001);
+    
+    // Two
+    ASSERT(abs(f16tof32(0x4000) - 2.0) < 0.001);
+    
+    // Half
+    ASSERT(abs(f16tof32(0x3800) - 0.5) < 0.001);
+    
+    // Small positive value
+    ASSERT(abs(f16tof32(0x3400) - 0.25) < 0.001);
+    
+    // Negative values
+    ASSERT(abs(f16tof32(0xC000) - (-2.0)) < 0.001);
+    ASSERT(abs(f16tof32(0xB800) - (-0.5)) < 0.001);
+    
+    // Larger values
+    ASSERT(abs(f16tof32(0x7BFF) - 65504.0) < 1.0); // max half float
+    
+    // Special values: infinity
+    float inf = f16tof32(0x7C00);
+    ASSERT(isinf(inf));
+    
+    // Negative infinity
+    float ninf = f16tof32(0xFC00);
+    ASSERT(isinf(ninf));
+}
+
+[Test]
+void Intrinsic_F32tof16()
+{
+    // Zero
+    ASSERT(f32tof16(0.0) == 0x0000);
+    
+    // One
+    ASSERT(f32tof16(1.0) == 0x3C00);
+    
+    // Negative one
+    ASSERT(f32tof16(-1.0) == 0xBC00);
+    
+    // Two
+    ASSERT(f32tof16(2.0) == 0x4000);
+    
+    // Half
+    ASSERT(f32tof16(0.5) == 0x3800);
+    
+    // Quarter
+    ASSERT(f32tof16(0.25) == 0x3400);
+    
+    // Negative values
+    ASSERT(f32tof16(-2.0) == 0xC000);
+    ASSERT(f32tof16(-0.5) == 0xB800);
+    
+    // Round-trip conversion
+    float original = 1.5;
+    uint halff = f32tof16(original);
+    float restored = f16tof32(halff);
+    ASSERT(abs(restored - original) < 0.001);
+    
+    // Another round-trip
+    original = -3.75;
+    halff = f32tof16(original);
+    restored = f16tof32(halff);
+    ASSERT(abs(restored - original) < 0.001);
+}
+
+[Test]
+void Intrinsic_Firstbithigh()
+{
+    // Zero has no bits set - typically returns -1
+    ASSERT(firstbithigh(0u) == -1);
+    
+    // Single bit at MSB
+    ASSERT(firstbithigh(0x80000000u) == 31);
+    
+    // Single bit at LSB
+    ASSERT(firstbithigh(0x00000001u) == 0);
+    
+    // Multiple bits - should return highest
+    ASSERT(firstbithigh(0xFFFFFFFFu) == 31);
+    ASSERT(firstbithigh(0x0FFFFFFFu) == 27);
+    ASSERT(firstbithigh(0x00FFFFFFu) == 23);
+    ASSERT(firstbithigh(0x000FFFFFu) == 19);
+    
+    // Specific patterns
+    ASSERT(firstbithigh(0x00000003u) == 1);  // 0b11
+    ASSERT(firstbithigh(0x00000007u) == 2);  // 0b111
+    ASSERT(firstbithigh(0x0000000Fu) == 3);  // 0b1111
+    
+    // Powers of 2
+    ASSERT(firstbithigh(0x00000001u) == 0);
+    ASSERT(firstbithigh(0x00000002u) == 1);
+    ASSERT(firstbithigh(0x00000004u) == 2);
+    ASSERT(firstbithigh(0x00000008u) == 3);
+    ASSERT(firstbithigh(0x00000010u) == 4);
+    ASSERT(firstbithigh(0x00000100u) == 8);
+    ASSERT(firstbithigh(0x00010000u) == 16);
+    
+    // Mixed patterns
+    ASSERT(firstbithigh(0x12345678u) == 28); // highest bit is bit 28
+    ASSERT(firstbithigh(0x0000FFFFu) == 15);
+}
+
+[Test]
+void Intrinsic_Firstbitlow()
+{
+    // Zero has no bits set - typically returns -1
+    ASSERT(firstbitlow(0u) == -1);
+    
+    // Single bit at LSB
+    ASSERT(firstbitlow(0x00000001u) == 0);
+    
+    // Single bit at MSB
+    ASSERT(firstbitlow(0x80000000u) == 31);
+    
+    // Multiple bits - should return lowest
+    ASSERT(firstbitlow(0xFFFFFFFFu) == 0);
+    ASSERT(firstbitlow(0xFFFFFFFEu) == 1);
+    ASSERT(firstbitlow(0xFFFFFFFCu) == 2);
+    ASSERT(firstbitlow(0xFFFFFFF8u) == 3);
+    
+    // Powers of 2
+    ASSERT(firstbitlow(0x00000001u) == 0);
+    ASSERT(firstbitlow(0x00000002u) == 1);
+    ASSERT(firstbitlow(0x00000004u) == 2);
+    ASSERT(firstbitlow(0x00000008u) == 3);
+    ASSERT(firstbitlow(0x00000010u) == 4);
+    ASSERT(firstbitlow(0x00000100u) == 8);
+    ASSERT(firstbitlow(0x00010000u) == 16);
+    
+    // Specific patterns - lowest set bit wins
+    ASSERT(firstbitlow(0x00000003u) == 0);  // 0b11, lowest is bit 0
+    ASSERT(firstbitlow(0x00000006u) == 1);  // 0b110, lowest is bit 1
+    ASSERT(firstbitlow(0x0000000Cu) == 2);  // 0b1100, lowest is bit 2
+    
+    // Mixed patterns
+    ASSERT(firstbitlow(0x12345678u) == 3);  // 0x78 ends in 0b1000, lowest bit is 3
+    ASSERT(firstbitlow(0xFFFF0000u) == 16);
+    ASSERT(firstbitlow(0x80000000u) == 31);
+    
+    // Even numbers have bit 0 clear
+    ASSERT(firstbitlow(0x00000002u) == 1);
+    ASSERT(firstbitlow(0x00000004u) == 2);
+    ASSERT(firstbitlow(0x00000008u) == 3);
+}
+
+[Test]
+void Intrinsic_Determinant()
+{
+    // 2x2 Identity matrix
+    float2x2 identity2 = float2x2(1.0, 0.0, 0.0, 1.0);
+    ASSERT(abs(determinant(identity2) - 1.0) < 0.001);
+    
+    // 2x2 matrix with determinant 0 (singular)
+    float2x2 singular2 = float2x2(1.0, 2.0, 2.0, 4.0);
+    ASSERT(abs(determinant(singular2) - 0.0) < 0.001);
+    
+    // 2x2 matrix with negative determinant
+    float2x2 neg2 = float2x2(1.0, 2.0, 3.0, 4.0);
+    ASSERT(abs(determinant(neg2) - (-2.0)) < 0.001); // 1*4 - 2*3 = -2
+    
+    // 2x2 matrix with positive determinant
+    float2x2 pos2 = float2x2(4.0, 3.0, 2.0, 1.0);
+    ASSERT(abs(determinant(pos2) - (-2.0)) < 0.001); // 4*1 - 3*2 = -2
+    
+    // 3x3 Identity matrix
+    float3x3 identity3 = float3x3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+    ASSERT(abs(determinant(identity3) - 1.0) < 0.001);
+    
+    // 3x3 matrix
+    float3x3 mat3 = float3x3(1.0, 2.0, 3.0, 0.0, 1.0, 4.0, 5.0, 6.0, 0.0);
+    // det = 1*(1*0 - 4*6) - 2*(0*0 - 4*5) + 3*(0*6 - 1*5)
+    //     = 1*(-24) - 2*(-20) + 3*(-5)
+    //     = -24 + 40 - 15 = 1
+    ASSERT(abs(determinant(mat3) - 1.0) < 0.001);
+    
+    // 3x3 singular matrix (determinant = 0)
+    float3x3 singular3 = float3x3(1.0, 2.0, 3.0, 2.0, 4.0, 6.0, 1.0, 2.0, 3.0);
+    ASSERT(abs(determinant(singular3) - 0.0) < 0.001);
+    
+    // 4x4 Identity matrix
+    float4x4 identity4 = float4x4(
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0
+    );
+    ASSERT(abs(determinant(identity4) - 1.0) < 0.001);
+    
+    // 4x4 diagonal matrix
+    float4x4 diag4 = float4x4(
+        2.0, 0.0, 0.0, 0.0,
+        0.0, 3.0, 0.0, 0.0,
+        0.0, 0.0, 4.0, 0.0,
+        0.0, 0.0, 0.0, 5.0
+    );
+    ASSERT(abs(determinant(diag4) - 120.0) < 0.001); // 2*3*4*5 = 120
+    
+    // Scale matrix
+    float2x2 scale2 = float2x2(2.0, 0.0, 0.0, 3.0);
+    ASSERT(abs(determinant(scale2) - 6.0) < 0.001);
+    
+    // Negative scale
+    float2x2 negScale = float2x2(-1.0, 0.0, 0.0, 1.0);
+    ASSERT(abs(determinant(negScale) - (-1.0)) < 0.001);
+}

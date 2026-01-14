@@ -178,16 +178,23 @@ public class Program
 
         foreach (var result in results)
         {
-            Console.WriteLine($"=== Test: {result.TestName} ===");
-            Console.WriteLine("Result: " + (result.Pass ? "Pass" : "Fail"));
-            if (!string.IsNullOrEmpty(result.Message))
+            bool hasMessage = !string.IsNullOrEmpty(result.Message);
+            bool hasLog = !string.IsNullOrEmpty(result.Log);
+
+            if (hasMessage || hasLog || !result.Pass)
+            {
+                Console.WriteLine($"Test: {result.TestName}");
+                Console.WriteLine("Result: " + (result.Pass ? "Pass" : "Fail"));
+            }
+            if (hasMessage)
                 Console.WriteLine("Message: " + result.Message);
-            if (!string.IsNullOrEmpty(result.Log))
+            if (hasLog)
             {
                 Console.WriteLine("Log:");
                 Console.WriteLine(result.Log);
             }
-            Console.WriteLine();
+            if (hasMessage || hasLog || !result.Pass)
+                Console.WriteLine();
         }
 
         Console.WriteLine($"=== Results: {results.Count(x => x.Pass)} passed, {results.Count(x => !x.Pass)} failed ===");

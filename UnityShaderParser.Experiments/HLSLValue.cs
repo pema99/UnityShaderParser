@@ -184,6 +184,7 @@ namespace UnityShaderParser.Test
         public abstract NumericValue SetThreadValue(int threadIndex, object set);
         public abstract NumericValue Map(Func<object, object> mapper);
         public abstract NumericValue MapThreads(Func<object, int, object> mapper);
+        public abstract ScalarValue[] ToScalars();
 
         public abstract NumericValue Vectorize(int threadCount);
         public abstract NumericValue Scalarize(int threadIndex);
@@ -270,6 +271,11 @@ namespace UnityShaderParser.Test
         public override (int rows, int columns) TensorSize => (1, 1);
         public override int ThreadCount => Value.Size;
         public override bool IsUniform => Value.IsUniform;
+
+        public override ScalarValue[] ToScalars()
+        {
+            return new ScalarValue[] { (ScalarValue)Copy() };
+        }
 
         public override HLSLValue Copy()
         {
@@ -405,31 +411,13 @@ namespace UnityShaderParser.Test
 
         public static VectorValue FromScalars(params ScalarValue[] scalars)
         {
-            ScalarType type = scalars[0].Type;
-            foreach (var scalar in scalars)
-            {
-                type = HLSLValueUtils.PromoteScalarType(type, scalar.Type);
-            }
-
-            int maxThreadCount = scalars.Max(x => x.ThreadCount);
-            object[][] result = new object[maxThreadCount][];
-            for (int threadIndex = 0; threadIndex < maxThreadCount; threadIndex++)
-            {
-                result[threadIndex] = new object[scalars.Length];
-                for (int channel = 0; channel < scalars.Length; channel++)
-                {
-                    var scalar = scalars[channel];
-                    if (scalar.Type != type)
-                        scalar = (ScalarValue)scalar.Cast(type);
-                    result[threadIndex][channel] = scalar.GetThreadValue(threadIndex);
-                }
-            }
-
-            if (maxThreadCount == 1)
-                return new VectorValue(type, HLSLValueUtils.MakeVectorSGPR(result[0]));
-            else
-                return new VectorValue(type, HLSLValueUtils.MakeVectorVGPR(result));
+            return new VectorValue(scalars[0].Type, HLSLValueUtils.RegisterFromScalars(scalars));
         }
+
+        public override ScalarValue[] ToScalars()
+        {
+            return HLSLValueUtils.RegisterToScalars(Type, Values);
+        }  
 
         public override HLSLValue Copy()
         {
@@ -568,6 +556,36 @@ namespace UnityShaderParser.Test
         public override (int rows, int columns) TensorSize => (Rows, Columns);
         public override int ThreadCount => Values.Size;
         public override bool IsUniform => Values.IsUniform;
+
+        public ScalarValue this[int channel]
+        {
+            get
+            {
+                if (IsVarying)
+                {
+                    object[] perThreadValue = new object[ThreadCount];
+                    for (int threadIndex = 0; threadIndex < ThreadCount; threadIndex++)
+                        perThreadValue[threadIndex] = Values.Get(threadIndex)[channel];
+                    return new ScalarValue(Type, HLSLValueUtils.MakeScalarVGPR(perThreadValue));
+                }
+                else
+                {
+                    return new ScalarValue(Type, HLSLValueUtils.MakeScalarSGPR(Values.UniformValue[channel]));
+                }
+            }
+        }
+
+        public ScalarValue this[int row, int col] => this[row * Columns + col];
+
+        public static MatrixValue FromScalars(int rows, int columns, params ScalarValue[] scalars)
+        {
+            return new MatrixValue(scalars[0].Type, rows, columns, HLSLValueUtils.RegisterFromScalars(scalars));
+        }
+
+        public override ScalarValue[] ToScalars()
+        {
+            return HLSLValueUtils.RegisterToScalars(Type, Values);
+        }
 
         public override HLSLValue Copy()
         {
@@ -856,14 +874,16 @@ namespace UnityShaderParser.Test
                 case ScalarType.Min16Int:
                 case ScalarType.Min12Int:
                     if (value is float fi) return (int)fi;
-                    if (value is double di) return (int)di;
-                    return Convert.ToInt32(value);
+                    else if (value is double di) return (int)di;
+                    else if (value is uint ui) return (int)ui;
+                    else return Convert.ToInt32(value);
                 case ScalarType.Uint:
                 case ScalarType.Min16Uint:
                 case ScalarType.Min12Uint:
                     if (value is float fu) return (uint)fu;
-                    if (value is double du) return (uint)du;
-                    return Convert.ToUInt32(value);
+                    else if (value is double du) return (uint)du;
+                    else if (value is int iu) return (uint)iu;
+                    else return Convert.ToUInt32(value);
                 case ScalarType.Double:
                     return Convert.ToDouble(value);
                 case ScalarType.Half:
@@ -1126,6 +1146,59 @@ namespace UnityShaderParser.Test
         public static HLSLRegister<object[]> MakeVectorVGPR<T>(IEnumerable<IEnumerable<T>> val)
         {
             return new HLSLRegister<object[]>(val.Select(x => x.Select(y => (object)y).ToArray()).ToArray());
+        }
+
+        public static HLSLRegister<object[]> RegisterFromScalars(ScalarValue[] scalars)
+        {
+            ScalarType type = scalars[0].Type;
+            foreach (var scalar in scalars)
+            {
+                type = HLSLValueUtils.PromoteScalarType(type, scalar.Type);
+            }
+
+            int maxThreadCount = scalars.Max(x => x.ThreadCount);
+            object[][] result = new object[maxThreadCount][];
+            for (int threadIndex = 0; threadIndex < maxThreadCount; threadIndex++)
+            {
+                result[threadIndex] = new object[scalars.Length];
+                for (int channel = 0; channel < scalars.Length; channel++)
+                {
+                    var scalar = scalars[channel];
+                    if (scalar.Type != type)
+                        scalar = (ScalarValue)scalar.Cast(type);
+                    result[threadIndex][channel] = scalar.GetThreadValue(threadIndex);
+                }
+            }
+
+            if (maxThreadCount == 1)
+                return MakeVectorSGPR(result[0]);
+            else
+                return MakeVectorVGPR(result);
+        }
+
+        public static ScalarValue[] RegisterToScalars(ScalarType type, HLSLRegister<object[]> scalars)
+        {
+            ScalarValue[] scalarValues = new ScalarValue[scalars.Get(0).Length];
+            if (scalars.IsUniform)
+            {
+                for (int i = 0; i < scalarValues.Length; i++)
+                {
+                    scalarValues[i] = new ScalarValue(type, HLSLValueUtils.MakeScalarSGPR(scalars.UniformValue[i]));
+                }
+            }
+            else
+            {
+                for (int i = 0; i < scalarValues.Length; i++)
+                {
+                    object[] perThreadValues = new object[scalars.Size];
+                    for (int threadIndex = 0; threadIndex < scalars.Size; threadIndex++)
+                    {
+                        perThreadValues[threadIndex] = scalars.VaryingValues[threadIndex][i];
+                    }
+                    scalarValues[i] = new ScalarValue(type, HLSLValueUtils.MakeScalarVGPR(perThreadValues));
+                }
+            }
+            return scalarValues;
         }
     }
 }
