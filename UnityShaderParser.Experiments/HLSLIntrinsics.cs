@@ -199,7 +199,7 @@ namespace UnityShaderParser.Test
             ["max"] = N2(Max),
             ["min"] = N2(Min),
             ["msad4"] = N3(Msad4),
-            //mul // TODO!!!
+            ["mul"] = N2(Mul),
             ["noise"] = N1(Noise),
             ["normalize"] = N1(Normalize),
             ["pow"] = N2(Pow),
@@ -1003,6 +1003,87 @@ namespace UnityShaderParser.Test
                 + Abs(r3.Cast(ScalarType.Int) - t2.Cast(ScalarType.Int)));
 
             return accum + VectorValue.FromScalars(x,y,z,w);
+        }
+
+        // https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul#type-description
+        public static NumericValue Mul(NumericValue x, NumericValue y)
+        {
+            bool xIsScalar = x is ScalarValue;
+            bool yIsScalar = y is ScalarValue;
+
+            // Covers case 1, 2, 3, 4, 7 - scalar mul
+            if (xIsScalar || yIsScalar) 
+                return x * y;
+
+            bool xIsVector = x is VectorValue;
+            bool yIsVector = y is VectorValue;
+
+            // Case 5 - dot
+            if (xIsVector && yIsVector)
+                return Dot(x, y);
+
+            bool xIsMatrix = x is MatrixValue;
+            bool yIsMatrix = y is MatrixValue;
+
+            // Case 6 - row vector mul
+            if (xIsVector && yIsMatrix)
+            {
+                var xVec = (VectorValue)x;
+                var yMat = (MatrixValue)y;
+                ScalarValue[] result = new ScalarValue[yMat.Columns];
+                for (int col = 0; col < yMat.Columns; col++)
+                {
+                    ScalarValue[] colVec = new ScalarValue[yMat.Rows];
+                    for (int row = 0; row < yMat.Rows; row++)
+                        colVec[row] = yMat[row, col];
+                    result[col] = (ScalarValue)Dot(VectorValue.FromScalars(colVec), xVec);
+                }
+                return VectorValue.FromScalars(result);
+            }
+
+            // Case 8 - column vector mul
+            if (xIsMatrix && yIsVector)
+            {
+                var xMat = (MatrixValue)x;
+                var yVec = (VectorValue)y;
+                ScalarValue[] result = new ScalarValue[xMat.Rows];
+                for (int row = 0; row < xMat.Rows; row++)
+                {
+                    ScalarValue[] rowVec = new ScalarValue[xMat.Columns];
+                    for (int col = 0; col < xMat.Columns; col++)
+                        rowVec[col] = xMat[row, col];
+                    result[row] = (ScalarValue)Dot(VectorValue.FromScalars(rowVec), yVec);
+                }
+                return VectorValue.FromScalars(result);
+            }
+
+            // Case 9 - full matmul
+            if (xIsMatrix && yIsMatrix)
+            {
+                var xMat = (MatrixValue)x;
+                var yMat = (MatrixValue)y;
+                ScalarValue[] result = new ScalarValue[xMat.Rows*yMat.Columns];
+                for (int row = 0; row < xMat.Rows; row++)
+                {
+                    for (int col = 0; col < yMat.Columns; col++)
+                    {
+                        // get row 'row' from xMat
+                        ScalarValue[] rowVec = new ScalarValue[xMat.Columns];
+                        for (int i = 0; i < xMat.Columns; i++)
+                            rowVec[i] = xMat[row, i];
+
+                        // get col 'col' from yMat
+                        ScalarValue[] colVec = new ScalarValue[yMat.Rows];
+                        for (int i = 0; i < yMat.Rows; i++)
+                            colVec[i] = yMat[i, col];
+
+                        result[row * xMat.Rows + col] = (ScalarValue)Dot(VectorValue.FromScalars(rowVec), VectorValue.FromScalars(colVec));
+                    }
+                }
+                return MatrixValue.FromScalars(xMat.Rows, yMat.Columns, result);
+            }
+
+            return x;
         }
 
         public static NumericValue Max(NumericValue x, NumericValue y)

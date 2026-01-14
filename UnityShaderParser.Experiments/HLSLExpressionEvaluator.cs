@@ -630,6 +630,56 @@ namespace UnityShaderParser.Test
                     return arrValue.Values[Convert.ToInt32(target.Value.UniformValue)];
                 }
             }
+            else if (arr is VectorValue vec)
+            {
+                if (target.Value.IsVarying)
+                {
+                    HLSLValue[] values = new HLSLValue[executionState.GetThreadCount()];
+                    for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+                    {
+                        var index = target.Value.Get(threadIndex);
+                        values[threadIndex] = HLSLValueUtils.Scalarize(vec[Convert.ToInt32(index)], threadIndex);
+                    }
+                    HLSLValue result = HLSLValueUtils.Vectorize(values[0], executionState.GetThreadCount());
+                    for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+                    {
+                        result = HLSLValueUtils.SetThreadValue(result, threadIndex, values[threadIndex]);
+                    }
+                    return result;
+                }
+                else
+                {
+                    return vec[Convert.ToInt32(target.Value.UniformValue)];
+                }
+            }
+            else if (arr is MatrixValue mat)
+            {
+                if (target.Value.IsVarying)
+                {
+                    HLSLValue[] values = new HLSLValue[executionState.GetThreadCount()];
+                    for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+                    {
+                        var index = target.Value.Get(threadIndex);
+                        ScalarValue[] rowVec = new ScalarValue[mat.Columns];
+                        for (int i = 0; i < mat.Columns; i++)
+                            rowVec[i] = mat[Convert.ToInt32(index), i];
+                        values[threadIndex] = HLSLValueUtils.Scalarize(VectorValue.FromScalars(rowVec), threadIndex);
+                    }
+                    HLSLValue result = HLSLValueUtils.Vectorize(values[0], executionState.GetThreadCount());
+                    for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+                    {
+                        result = HLSLValueUtils.SetThreadValue(result, threadIndex, values[threadIndex]);
+                    }
+                    return result;
+                }
+                else
+                {
+                    ScalarValue[] rowVec = new ScalarValue[mat.Columns];
+                    for (int i = 0; i < mat.Columns; i++)
+                        rowVec[i] = mat[Convert.ToInt32(target.Value.UniformValue), i];
+                    return VectorValue.FromScalars(rowVec);
+                }
+            }
             throw Error(node, "Invalid element access.");
         }
 

@@ -929,7 +929,7 @@ namespace UnityShaderParser.Test
                 (int leftRows, int leftColumns) = left.TensorSize;
                 (int rightRows, int rightColumns) = right.TensorSize;
                 int newRows = Math.Max(leftRows, rightRows);
-                int newColumns = Math.Max(rightRows, rightColumns);
+                int newColumns = Math.Max(leftColumns, rightColumns);
                 if (leftRows != newRows || leftColumns != newColumns)
                     left = left.BroadcastToMatrix(newRows, newColumns);
                 if (rightRows != newRows || rightColumns != newColumns)

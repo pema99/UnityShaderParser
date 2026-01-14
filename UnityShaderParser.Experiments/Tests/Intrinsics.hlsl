@@ -1927,3 +1927,402 @@ void Intrinsic_Determinant()
     float2x2 negScale = float2x2(-1.0, 0.0, 0.0, 1.0);
     ASSERT(abs(determinant(negScale) - (-1.0)) < 0.001);
 }
+
+[Test]
+void Intrinsic_Mul_ScalarScalar()
+{
+    // Positive * Positive
+    ASSERT(mul(2.0, 3.0) == 6.0);
+    ASSERT(mul(5.0, 7.0) == 35.0);
+    
+    // Positive * Negative
+    ASSERT(mul(2.0, -3.0) == -6.0);
+    ASSERT(mul(5.0, -7.0) == -35.0);
+    
+    // Negative * Positive
+    ASSERT(mul(-2.0, 3.0) == -6.0);
+    ASSERT(mul(-5.0, 7.0) == -35.0);
+    
+    // Negative * Negative
+    ASSERT(mul(-2.0, -3.0) == 6.0);
+    ASSERT(mul(-5.0, -7.0) == 35.0);
+    
+    // With zero
+    ASSERT(mul(0.0, 5.0) == 0.0);
+    ASSERT(mul(5.0, 0.0) == 0.0);
+    ASSERT(mul(0.0, 0.0) == 0.0);
+    
+    // Fractional
+    ASSERT(abs(mul(0.5, 0.5) - 0.25) < 0.001);
+    ASSERT(abs(mul(1.5, 2.0) - 3.0) < 0.001);
+}
+
+[Test]
+void Intrinsic_Mul_ScalarVector()
+{
+    // Scalar * float2
+    float2 v2 = mul(2.0, float2(3.0, 4.0));
+    ASSERT(v2.x == 6.0 && v2.y == 8.0);
+    
+    // Negative scalar
+    v2 = mul(-2.0, float2(3.0, 4.0));
+    ASSERT(v2.x == -6.0 && v2.y == -8.0);
+    
+    // Scalar * float3
+    float3 v3 = mul(3.0, float3(1.0, 2.0, 3.0));
+    ASSERT(v3.x == 3.0 && v3.y == 6.0 && v3.z == 9.0);
+    
+    // Negative scalar with mixed signs
+    v3 = mul(-2.0, float3(1.0, -2.0, 3.0));
+    ASSERT(v3.x == -2.0 && v3.y == 4.0 && v3.z == -6.0);
+    
+    // Scalar * float4
+    float4 v4 = mul(0.5, float4(2.0, 4.0, 6.0, 8.0));
+    ASSERT(v4.x == 1.0 && v4.y == 2.0 && v4.z == 3.0 && v4.w == 4.0);
+    
+    // Zero scalar
+    v3 = mul(0.0, float3(5.0, 10.0, 15.0));
+    ASSERT(v3.x == 0.0 && v3.y == 0.0 && v3.z == 0.0);
+}
+
+[Test]
+void Intrinsic_Mul_VectorScalar()
+{
+    // float2 * Scalar
+    float2 v2 = mul(float2(3.0, 4.0), 2.0);
+    ASSERT(v2.x == 6.0 && v2.y == 8.0);
+    
+    // Negative scalar
+    v2 = mul(float2(3.0, 4.0), -2.0);
+    ASSERT(v2.x == -6.0 && v2.y == -8.0);
+    
+    // float3 * Scalar
+    float3 v3 = mul(float3(1.0, 2.0, 3.0), 3.0);
+    ASSERT(v3.x == 3.0 && v3.y == 6.0 && v3.z == 9.0);
+    
+    // Mixed signs
+    v3 = mul(float3(1.0, -2.0, 3.0), -2.0);
+    ASSERT(v3.x == -2.0 && v3.y == 4.0 && v3.z == -6.0);
+    
+    // float4 * Scalar
+    float4 v4 = mul(float4(2.0, 4.0, 6.0, 8.0), 0.5);
+    ASSERT(v4.x == 1.0 && v4.y == 2.0 && v4.z == 3.0 && v4.w == 4.0);
+    
+    // Zero scalar
+    v3 = mul(float3(5.0, 10.0, 15.0), 0.0);
+    ASSERT(v3.x == 0.0 && v3.y == 0.0 && v3.z == 0.0);
+}
+
+[Test]
+void Intrinsic_Mul_VectorVector()
+{
+    // float2 * float2 (dot product)
+    float result = mul(float2(2.0, 3.0), float2(4.0, 5.0));
+    ASSERT(result == 23.0); // 2*4 + 3*5 = 8 + 15 = 23
+    
+    // With negative components
+    result = mul(float2(2.0, -3.0), float2(-4.0, 5.0));
+    ASSERT(result == -23.0); // 2*(-4) + (-3)*5 = -8 + (-15) = -23
+    
+    // float3 * float3
+    result = mul(float3(1.0, 2.0, 3.0), float3(4.0, 5.0, 6.0));
+    ASSERT(result == 32.0); // 1*4 + 2*5 + 3*6 = 4 + 10 + 18 = 32
+    
+    // All negative
+    result = mul(float3(-1.0, -2.0, -3.0), float3(-4.0, -5.0, -6.0));
+    ASSERT(result == 32.0); // (-1)*(-4) + (-2)*(-5) + (-3)*(-6) = 4 + 10 + 18 = 32
+    
+    // Mixed signs
+    result = mul(float3(1.0, -2.0, 3.0), float3(4.0, 5.0, 6.0));
+    ASSERT(result == 12.0); // 1*4 + (-2)*5 + 3*6 = 4 - 10 + 18 = 12
+    
+    // float4 * float4
+    result = mul(float4(1.0, 2.0, 3.0, 4.0), float4(2.0, 3.0, 4.0, 5.0));
+    ASSERT(result == 40.0); // 1*2 + 2*3 + 3*4 + 4*5 = 2 + 6 + 12 + 20 = 40
+    
+    // Orthogonal vectors (dot product = 0)
+    result = mul(float3(1.0, 0.0, 0.0), float3(0.0, 1.0, 0.0));
+    ASSERT(result == 0.0);
+    
+    result = mul(float2(1.0, 1.0), float2(1.0, -1.0));
+    ASSERT(result == 0.0); // 1*1 + 1*(-1) = 0
+    
+    // With zeros
+    result = mul(float3(1.0, 0.0, 3.0), float3(4.0, 5.0, 0.0));
+    ASSERT(result == 4.0); // 1*4 + 0*5 + 3*0 = 4
+    
+    // Same vector (dot with itself = squared length)
+    result = mul(float3(3.0, 4.0, 0.0), float3(3.0, 4.0, 0.0));
+    ASSERT(result == 25.0); // 3*3 + 4*4 = 9 + 16 = 25
+}
+
+[Test]
+void Intrinsic_Mul_MatrixScalar()
+{
+    // 2x2 matrix * scalar
+    float2x2 m2 = float2x2(1.0, 2.0, 3.0, 4.0);
+    float2x2 r2 = mul(m2, 2.0);
+    ASSERT(r2[0][0] == 2.0 && r2[0][1] == 4.0);
+    ASSERT(r2[1][0] == 6.0 && r2[1][1] == 8.0);
+    
+    // Negative scalar
+    r2 = mul(m2, -1.0);
+    ASSERT(r2[0][0] == -1.0 && r2[0][1] == -2.0);
+    ASSERT(r2[1][0] == -3.0 && r2[1][1] == -4.0);
+    
+    // 3x3 matrix * scalar
+    float3x3 m3 = float3x3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
+    float3x3 r3 = mul(m3, 0.5);
+    ASSERT(r3[0][0] == 0.5 && r3[0][1] == 1.0 && r3[0][2] == 1.5);
+    ASSERT(r3[1][0] == 2.0 && r3[1][1] == 2.5 && r3[1][2] == 3.0);
+    ASSERT(r3[2][0] == 3.5 && r3[2][1] == 4.0 && r3[2][2] == 4.5);
+    
+    // Zero scalar
+    r2 = mul(m2, 0.0);
+    ASSERT(r2[0][0] == 0.0 && r2[0][1] == 0.0);
+    ASSERT(r2[1][0] == 0.0 && r2[1][1] == 0.0);
+}
+
+[Test]
+void Intrinsic_Mul_ScalarMatrix()
+{
+    // Scalar * 2x2 matrix
+    float2x2 m2 = float2x2(1.0, 2.0, 3.0, 4.0);
+    float2x2 r2 = mul(2.0, m2);
+    ASSERT(r2[0][0] == 2.0 && r2[0][1] == 4.0);
+    ASSERT(r2[1][0] == 6.0 && r2[1][1] == 8.0);
+    
+    // Negative scalar
+    r2 = mul(-1.0, m2);
+    ASSERT(r2[0][0] == -1.0 && r2[0][1] == -2.0);
+    ASSERT(r2[1][0] == -3.0 && r2[1][1] == -4.0);
+    
+    // Scalar * 3x3 matrix
+    float3x3 m3 = float3x3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
+    float3x3 r3 = mul(0.5, m3);
+    ASSERT(r3[0][0] == 0.5 && r3[0][1] == 1.0 && r3[0][2] == 1.5);
+    ASSERT(r3[1][0] == 2.0 && r3[1][1] == 2.5 && r3[1][2] == 3.0);
+    ASSERT(r3[2][0] == 3.5 && r3[2][1] == 4.0 && r3[2][2] == 4.5);
+}
+
+[Test]
+void Intrinsic_Mul_VectorMatrix()
+{
+    // float2 * 2x2 matrix (row vector * matrix)
+    float2 v = float2(1.0, 2.0);
+    float2x2 m = float2x2(1.0, 2.0, 3.0, 4.0);
+    float2 r = mul(v, m);
+    ASSERT(r.x == 7.0 && r.y == 10.0); // [1 2] * [[1 2][3 4]] = [1*1+2*3, 1*2+2*4]
+    
+    // With negative values
+    v = float2(1.0, -2.0);
+    r = mul(v, m);
+    ASSERT(r.x == -5.0 && r.y == -6.0); // [1 -2] * [[1 2][3 4]]
+    
+    // float3 * 3x3 matrix
+    float3 v3 = float3(1.0, 2.0, 3.0);
+    float3x3 m3 = float3x3(1.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 3.0); // diagonal
+    float3 r3 = mul(v3, m3);
+    ASSERT(r3.x == 1.0 && r3.y == 4.0 && r3.z == 9.0);
+    
+    // Identity matrix
+    m3 = float3x3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+    r3 = mul(v3, m3);
+    ASSERT(r3.x == 1.0 && r3.y == 2.0 && r3.z == 3.0);
+    
+    // float2 * 2x3 matrix (results in float3)
+    float2x3 m23 = float2x3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0);
+    float3 r23 = mul(float2(1.0, 2.0), m23);
+    ASSERT(r23.x == 9.0 && r23.y == 12.0 && r23.z == 15.0);
+    
+    // float3 * 3x2 matrix (results in float2)
+    float3x2 m32 = float3x2(1.0, 2.0, 3.0, 4.0, 5.0, 6.0);
+    float2 r32 = mul(float3(1.0, 2.0, 3.0), m32);
+    ASSERT(r32.x == 22.0 && r32.y == 28.0);
+}
+
+[Test]
+void Intrinsic_Mul_MatrixVector()
+{
+    // 2x2 matrix * float2 (column vector)
+    float2x2 m = float2x2(1.0, 2.0, 3.0, 4.0);
+    float2 v = float2(1.0, 2.0);
+    float2 r = mul(m, v);
+    ASSERT(r.x == 5.0 && r.y == 11.0); // [[1 2][3 4]] * [1; 2] = [1*1+2*2; 3*1+4*2]
+    
+    // With negative values
+    v = float2(1.0, -2.0);
+    r = mul(m, v);
+    ASSERT(r.x == -3.0 && r.y == -5.0);
+    
+    // 3x3 matrix * float3
+    float3x3 m3 = float3x3(1.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 3.0); // diagonal
+    float3 v3 = float3(1.0, 2.0, 3.0);
+    float3 r3 = mul(m3, v3);
+    ASSERT(r3.x == 1.0 && r3.y == 4.0 && r3.z == 9.0);
+    
+    // Identity matrix
+    m3 = float3x3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+    r3 = mul(m3, v3);
+    ASSERT(r3.x == 1.0 && r3.y == 2.0 && r3.z == 3.0);
+    
+    // 2x3 matrix * float3 (results in float2)
+    float2x3 m23 = float2x3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0);
+    float2 r23 = mul(m23, float3(1.0, 2.0, 3.0));
+    ASSERT(r23.x == 14.0 && r23.y == 32.0);
+    
+    // 3x2 matrix * float2 (results in float3)
+    float3x2 m32 = float3x2(1.0, 2.0, 3.0, 4.0, 5.0, 6.0);
+    float3 r32 = mul(m32, float2(1.0, 2.0));
+    ASSERT(r32.x == 5.0 && r32.y == 11.0 && r32.z == 17.0);
+}
+
+[Test]
+void Intrinsic_Mul_MatrixMatrix()
+{
+    // 2x2 * 2x2
+    float2x2 m1 = float2x2(1.0, 2.0, 3.0, 4.0);
+    float2x2 m2 = float2x2(5.0, 6.0, 7.0, 8.0);
+    float2x2 r = mul(m1, m2);
+    ASSERT(r[0][0] == 19.0 && r[0][1] == 22.0);
+    ASSERT(r[1][0] == 43.0 && r[1][1] == 50.0);
+    
+    // With negative values
+    m2 = float2x2(-1.0, 2.0, -3.0, 4.0);
+    r = mul(m1, m2);
+    ASSERT(r[0][0] == -7.0 && r[0][1] == 10.0);
+    ASSERT(r[1][0] == -15.0 && r[1][1] == 22.0);
+    
+    // Identity matrix multiplication
+    float2x2 identity = float2x2(1.0, 0.0, 0.0, 1.0);
+    r = mul(m1, identity);
+    ASSERT(r[0][0] == 1.0 && r[0][1] == 2.0);
+    ASSERT(r[1][0] == 3.0 && r[1][1] == 4.0);
+    
+    // 3x3 * 3x3
+    float3x3 m3a = float3x3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
+    float3x3 m3b = float3x3(9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0);
+    float3x3 r3 = mul(m3a, m3b);
+    ASSERT(r3[0][0] == 30.0 && r3[0][1] == 24.0 && r3[0][2] == 18.0);
+    ASSERT(r3[1][0] == 84.0 && r3[1][1] == 69.0 && r3[1][2] == 54.0);
+    ASSERT(r3[2][0] == 138.0 && r3[2][1] == 114.0 && r3[2][2] == 90.0);
+    
+    // Diagonal matrices
+    float3x3 diag1 = float3x3(2.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 4.0);
+    float3x3 diag2 = float3x3(5.0, 0.0, 0.0, 0.0, 6.0, 0.0, 0.0, 0.0, 7.0);
+    r3 = mul(diag1, diag2);
+    ASSERT(r3[0][0] == 10.0 && r3[0][1] == 0.0 && r3[0][2] == 0.0);
+    ASSERT(r3[1][0] == 0.0 && r3[1][1] == 18.0 && r3[1][2] == 0.0);
+    ASSERT(r3[2][0] == 0.0 && r3[2][1] == 0.0 && r3[2][2] == 28.0);
+}
+
+[Test]
+void Intrinsic_Mul_MatrixMatrix_NonSquare()
+{
+    // 2x3 * 3x2 = 2x2
+    float2x3 m23 = float2x3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0);
+    float3x2 m32 = float3x2(7.0, 8.0, 9.0, 10.0, 11.0, 12.0);
+    float2x2 r22 = mul(m23, m32);
+    ASSERT(r22[0][0] == 58.0 && r22[0][1] == 64.0);
+    ASSERT(r22[1][0] == 139.0 && r22[1][1] == 154.0);
+    
+    // 3x2 * 2x3 = 3x3
+    float3x3 r33 = mul(m32, m23);
+    ASSERT(r33[0][0] == 39.0 && r33[0][1] == 54.0 && r33[0][2] == 69.0);
+    ASSERT(r33[1][0] == 49.0 && r33[1][1] == 68.0 && r33[1][2] == 87.0);
+    ASSERT(r33[2][0] == 59.0 && r33[2][1] == 82.0 && r33[2][2] == 105.0);
+    
+    // 2x4 * 4x2 = 2x2
+    float2x4 m24 = float2x4(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0);
+    float4x2 m42 = float4x2(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0);
+    float2x2 r = mul(m24, m42);
+    ASSERT(r[0][0] == 50.0 && r[0][1] == 60.0);
+    ASSERT(r[1][0] == 114.0 && r[1][1] == 140.0);
+    
+    // 3x4 * 4x3 = 3x3
+    float3x4 m34 = float3x4(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0);
+    float4x3 m43 = float4x3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0);
+    r33 = mul(m34, m43);
+    ASSERT(r33[0][0] == 70.0 && r33[0][1] == 80.0 && r33[0][2] == 90.0);
+    ASSERT(r33[1][0] == 158.0 && r33[1][1] == 184.0 && r33[1][2] == 210.0);
+    ASSERT(r33[2][0] == 246.0 && r33[2][1] == 288.0 && r33[2][2] == 330.0);
+}
+
+[Test]
+void Intrinsic_Mul_MatrixMatrix_TransformationMatrices()
+{
+    // Rotation matrix (90 degrees around Z) * Translation doesn't commute
+    float3x3 rotation = float3x3(
+        0.0, -1.0, 0.0,
+        1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0
+    );
+    
+    // Scale matrix
+    float3x3 scale = float3x3(
+        2.0, 0.0, 0.0,
+        0.0, 3.0, 0.0,
+        0.0, 0.0, 4.0
+    );
+    
+    // Rotation then scale
+    float3x3 r1 = mul(rotation, scale);
+    ASSERT(abs(r1[0][0] - 0.0) < 0.001 && abs(r1[0][1] - (-3.0)) < 0.001 && abs(r1[0][2] - 0.0) < 0.001);
+    ASSERT(abs(r1[1][0] - 2.0) < 0.001 && abs(r1[1][1] - 0.0) < 0.001 && abs(r1[1][2] - 0.0) < 0.001);
+    
+    // Scale then rotation
+    float3x3 r2 = mul(scale, rotation);
+    ASSERT(abs(r2[0][0] - 0.0) < 0.001 && abs(r2[0][1] - (-2.0)) < 0.001 && abs(r2[0][2] - 0.0) < 0.001);
+    ASSERT(abs(r2[1][0] - 3.0) < 0.001 && abs(r2[1][1] - 0.0) < 0.001 && abs(r2[1][2] - 0.0) < 0.001);
+}
+
+[Test]
+void Intrinsic_Mul_SpecialCases()
+{
+    // Zero matrix
+    float2x2 zero = float2x2(0.0, 0.0, 0.0, 0.0);
+    float2x2 m = float2x2(1.0, 2.0, 3.0, 4.0);
+    float2x2 r = mul(m, zero);
+    ASSERT(r[0][0] == 0.0 && r[0][1] == 0.0);
+    ASSERT(r[1][0] == 0.0 && r[1][1] == 0.0);
+    
+    // Zero vector
+    float3 zeroVec = float3(0.0, 0.0, 0.0);
+    float3x3 m3 = float3x3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
+    float3 r3 = mul(m3, zeroVec);
+    ASSERT(r3.x == 0.0 && r3.y == 0.0 && r3.z == 0.0);
+    
+    // Very large values
+    float2 large = mul(float2(1000000.0, 2000000.0), 3.0);
+    ASSERT(large.x == 3000000.0 && large.y == 6000000.0);
+    
+    // Very small values
+    float2 small = mul(float2(0.000001, 0.000002), 0.5);
+    ASSERT(abs(small.x - 0.0000005) < 0.0000001);
+    ASSERT(abs(small.y - 0.000001) < 0.0000001);
+    
+    // Mixed very large and very small
+    float2 mixed = mul(float2(0.000001, 1000000.0), 2.0);
+    ASSERT(abs(mixed.x - 0.000002) < 0.0000001);
+    ASSERT(mixed.y == 2000000.0);
+}
+
+[Test]
+void Intrinsic_Mul_MatrixAssociativity()
+{
+    // Verify (AB)C = A(BC)
+    float2x2 a = float2x2(1.0, 2.0, 3.0, 4.0);
+    float2x2 b = float2x2(5.0, 6.0, 7.0, 8.0);
+    float2x2 c = float2x2(9.0, 10.0, 11.0, 12.0);
+    
+    float2x2 ab = mul(a, b);
+    float2x2 abc1 = mul(ab, c);
+    
+    float2x2 bc = mul(b, c);
+    float2x2 abc2 = mul(a, bc);
+    
+    ASSERT(abs(abc1[0][0] - abc2[0][0]) < 0.001);
+    ASSERT(abs(abc1[0][1] - abc2[0][1]) < 0.001);
+    ASSERT(abs(abc1[1][0] - abc2[1][0]) < 0.001);
+    ASSERT(abs(abc1[1][1] - abc2[1][1]) < 0.001);
+}
