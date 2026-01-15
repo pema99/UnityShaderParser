@@ -185,7 +185,10 @@ namespace UnityShaderParser.Test
                 case LiteralKind.String:
                     return new ScalarValue(ScalarType.String, new HLSLRegister<object>(node.Lexeme));
                 case LiteralKind.Float:
-                    if (float.TryParse(node.Lexeme, NumberStyles.Any, CultureInfo.InvariantCulture, out float parsedFloat))
+                    string floatLexeme = node.Lexeme;
+                    if (floatLexeme.EndsWith('f'))
+                        floatLexeme = floatLexeme.Substring(0, node.Lexeme.Length - 1);
+                    if (float.TryParse(floatLexeme, NumberStyles.Any, CultureInfo.InvariantCulture, out float parsedFloat))
                         return new ScalarValue(ScalarType.Float, new HLSLRegister<object>(parsedFloat));
                     else
                         throw Error(node, $"Invalid float literal '{node.Lexeme}'.");

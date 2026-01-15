@@ -219,7 +219,7 @@ namespace UnityShaderParser.Test
                     }
                     else
                     {
-                        initializerValue = expressionEvaluator.Visit(initializer);
+                        initializerValue = expressionEvaluator.Visit(initializer.Expression);
                     }
 
                     context.SetVariable(decl.Name, initializerValue);
