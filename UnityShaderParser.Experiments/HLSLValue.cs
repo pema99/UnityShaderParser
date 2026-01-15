@@ -693,9 +693,9 @@ namespace UnityShaderParser.Test
     public sealed class PredefinedObjectValue : HLSLValue
     {
         public readonly PredefinedObjectType Type;
-        public readonly HLSLValue[] TemplateArguments;
+        public readonly TypeNode[] TemplateArguments;
 
-        public PredefinedObjectValue(PredefinedObjectType type, HLSLValue[] templateArguments)
+        public PredefinedObjectValue(PredefinedObjectType type, TypeNode[] templateArguments)
         {
             Type = type;
             TemplateArguments = templateArguments;
@@ -705,13 +705,13 @@ namespace UnityShaderParser.Test
 
         public override HLSLValue Copy()
         {
-            return new PredefinedObjectValue(Type, TemplateArguments.Select(x => x.Copy()).ToArray());
+            return new PredefinedObjectValue(Type, TemplateArguments);
         }
 
         public override string ToString()
         {
             string type = PrintingUtil.GetEnumName(Type);
-            return $"{type}<{string.Join(", ", (IEnumerable<HLSLValue>)TemplateArguments)}>";
+            return $"{type}<{string.Join(", ", (IEnumerable<TypeNode>)TemplateArguments)}>";
         }
     }
 
@@ -1050,10 +1050,7 @@ namespace UnityShaderParser.Test
                         members.Add(kvp.Key, Scalarize(kvp.Value, threadIndex));
                     return new StructValue(str.Name, members);
                 case PredefinedObjectValue pre:
-                    HLSLValue[] templates = new HLSLValue[pre.TemplateArguments.Length];
-                    for (int i = 0; i < templates.Length; i++)
-                        templates[i] = Scalarize(pre.TemplateArguments[i], threadIndex);
-                    return new PredefinedObjectValue(pre.Type, templates);
+                    return new PredefinedObjectValue(pre.Type, pre.TemplateArguments);
                 case ArrayValue arr:
                     HLSLValue[] vals = new HLSLValue[arr.Values.Length];
                     for (int i = 0; i < vals.Length; i++)
@@ -1076,10 +1073,7 @@ namespace UnityShaderParser.Test
                         members.Add(kvp.Key, Vectorize(kvp.Value, threadCount));
                     return new StructValue(str.Name, members);
                 case PredefinedObjectValue pre:
-                    HLSLValue[] templates = new HLSLValue[pre.TemplateArguments.Length];
-                    for (int i = 0; i < templates.Length; i++)
-                        templates[i] = Vectorize(pre.TemplateArguments[i], threadCount);
-                    return new PredefinedObjectValue(pre.Type, templates);
+                    return new PredefinedObjectValue(pre.Type, pre.TemplateArguments);
                 case ArrayValue arr:
                     HLSLValue[] vals = new HLSLValue[arr.Values.Length];
                     for (int i = 0; i < vals.Length; i++)
@@ -1111,10 +1105,7 @@ namespace UnityShaderParser.Test
 
             if (allValue is PredefinedObjectValue preLeft && threadValue is PredefinedObjectValue preRight)
             {
-                HLSLValue[] vals = new HLSLValue[preLeft.TemplateArguments.Length];
-                for (int i = 0; i < vals.Length; i++)
-                    vals[i] = SetThreadValue(preLeft.TemplateArguments[i], threadIndex, preRight.TemplateArguments[i]);
-                return new PredefinedObjectValue(preLeft.Type, vals);
+                return new PredefinedObjectValue(preLeft.Type, preLeft.TemplateArguments);
             }
 
             if (allValue is ArrayValue arrLeft && threadValue is ArrayValue arrRight)
@@ -1199,6 +1190,163 @@ namespace UnityShaderParser.Test
                 }
             }
             return scalarValues;
+        }
+
+        // Cast "value" to match the given type and return it.
+        // Performs any implicit conversions, either promotion or demotion, needed to pass as a function parameter.
+        // TODO: Generic vector, matrix
+        public static HLSLValue CastForParameter(HLSLValue value, TypeNode typeNode)
+        {
+            if (value is NumericValue valueNum && typeNode is NumericTypeNode typeNum)
+            {
+                HLSLValue reshaped = valueNum;
+                if (typeNode is MatrixTypeNode mat)
+                    valueNum = valueNum.BroadcastToMatrix(mat.FirstDimension, mat.SecondDimension);
+
+                if (typeNode is VectorTypeNode vec)
+                    valueNum = valueNum.BroadcastToVector(vec.Dimension);
+
+                return valueNum.Cast(typeNum.Kind);
+            }
+            return value;
+        }
+
+        // TODO: Generic vector, matrix
+        public static bool TypeEquals(HLSLValue from, TypeNode to, IList<ArrayRankNode> arrayRanks = null)
+        {
+            if (to is ScalarTypeNode scalarType &&
+                from is ScalarValue scalarValue &&
+                scalarType.Kind == scalarValue.Type)
+                return true;
+            if (to is VectorTypeNode vecType &&
+                from is VectorValue vecValue &&
+                vecType.Kind == vecValue.Type &&
+                vecType.Dimension == vecValue.Size)
+                return true;
+            if (to is MatrixTypeNode matType
+                && from is MatrixValue matValue
+                && matType.Kind == matValue.Type
+                && matType.FirstDimension == matValue.Rows
+                && matType.SecondDimension == matValue.Columns)
+                return true;
+            if (to is StructTypeNode strType &&
+                from is StructValue strValue &&
+                strType.Name.GetName() == strValue.Name)
+                return true;
+            if (to is NamedTypeNode namedType &&
+                from is StructValue namedStrValue &&
+                namedType.GetName()== namedStrValue.Name)
+                return true;
+            if (to is QualifiedNamedTypeNode qualNamedType &&
+                from is StructValue qualNamedStrValue &&
+               qualNamedType.GetName() == qualNamedStrValue.Name)
+                return true;
+            if (to is PredefinedObjectTypeNode preType &&
+                from is PredefinedObjectValue preValue &&
+                preType.Kind == preValue.Type &&
+                preType.TemplateArguments?.Count == preValue.TemplateArguments?.Length)
+            {
+                for (int i = 0; i < preType.TemplateArguments?.Count; i++)
+                {
+                    if (preValue.TemplateArguments[i].GetPrettyPrintedCode() != preType.TemplateArguments[i].GetPrettyPrintedCode())
+                        return false;
+                }
+                return true;
+            }
+            if (arrayRanks != null &&
+                from is ArrayValue arrValue &&
+                arrValue.Values.Length > 0 &&
+                arrayRanks.Count > 0 &&
+                arrayRanks[0].Dimension is LiteralExpressionNode litDim &&
+                int.Parse(litDim.Lexeme) == arrValue.Values.Length)
+            {
+                return TypeEquals(arrValue.Values[0], to, arrayRanks.Skip(1).ToList());
+            }
+            if (from is ReferenceValue reference)
+            {
+                return TypeEquals(reference.Get(), to);
+            }
+
+            return false;
+        }
+
+        // Can we convert a value to a type without loss of information?
+        // TODO: Generic vector, matrix
+        public static bool CanPromoteTo(HLSLValue from, TypeNode to)
+        {
+            if (from is NumericValue fromNum && to is NumericTypeNode toNum)
+            {
+                // Casting into a less informative type is not promotion
+                if (GetScalarRank(fromNum.Type) > GetScalarRank(toNum.Kind))
+                    return false;
+                // Scalars broadcast
+                if (fromNum is ScalarValue)
+                    return true;
+                // Vector extension
+                if (fromNum is VectorValue fromVec && toNum is VectorTypeNode toVec)
+                    return fromVec.Size <= toVec.Dimension;
+                // Matrix extension
+                if (fromNum is MatrixValue fromMat && toNum is MatrixTypeNode toMat)
+                    return fromMat.Rows <= toMat.FirstDimension && fromMat.Columns <= toMat.SecondDimension;
+            }
+            return false;
+        }
+
+        // Can we convert a value to a type with loss of information?
+        // TODO: Generic vector, matrix
+        public static bool CanDemoteTo(HLSLValue from, TypeNode to)
+        {
+            if (from is NumericValue fromNum && to is NumericTypeNode toNum)
+            {
+                // Anything can be demoted to an scalar
+                if (toNum is ScalarTypeNode)
+                    return true;
+                // If both are the same type, compare sizes - the from type must be strictly larger
+                if (fromNum is VectorValue fromVec && toNum is VectorTypeNode toVec)
+                    return fromVec.Size > toVec.Dimension;
+                if (fromNum is MatrixValue fromMat && toNum is MatrixTypeNode toMat)
+                    return fromMat.Rows > toMat.FirstDimension && fromMat.Columns > toMat.SecondDimension;
+            }
+            return false;
+        }
+
+        // Given a function and a list of parameters, evaluate how well the function matches the parameters
+        // TODO: Array overloadds
+        public static int GetOverloadScore(FunctionDefinitionNode candidate, IList<HLSLValue> parameters)
+        {
+            if (parameters.Count != candidate.Parameters.Count)
+                return -1;
+
+            int score = 0;
+            for (int i = 0; i < parameters.Count; i++)
+            {
+                var from = parameters[i];
+                var to = candidate.Parameters[i].ParamType;
+                if (TypeEquals(from, to, candidate.Parameters[i].Declarator.ArrayRanks))
+                    score += 3; // Exact match, best case
+                else if (CanPromoteTo(from, to))
+                    score += 2; // Promotion is almost as good
+                else if (CanDemoteTo(from, to))
+                    score += 1; // Demotion is a last resort
+            }
+            return score;
+        }
+
+        // Pick a function overload from a list of candidates based on the parameters. Returns null if no viable overload.
+        public static FunctionDefinitionNode PickOverload(IEnumerable<FunctionDefinitionNode> candidates, IList<HLSLValue> parameters)
+        {
+            int bestScore = -1;
+            FunctionDefinitionNode selected = null;
+            foreach (var candidate in candidates)
+            {
+                int score = GetOverloadScore(candidate, parameters);
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    selected = candidate;
+                }
+            }
+            return selected;
         }
     }
 }

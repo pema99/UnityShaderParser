@@ -23,7 +23,7 @@ namespace UnityShaderParser.Test
         {
             namespaceStack.Pop();
         }
-        
+
         public void PushScope(bool isFunction = false)
         {
             environment.Push((isFunction, new Dictionary<string, HLSLValue>()));
@@ -88,7 +88,7 @@ namespace UnityShaderParser.Test
             resolvedValue = null;
             return false;
         }
-        
+
         public HLSLValue GetVariable(string name)
         {
             TryFindVariable(name, out _, out _, out HLSLValue value);
@@ -141,8 +141,9 @@ namespace UnityShaderParser.Test
             environment.Peek().table[name] = type;
         }
 
-        public FunctionDefinitionNode GetFunction(string name, IEnumerable<HLSLValue> args)
+        public FunctionDefinitionNode GetFunction(string name, HLSLValue[] args)
         {
+            FunctionDefinitionNode overload = null;
             if (namespaceStack.Count > 0)
             {
                 // If we are in a namespace, try to resolve the name with the namespace prefix, starting from the most specific
@@ -153,21 +154,21 @@ namespace UnityShaderParser.Test
                     string prefix = string.Join("::", revNamespace.Take(prefixLen));
                     string fullName = string.IsNullOrEmpty(prefix) ? name : $"{prefix}::{name}";
                     if (functions.TryGetValue(fullName, out var funcs))
-                        return funcs.First();
-                    // TODO:
-                    // return HLSLValueUtils.PickOverload(funcs, args);
+                    {
+                        overload = HLSLValueUtils.PickOverload(funcs, args);
+                    }
                 }
             }
             else
             {
                 // If we are not in a namespace, just try to resolve the name directly
                 if (functions.TryGetValue(name, out var funcs))
-                    return funcs.First();
-                // TODO:
-                // return HLSLValueUtils.PickOverload(funcs, args);
+                {
+                    overload = HLSLValueUtils.PickOverload(funcs, args);
+                }
             }
 
-            return null;
+            return overload;
         }
 
         public FunctionDefinitionNode[] GetFunctions()

@@ -241,7 +241,7 @@ namespace UnityShaderParser.Test
                                 new HLSLRegister<object[]>(Enumerable.Repeat(HLSLValueUtils.GetZeroValue(matrixType.Kind), matrixType.FirstDimension * matrixType.SecondDimension).ToArray()));
                             break;
                         case PredefinedObjectTypeNode predefinedObjectType:
-                            defaultValue = new PredefinedObjectValue(predefinedObjectType.Kind, null);
+                            defaultValue = new PredefinedObjectValue(predefinedObjectType.Kind, predefinedObjectType.TemplateArguments.ToArray());
                             break;
                         case QualifiedNamedTypeNode qualifiedNamedTypeNodeType:
                             var qualNamedStruct = context.GetStruct(qualifiedNamedTypeNodeType.GetName());
