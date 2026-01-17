@@ -12,7 +12,7 @@ namespace UnityShaderParser.Test
         #region Helpers
         private static void CheckArity(string name, HLSLValue[] args, int arity)
         {
-            if (args.Length != arity)
+            if (arity >= 0 && args.Length != arity)
                 throw new ArgumentException($"Expected {arity} arguments for builtin '{name}', but got '{args.Length}'.");
         }
 
@@ -20,7 +20,9 @@ namespace UnityShaderParser.Test
         {
             for (int i = 0; i < args.Length; i++)
             {
-                if (!(args[i] is NumericValue))
+                bool isNumeric = args[i] is NumericValue;
+                bool isRefNumeric = args[i] is ReferenceValue refVal && refVal.Get() is NumericValue;
+                if (!isNumeric && !isRefNumeric)
                     throw new ArgumentException($"Expected argument in position '{i}' to builtin '{name}' to be a numeric value.");
             }
         }
@@ -130,12 +132,6 @@ namespace UnityShaderParser.Test
             //InterlockedOr
             //InterlockedXor
 
-            // Need out parameter:
-            // modf
-            // sincos
-            // frexp
-            // asint, asuint overloaded for doubles
-
             // Need texture support:
             //tex1/2/3D/CUBE
             //tex1/2/3D/CUBEbias
@@ -151,7 +147,6 @@ namespace UnityShaderParser.Test
             ["asfloat"] = N1(Asfloat),
             ["asin"] = N1(Asin),
             ["asint"] = N1(Asint),
-            ["asuint"] = N1(Asuint),
             ["atan"] = N1(Atan),
             ["atan2"] = N2(Atan2),
             ["ceil"] = N1(Ceil),
@@ -213,7 +208,40 @@ namespace UnityShaderParser.Test
             ["tanh"] = N1(Tanh),
             ["transpose"] = N1(Transpose),
             ["trunc"] = N1(Trunc),
+
+            // Inout intrinsics
+            ["modf"] = (2, args => Modf((NumericValue)args[0], (ReferenceValue)args[1])),
+            ["frexp"] = (2, args => Frexp((NumericValue)args[0], (ReferenceValue)args[1])),
+            ["asuint"] = (-1, args =>
+            {
+                if (args.Length == 0 || args.Length > 3)
+                    throw new ArgumentException($"Expected 1-3 arguments for builtin 'asuint', but got '{args.Length}'.");
+
+                if (args.Length > 1)
+                {
+                    Asuint((NumericValue)args[0], (ReferenceValue)args[1], (ReferenceValue)args[2]);
+                    return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+                }
+                return Asuint((NumericValue)args[0]);
+            }),
+            ["sincos"] = (3, args =>
+            {
+                Sincos((NumericValue)args[0], (ReferenceValue)args[1], (ReferenceValue)args[2]);
+                return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+            }),
         };
+
+        public static bool IsIntrinsicInoutParameter(string name, int paramIndex)
+        {
+            switch (name)
+            {
+                case "modf" when paramIndex == 1: return true;
+                case "frexp" when paramIndex == 1: return true;
+                case "sincos" when paramIndex == 1 || paramIndex == 2: return true;
+                case "asuint" when paramIndex == 1 || paramIndex == 2: return true;
+                default: return false;
+            }
+        }
 
         public static bool TryInvokeIntrinsic(string name, HLSLValue[] args, out HLSLValue result)
         {
@@ -1067,6 +1095,56 @@ namespace UnityShaderParser.Test
         public static NumericValue Saturate(NumericValue x)
         {
             return Clamp(x, 0f, 1f);
+        }
+        #endregion
+
+        #region Intrinsics with out parameters
+        public static NumericValue Modf(NumericValue x, ReferenceValue i)
+        {
+            i.Set(Trunc(x));
+            return x - (NumericValue)i.Get();
+        }
+
+        public static void Sincos(NumericValue a, ReferenceValue s, ReferenceValue c)
+        {
+            s.Set(Sin(a));
+            c.Set(Cos(a));
+        }
+
+        public static NumericValue Frexp(NumericValue x, ReferenceValue e)
+        {
+            var bits = Asuint(x);
+            var biased_exp = (HLSLOperators.BitSHR(bits, 23) & 0xFF).Cast(ScalarType.Int);
+            var mantissa_bits = (bits & 0x807FFFFFu) | (126u << 23);
+            e.Set(Select(x == 0, 0, biased_exp - 126));
+            return Select(x == 0, x, Asfloat(mantissa_bits));
+        }
+
+        public static void Asuint(NumericValue value, ReferenceValue lowbits, ReferenceValue highbits)
+        {
+            var d = (ScalarValue)value.Cast(ScalarType.Double);
+            if (d.IsUniform)
+            {
+                var bytes = BitConverter.GetBytes(Convert.ToDouble(d.Value.UniformValue));
+                lowbits.Set((ScalarValue)BitConverter.ToUInt32(bytes, 0));
+                highbits.Set((ScalarValue)BitConverter.ToUInt32(bytes, 4));
+                return;
+            }
+
+            ScalarValue retLow = 0u;
+            retLow = (ScalarValue)retLow.Vectorize(d.ThreadCount);
+            ScalarValue retHigh = 0u;
+            retHigh = (ScalarValue)retHigh.Vectorize(d.ThreadCount);
+            for (int threadIndex = 0; threadIndex < d.ThreadCount; threadIndex++)
+            {
+                var bytes = BitConverter.GetBytes(Convert.ToDouble(d.Value.Get(threadIndex)));
+                uint low = BitConverter.ToUInt32(bytes, 0);
+                uint high = BitConverter.ToUInt32(bytes, 4);
+                retLow = (ScalarValue)retLow.SetThreadValue(threadIndex, low);
+                retHigh = (ScalarValue)retHigh.SetThreadValue(threadIndex, high);
+            }
+            lowbits.Set(retLow);
+            highbits.Set(retHigh);
         }
         #endregion
 

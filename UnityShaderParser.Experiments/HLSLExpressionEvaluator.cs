@@ -533,22 +533,25 @@ namespace UnityShaderParser.Test
             
             // Handle out/inout parameters
             FunctionDefinitionNode func = context.GetFunction(name, args);
-            if (func != null)
+            for (int i = 0; i < args.Length; i++)
             {
-                for (int i = 0; i < func.Parameters.Count; i++)
+                bool isInoutIntrinsic = HLSLIntrinsics.IsIntrinsicInoutParameter(name, i);
+
+                bool isInoutUser =
+                    func != null &&
+                    (func.Parameters[i].Modifiers.Contains(BindingModifier.Inout) ||
+                    func.Parameters[i].Modifiers.Contains(BindingModifier.Out));
+
+                if (isInoutIntrinsic || isInoutUser)
                 {
-                    if (func.Parameters[i].Modifiers.Contains(BindingModifier.Inout) ||
-                        func.Parameters[i].Modifiers.Contains(BindingModifier.Out))
+                    // TODO: Other kinds of Lvalues
+                    if (node.Arguments[i] is NamedExpressionNode named)
                     {
-                        // TODO: Other kinds of Lvalues
-                        if (node.Arguments[i] is NamedExpressionNode named)
-                        {
-                            args[i] = context.GetReference(named.GetName());
-                        }
+                        args[i] = context.GetReference(named.GetName());
                     }
                 }
             }
-
+          
             return CallFunction(name, args);
         }
 

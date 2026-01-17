@@ -2326,3 +2326,501 @@ void Intrinsic_Mul_MatrixAssociativity()
     ASSERT(abs(abc1[1][0] - abc2[1][0]) < 0.001);
     ASSERT(abs(abc1[1][1] - abc2[1][1]) < 0.001);
 }
+
+[Test]
+void Intrinsic_Modf()
+{
+    // Positive values
+    float intPart;
+    float fracPart = modf(3.75, intPart);
+    ASSERT(abs(fracPart - 0.75) < 0.001);
+    ASSERT(abs(intPart - 3.0) < 0.001);
+    
+    // Another positive value
+    fracPart = modf(5.25, intPart);
+    ASSERT(abs(fracPart - 0.25) < 0.001);
+    ASSERT(abs(intPart - 5.0) < 0.001);
+    
+    // Negative values - fractional part should have same sign as input
+    fracPart = modf(-3.75, intPart);
+    ASSERT(abs(fracPart - (-0.75)) < 0.001);
+    ASSERT(abs(intPart - (-3.0)) < 0.001);
+    
+    // Another negative value
+    fracPart = modf(-2.25, intPart);
+    ASSERT(abs(fracPart - (-0.25)) < 0.001);
+    ASSERT(abs(intPart - (-2.0)) < 0.001);
+    
+    // Whole number (positive)
+    fracPart = modf(5.0, intPart);
+    ASSERT(abs(fracPart - 0.0) < 0.001);
+    ASSERT(abs(intPart - 5.0) < 0.001);
+    
+    // Whole number (negative)
+    fracPart = modf(-5.0, intPart);
+    ASSERT(abs(fracPart - 0.0) < 0.001);
+    ASSERT(abs(intPart - (-5.0)) < 0.001);
+    
+    // Zero
+    fracPart = modf(0.0, intPart);
+    ASSERT(abs(fracPart - 0.0) < 0.001);
+    ASSERT(abs(intPart - 0.0) < 0.001);
+    
+    // Value between 0 and 1
+    fracPart = modf(0.75, intPart);
+    ASSERT(abs(fracPart - 0.75) < 0.001);
+    ASSERT(abs(intPart - 0.0) < 0.001);
+    
+    // Value between -1 and 0
+    fracPart = modf(-0.75, intPart);
+    ASSERT(abs(fracPart - (-0.75)) < 0.001);
+    ASSERT(abs(intPart - 0.0) < 0.001);
+    
+    // Large positive value
+    fracPart = modf(123.456, intPart);
+    ASSERT(abs(fracPart - 0.456) < 0.001);
+    ASSERT(abs(intPart - 123.0) < 0.001);
+    
+    // Large negative value
+    fracPart = modf(-123.456, intPart);
+    ASSERT(abs(fracPart - (-0.456)) < 0.001);
+    ASSERT(abs(intPart - (-123.0)) < 0.001);
+    
+    // Very small fractional part
+    fracPart = modf(10.001, intPart);
+    ASSERT(abs(fracPart - 0.001) < 0.001);
+    ASSERT(abs(intPart - 10.0) < 0.001);
+    
+    // Very large fractional part
+    fracPart = modf(10.999, intPart);
+    ASSERT(abs(fracPart - 0.999) < 0.001);
+    ASSERT(abs(intPart - 10.0) < 0.001);
+    
+    // Vector test - positive components
+    float3 intPart3;
+    float3 fracPart3 = modf(float3(1.5, 2.75, 3.25), intPart3);
+    ASSERT(abs(fracPart3.x - 0.5) < 0.001);
+    ASSERT(abs(fracPart3.y - 0.75) < 0.001);
+    ASSERT(abs(fracPart3.z - 0.25) < 0.001);
+    ASSERT(abs(intPart3.x - 1.0) < 0.001);
+    ASSERT(abs(intPart3.y - 2.0) < 0.001);
+    ASSERT(abs(intPart3.z - 3.0) < 0.001);
+    
+    // Vector test - mixed signs
+    fracPart3 = modf(float3(-1.5, 2.75, -3.25), intPart3);
+    ASSERT(abs(fracPart3.x - (-0.5)) < 0.001);
+    ASSERT(abs(fracPart3.y - 0.75) < 0.001);
+    ASSERT(abs(fracPart3.z - (-0.25)) < 0.001);
+    ASSERT(abs(intPart3.x - (-1.0)) < 0.001);
+    ASSERT(abs(intPart3.y - 2.0) < 0.001);
+    ASSERT(abs(intPart3.z - (-3.0)) < 0.001);
+    
+    // Vector test - all negative
+    fracPart3 = modf(float3(-1.5, -2.75, -3.25), intPart3);
+    ASSERT(abs(fracPart3.x - (-0.5)) < 0.001);
+    ASSERT(abs(fracPart3.y - (-0.75)) < 0.001);
+    ASSERT(abs(fracPart3.z - (-0.25)) < 0.001);
+    ASSERT(abs(intPart3.x - (-1.0)) < 0.001);
+    ASSERT(abs(intPart3.y - (-2.0)) < 0.001);
+    ASSERT(abs(intPart3.z - (-3.0)) < 0.001);
+}
+
+[Test]
+void Intrinsic_Sincos()
+{
+    // Zero
+    float s, c;
+    sincos(0.0, s, c);
+    ASSERT(abs(s - 0.0) < 0.001);
+    ASSERT(abs(c - 1.0) < 0.001);
+    
+    // Pi/2 (90 degrees)
+    sincos(1.5707963, s, c);
+    ASSERT(abs(s - 1.0) < 0.001);
+    ASSERT(abs(c - 0.0) < 0.001);
+    
+    // Pi (180 degrees)
+    sincos(3.1415926, s, c);
+    ASSERT(abs(s - 0.0) < 0.001);
+    ASSERT(abs(c - (-1.0)) < 0.001);
+    
+    // 3*Pi/2 (270 degrees)
+    sincos(4.7123889, s, c);
+    ASSERT(abs(s - (-1.0)) < 0.001);
+    ASSERT(abs(c - 0.0) < 0.001);
+    
+    // 2*Pi (360 degrees) - full circle
+    sincos(6.2831853, s, c);
+    ASSERT(abs(s - 0.0) < 0.001);
+    ASSERT(abs(c - 1.0) < 0.001);
+    
+    // Pi/4 (45 degrees)
+    sincos(0.7853981, s, c);
+    ASSERT(abs(s - 0.7071067) < 0.001);
+    ASSERT(abs(c - 0.7071067) < 0.001);
+    
+    // Negative angle: -Pi/2
+    sincos(-1.5707963, s, c);
+    ASSERT(abs(s - (-1.0)) < 0.001);
+    ASSERT(abs(c - 0.0) < 0.001);
+    
+    // Negative angle: -Pi/4
+    sincos(-0.7853981, s, c);
+    ASSERT(abs(s - (-0.7071067)) < 0.001);
+    ASSERT(abs(c - 0.7071067) < 0.001);
+    
+    // Negative angle: -Pi
+    sincos(-3.1415926, s, c);
+    ASSERT(abs(s - 0.0) < 0.001);
+    ASSERT(abs(c - (-1.0)) < 0.001);
+    
+    // Small positive angle
+    sincos(0.1, s, c);
+    ASSERT(abs(s - 0.0998334) < 0.001);
+    ASSERT(abs(c - 0.9950041) < 0.001);
+    
+    // Small negative angle
+    sincos(-0.1, s, c);
+    ASSERT(abs(s - (-0.0998334)) < 0.001);
+    ASSERT(abs(c - 0.9950041) < 0.001);
+    
+    // Verify Pythagorean identity: sin^2 + cos^2 = 1
+    sincos(1.0, s, c);
+    ASSERT(abs((s * s + c * c) - 1.0) < 0.001);
+    
+    sincos(2.5, s, c);
+    ASSERT(abs((s * s + c * c) - 1.0) < 0.001);
+    
+    sincos(-1.234, s, c);
+    ASSERT(abs((s * s + c * c) - 1.0) < 0.001);
+    
+    // Pi/6 (30 degrees)
+    sincos(0.5235987, s, c);
+    ASSERT(abs(s - 0.5) < 0.001);
+    ASSERT(abs(c - 0.8660254) < 0.001);
+    
+    // Pi/3 (60 degrees)
+    sincos(1.0471975, s, c);
+    ASSERT(abs(s - 0.8660254) < 0.001);
+    ASSERT(abs(c - 0.5) < 0.001);
+    
+    // Vector test - multiple angles
+    float3 s3, c3;
+    sincos(float3(0.0, 1.5707963, 3.1415926), s3, c3);
+    ASSERT(abs(s3.x - 0.0) < 0.001);
+    ASSERT(abs(s3.y - 1.0) < 0.001);
+    ASSERT(abs(s3.z - 0.0) < 0.001);
+    ASSERT(abs(c3.x - 1.0) < 0.001);
+    ASSERT(abs(c3.y - 0.0) < 0.001);
+    ASSERT(abs(c3.z - (-1.0)) < 0.001);
+    
+    // Vector test - mixed positive and negative
+    sincos(float3(-1.5707963, 0.7853981, -0.7853981), s3, c3);
+    ASSERT(abs(s3.x - (-1.0)) < 0.001);
+    ASSERT(abs(s3.y - 0.7071067) < 0.001);
+    ASSERT(abs(s3.z - (-0.7071067)) < 0.001);
+    ASSERT(abs(c3.x - 0.0) < 0.001);
+    ASSERT(abs(c3.y - 0.7071067) < 0.001);
+    ASSERT(abs(c3.z - 0.7071067) < 0.001);
+    
+    // Verify Pythagorean identity for vector
+    sincos(float3(1.0, 2.0, 3.0), s3, c3);
+    float3 sumSquares = s3 * s3 + c3 * c3;
+    ASSERT(abs(sumSquares.x - 1.0) < 0.001);
+    ASSERT(abs(sumSquares.y - 1.0) < 0.001);
+    ASSERT(abs(sumSquares.z - 1.0) < 0.001);
+}
+
+[Test]
+void Intrinsic_Frexp()
+{
+    // Basic positive values
+    int exp;
+    float mantissa = frexp(8.0, exp);
+    ASSERT(abs(mantissa - 0.5) < 0.001);
+    ASSERT(exp == 4);
+    
+    mantissa = frexp(4.0, exp);
+    ASSERT(abs(mantissa - 0.5) < 0.001);
+    ASSERT(exp == 3);
+    
+    mantissa = frexp(2.0, exp);
+    ASSERT(abs(mantissa - 0.5) < 0.001);
+    ASSERT(exp == 2);
+    
+    mantissa = frexp(1.0, exp);
+    ASSERT(abs(mantissa - 0.5) < 0.001);
+    ASSERT(exp == 1);
+    
+    // Zero
+    mantissa = frexp(0.0, exp);
+    ASSERT(abs(mantissa - 0.0) < 0.001);
+    ASSERT(exp == 0);
+    
+    // Negative values - mantissa should be negative
+    mantissa = frexp(-8.0, exp);
+    ASSERT(abs(mantissa - (-0.5)) < 0.001);
+    ASSERT(exp == 4);
+    
+    mantissa = frexp(-4.0, exp);
+    ASSERT(abs(mantissa - (-0.5)) < 0.001);
+    ASSERT(exp == 3);
+    
+    mantissa = frexp(-1.0, exp);
+    ASSERT(abs(mantissa - (-0.5)) < 0.001);
+    ASSERT(exp == 1);
+    
+    // Fractional values (less than 1)
+    mantissa = frexp(0.5, exp);
+    ASSERT(abs(mantissa - 0.5) < 0.001);
+    ASSERT(exp == 0);
+    
+    mantissa = frexp(0.25, exp);
+    ASSERT(abs(mantissa - 0.5) < 0.001);
+    ASSERT(exp == -1);
+    
+    mantissa = frexp(0.125, exp);
+    ASSERT(abs(mantissa - 0.5) < 0.001);
+    ASSERT(exp == -2);
+    
+    // Negative fractional values
+    mantissa = frexp(-0.5, exp);
+    ASSERT(abs(mantissa - (-0.5)) < 0.001);
+    ASSERT(exp == 0);
+    
+    mantissa = frexp(-0.25, exp);
+    ASSERT(abs(mantissa - (-0.5)) < 0.001);
+    ASSERT(exp == -1);
+    
+    // Non-power-of-2 values
+    mantissa = frexp(3.0, exp);
+    ASSERT(abs(mantissa - 0.75) < 0.001);
+    ASSERT(exp == 2);
+    
+    mantissa = frexp(5.0, exp);
+    ASSERT(abs(mantissa - 0.625) < 0.001);
+    ASSERT(exp == 3);
+    
+    mantissa = frexp(7.0, exp);
+    ASSERT(abs(mantissa - 0.875) < 0.001);
+    ASSERT(exp == 3);
+    
+    // Negative non-power-of-2
+    mantissa = frexp(-3.0, exp);
+    ASSERT(abs(mantissa - (-0.75)) < 0.001);
+    ASSERT(exp == 2);
+    
+    mantissa = frexp(-5.0, exp);
+    ASSERT(abs(mantissa - (-0.625)) < 0.001);
+    ASSERT(exp == 3);
+    
+    // Large values
+    mantissa = frexp(1024.0, exp);
+    ASSERT(abs(mantissa - 0.5) < 0.001);
+    ASSERT(exp == 11);
+    
+    mantissa = frexp(1000.0, exp);
+    ASSERT(abs(mantissa - 0.9765625) < 0.001);
+    ASSERT(exp == 10);
+    
+    // Very small values
+    mantissa = frexp(0.0009765625, exp);
+    ASSERT(abs(mantissa - 0.5) < 0.001);
+    ASSERT(exp == -9);
+    
+    // Verify reconstruction: mantissa * 2^exp = original
+    float original = 12.5;
+    mantissa = frexp(original, exp);
+    float reconstructed = mantissa * pow(2.0, float(exp));
+    ASSERT(abs(reconstructed - original) < 0.001);
+    
+    original = -7.25;
+    mantissa = frexp(original, exp);
+    reconstructed = mantissa * pow(2.0, float(exp));
+    ASSERT(abs(reconstructed - original) < 0.001);
+    
+    original = 0.125;
+    mantissa = frexp(original, exp);
+    reconstructed = mantissa * pow(2.0, float(exp));
+    ASSERT(abs(reconstructed - original) < 0.001);
+    
+    // Mantissa range verification: should be in [0.5, 1) or (-1, -0.5] for non-zero
+    mantissa = frexp(123.456, exp);
+    ASSERT(abs(mantissa) >= 0.5 && abs(mantissa) < 1.0);
+    
+    mantissa = frexp(-123.456, exp);
+    ASSERT(abs(mantissa) >= 0.5 && abs(mantissa) < 1.0);
+    
+    mantissa = frexp(0.001, exp);
+    ASSERT(abs(mantissa) >= 0.5 && abs(mantissa) < 1.0);
+    
+    // Vector test - positive values
+    int3 exp3;
+    float3 mantissa3 = frexp(float3(8.0, 4.0, 2.0), exp3);
+    ASSERT(abs(mantissa3.x - 0.5) < 0.001);
+    ASSERT(abs(mantissa3.y - 0.5) < 0.001);
+    ASSERT(abs(mantissa3.z - 0.5) < 0.001);
+    ASSERT(exp3.x == 4);
+    ASSERT(exp3.y == 3);
+    ASSERT(exp3.z == 2);
+    
+    // Vector test - mixed signs
+    mantissa3 = frexp(float3(-8.0, 4.0, -2.0), exp3);
+    ASSERT(abs(mantissa3.x - (-0.5)) < 0.001);
+    ASSERT(abs(mantissa3.y - 0.5) < 0.001);
+    ASSERT(abs(mantissa3.z - (-0.5)) < 0.001);
+    ASSERT(exp3.x == 4);
+    ASSERT(exp3.y == 3);
+    ASSERT(exp3.z == 2);
+    
+    // Vector test - non-power-of-2 values
+    mantissa3 = frexp(float3(3.0, 5.0, 7.0), exp3);
+    ASSERT(abs(mantissa3.x - 0.75) < 0.001);
+    ASSERT(abs(mantissa3.y - 0.625) < 0.001);
+    ASSERT(abs(mantissa3.z - 0.875) < 0.001);
+    ASSERT(exp3.x == 2);
+    ASSERT(exp3.y == 3);
+    ASSERT(exp3.z == 3);
+    
+    // Vector test - verify reconstruction
+    float3 original3 = float3(12.5, -7.25, 0.125);
+    mantissa3 = frexp(original3, exp3);
+    float3 reconstructed3 = mantissa3 * pow(2.0, float3(exp3));
+    ASSERT(abs(reconstructed3.x - original3.x) < 0.001);
+    ASSERT(abs(reconstructed3.y - original3.y) < 0.001);
+    ASSERT(abs(reconstructed3.z - original3.z) < 0.001);
+}
+
+[Test]
+void Intrinsic_Asuint_Double()
+{
+    uint lowbits, highbits;
+    
+    // Convert floats to doubles for testing
+    // The low bits will be zero since float only has 23 mantissa bits
+    
+    // Zero and sign bit
+    double d = (double)0.0f;
+    asuint(d, lowbits, highbits);
+    ASSERT(lowbits == 0 && highbits == 0);
+    
+    d = (double)(-0.0f);
+    asuint(d, lowbits, highbits);
+    ASSERT(lowbits == 0 && highbits == 0x80000000);
+    
+    // Basic powers of 2
+    d = (double)1.0f;
+    asuint(d, lowbits, highbits);
+    ASSERT(lowbits == 0 && highbits == 0x3FF00000);
+    
+    d = (double)(-1.0f);
+    asuint(d, lowbits, highbits);
+    ASSERT(lowbits == 0 && highbits == 0xBFF00000);
+    
+    d = (double)2.0f;
+    asuint(d, lowbits, highbits);
+    ASSERT(lowbits == 0 && highbits == 0x40000000);
+    
+    d = (double)(-2.0f);
+    asuint(d, lowbits, highbits);
+    ASSERT(lowbits == 0 && highbits == 0xC0000000);
+    
+    d = (double)0.5f;
+    asuint(d, lowbits, highbits);
+    ASSERT(lowbits == 0 && highbits == 0x3FE00000);
+    
+    // Values with mantissa bits
+    d = (double)1.5f;
+    asuint(d, lowbits, highbits);
+    ASSERT(lowbits == 0 && highbits == 0x3FF80000);
+    
+    d = (double)(-1.5f);
+    asuint(d, lowbits, highbits);
+    ASSERT(lowbits == 0 && highbits == 0xBFF80000);
+    
+    d = (double)1.75f;
+    asuint(d, lowbits, highbits);
+    ASSERT(lowbits == 0 && highbits == 0x3FFC0000);
+    
+    d = (double)1.25f;
+    asuint(d, lowbits, highbits);
+    ASSERT(lowbits == 0 && highbits == 0x3FF40000);
+    
+    // Special values: infinity and NaN
+    d = (double)(1.0f / 0.0f);
+    asuint(d, lowbits, highbits);
+    ASSERT(lowbits == 0 && highbits == 0x7FF00000);
+    
+    d = (double)(-1.0f / 0.0f);
+    asuint(d, lowbits, highbits);
+    ASSERT(lowbits == 0 && highbits == 0xFFF00000);
+    
+    d = (double)(0.0f / 0.0f);
+    asuint(d, lowbits, highbits);
+    ASSERT((highbits & 0x7FF00000) == 0x7FF00000);
+    ASSERT((lowbits != 0) || ((highbits & 0x000FFFFF) != 0));
+    
+    // Large and small values
+    d = (double)1024.0f;
+    asuint(d, lowbits, highbits);
+    ASSERT(lowbits == 0 && highbits == 0x40900000);
+    
+    d = (double)(-1024.0f);
+    asuint(d, lowbits, highbits);
+    ASSERT(lowbits == 0 && highbits == 0xC0900000);
+    
+    d = (double)0.0009765625f;
+    asuint(d, lowbits, highbits);
+    ASSERT(lowbits == 0 && highbits == 0x3F500000);
+    
+    d = (double)1048576.0f;
+    asuint(d, lowbits, highbits);
+    ASSERT(lowbits == 0 && highbits == 0x41300000);
+    
+    // Symmetry test: pos/neg differ only in sign bit
+    uint posLow, posHigh, negLow, negHigh;
+    asuint((double)42.42f, posLow, posHigh);
+    asuint((double)(-42.42f), negLow, negHigh);
+    ASSERT(posLow == negLow);
+    ASSERT((posHigh ^ negHigh) == 0x80000000);
+    
+    asuint((double)123.456f, posLow, posHigh);
+    asuint((double)(-123.456f), negLow, negHigh);
+    ASSERT(posLow == negLow);
+    ASSERT((posHigh ^ negHigh) == 0x80000000);
+    
+    // Exponent field verification
+    asuint((double)1.0f, lowbits, highbits);
+    uint exp1 = (highbits >> 20) & 0x7FF;
+    ASSERT(exp1 == 1023);
+    
+    asuint((double)2.0f, lowbits, highbits);
+    uint exp2 = (highbits >> 20) & 0x7FF;
+    ASSERT(exp2 == 1024);
+    
+    asuint((double)0.5f, lowbits, highbits);
+    uint exp3 = (highbits >> 20) & 0x7FF;
+    ASSERT(exp3 == 1022);
+    
+    asuint((double)4.0f, lowbits, highbits);
+    uint exp4 = (highbits >> 20) & 0x7FF;
+    ASSERT(exp4 == 1025);
+    
+    // Mantissa extraction from high word
+    asuint((double)1.5f, lowbits, highbits);
+    uint highMantissa = highbits & 0x000FFFFF;
+    ASSERT(highMantissa == 0x00080000);
+    
+    asuint((double)1.75f, lowbits, highbits);
+    highMantissa = highbits & 0x000FFFFF;
+    ASSERT(highMantissa == 0x000C0000);
+    
+    // Low bits should be zero for float-to-double conversions
+    // since float has only 23 mantissa bits vs double's 52
+    asuint((double)3.14159f, lowbits, highbits);
+    ASSERT(lowbits == 0);
+    ASSERT((highbits & 0x7FF00000) != 0); // Valid exponent
+    
+    asuint((double)0.00001f, lowbits, highbits);
+    ASSERT(lowbits != 0);
+}
