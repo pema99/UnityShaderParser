@@ -111,11 +111,6 @@ namespace UnityShaderParser.Test
 
         private static readonly Dictionary<string, (int arity, BasicIntrinsic fn)> basicIntrinsics = new Dictionary<string, (int arity, BasicIntrinsic fn)>()
         {
-            // Need to touch execution state:
-            //abort
-            //errorf
-            //clip
-
             // Need multi-group support:
             //AllMemoryBarrier
             //AllMemoryBarrierWithGroupSync
@@ -1076,7 +1071,7 @@ namespace UnityShaderParser.Test
         #endregion
 
         #region Special intrinsics that touch execution state
-        public static ScalarValue Printf(HLSLExecutionState executionState, HLSLValue[] args)
+        public static void Printf(HLSLExecutionState executionState, HLSLValue[] args)
         {
             if (args.Length > 0)
             {
@@ -1118,7 +1113,6 @@ namespace UnityShaderParser.Test
                     Console.WriteLine(sb.ToString());
                 }
             }
-            return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
         }
 
         public static ScalarValue WaveGetLaneIndex(HLSLExecutionState executionState)
@@ -1235,6 +1229,24 @@ namespace UnityShaderParser.Test
         public static NumericValue Fwidth(HLSLExecutionState executionState, NumericValue val) =>
             Abs(Ddx(executionState, val)) + Abs(Ddy(executionState, val));
 
+        public static void Clip(HLSLExecutionState executionState, NumericValue x)
+        {
+            var cond = x < 0;
+            for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+            {
+                if (executionState.IsThreadActive(threadIndex))
+                {
+                    if (Convert.ToBoolean(cond.GetThreadValue(threadIndex)))
+                        executionState.KillThreadGlobally(threadIndex);
+                }
+            }
+        }
+
+        public static void Abort(HLSLExecutionState executionState)
+        {
+            for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+                executionState.KillThreadGlobally(threadIndex);
+        }
         #endregion
     }
 }

@@ -62,7 +62,9 @@ namespace UnityShaderParser.Test
             switch (name)
             {
                 case "printf":
-                    return HLSLIntrinsics.Printf(executionState, args);
+                case "errorf":
+                    HLSLIntrinsics.Printf(executionState, args);
+                    return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
                 case "WaveGetLaneIndex":
                     return HLSLIntrinsics.WaveGetLaneIndex(executionState);
                 case "WaveGetLaneCount":
@@ -79,6 +81,14 @@ namespace UnityShaderParser.Test
                     return HLSLIntrinsics.DdxFine(executionState, (NumericValue)args[0]);
                 case "ddy_fine":
                     return HLSLIntrinsics.DdyFine(executionState, (NumericValue)args[0]);
+                case "fwidth":
+                    return HLSLIntrinsics.Fwidth(executionState, (NumericValue)args[0]);
+                case "clip":
+                    HLSLIntrinsics.Clip(executionState, (NumericValue)args[0]);
+                    return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+                case "abort":
+                    HLSLIntrinsics.Abort(executionState);
+                    return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
                 default:
                     break;
             }
