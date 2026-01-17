@@ -86,9 +86,19 @@ public class Program
         }
     }
 
-    public static void RunRaymarcher()
+    public static void RunShaderToy()
     {
-        string shaderPath = @"D:\Projects\UnityShaderParser\UnityShaderParser\UnityShaderParser.Experiments\Examples\Raymarcher.hlsl";
+        string shaderFolderPath = @"D:\Projects\UnityShaderParser\UnityShaderParser\UnityShaderParser.Experiments\Examples\ShaderToy";
+        Console.WriteLine("Pick example to run:");
+        int shaderIndex = 0;
+        var shaders = Directory.GetFiles(shaderFolderPath);
+        foreach (var file in shaders)
+        {
+            Console.WriteLine($"({shaderIndex++}) {Path.GetFileName(file)}");
+        }
+        string shaderPath = shaders[int.Parse(Console.ReadKey().KeyChar.ToString())];
+        Console.WriteLine();
+
         string shaderSource = File.ReadAllText(shaderPath);
 
         // Ignore macros for the purpose of editing
@@ -159,7 +169,7 @@ public class Program
         sw.Stop();
         Console.WriteLine("Took " + sw.ElapsedMilliseconds / 1000.0f + " seconds.");
         BitmapWriter.WriteBmp("output.bmp", colors);
-
+        Console.WriteLine($"Wrote output to {Path.GetFullPath("output.bmp")}");
     }
 
     public static void RunTests()

@@ -1,3 +1,6 @@
+// Shader: https://www.shadertoy.com/view/Ml2XRD
+// Converted using https://pema.dev/glsl2hlsl
+
 struct appdata
 {
     float4 vertex : POSITION;

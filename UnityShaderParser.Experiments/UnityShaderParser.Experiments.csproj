@@ -10,15 +10,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Examples\Raymarcher.hlsl">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="Examples\Test.hlsl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="HLSLTest.hlsl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Examples\ShaderToy\" />
   </ItemGroup>
 
 </Project>
