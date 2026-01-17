@@ -398,28 +398,14 @@ namespace UnityShaderParser.Test
         
         public static NumericValue Select(NumericValue cond, NumericValue a, NumericValue b)
         {
-            // Expand to appropriate shape
-            var condSize = cond.TensorSize;
-            var aSize = a.TensorSize;
-            var bSize = b.TensorSize;
-            if (cond is MatrixValue || a is MatrixValue || b is MatrixValue)
-            {
-                int rows = Math.Max(Math.Max(condSize.rows, aSize.rows), bSize.rows);
-                int cols = Math.Max(Math.Max(condSize.columns, aSize.columns), bSize.columns);
-                cond = cond.BroadcastToMatrix(rows, cols);
-                a = a.BroadcastToMatrix(rows, cols);
-                b = b.BroadcastToMatrix(rows, cols);
-            }
-            else if (cond is VectorValue || a is VectorValue || b is VectorValue)
-            {
-                int size = Math.Max(Math.Max(condSize.rows, aSize.rows), bSize.rows);
-                cond = cond.BroadcastToVector(size);
-                a = a.BroadcastToVector(size);
-                b = b.BroadcastToVector(size);
-            }
+            // Match thread count and shape of all args
+            (cond, a) = HLSLValueUtils.PromoteThreadCount(cond, a);
+            (cond, b) = HLSLValueUtils.PromoteThreadCount(cond, b);
+            (cond, a) = HLSLValueUtils.PromoteShape(cond, a);
+            (cond, b) = HLSLValueUtils.PromoteShape(cond, b);
 
             // Match types of branches
-            (a, b) = HLSLValueUtils.Promote(a, b, false);
+            (a, b) = HLSLValueUtils.PromoteType(a, b, false);
 
             return cond.MapThreads((condVal, threadIndex) =>
             {
@@ -440,7 +426,7 @@ namespace UnityShaderParser.Test
                     return a.GetThreadValue(threadIndex);
                 else
                     return b.GetThreadValue(threadIndex);
-            });
+            }).Cast(a.Type);
         }
         
         public static NumericValue Sqrt(NumericValue x)
@@ -1550,7 +1536,7 @@ namespace UnityShaderParser.Test
 
                 if (exprFirst is null)
                 {
-                    sum = (expr / expr).Scalarize(threadIndex);
+                    sum = HLSLValueUtils.GetOneValue(expr).Scalarize(threadIndex);
                     exprFirst = (NumericValue)HLSLValueUtils.SetThreadValue(expr.Vectorize(executionState.GetThreadCount()), threadIndex, sum);
                     sum = expr.Scalarize(threadIndex);
                 }
@@ -1576,7 +1562,7 @@ namespace UnityShaderParser.Test
 
                 if (exprFirst is null)
                 {
-                    sum = (expr - expr).Scalarize(threadIndex);
+                    sum = HLSLValueUtils.GetZeroValue(expr).Scalarize(threadIndex);
                     exprFirst = (NumericValue)HLSLValueUtils.SetThreadValue(expr.Vectorize(executionState.GetThreadCount()), threadIndex, sum);
                     sum = sum + expr.Scalarize(threadIndex);
                 }

@@ -781,6 +781,56 @@ namespace UnityShaderParser.Test
             }
         }
 
+        public static object GetOneValue(ScalarType type)
+        {
+            switch (type)
+            {
+                case ScalarType.Void:
+                    return null;
+                case ScalarType.Bool:
+                    return true;
+                case ScalarType.Int:
+                case ScalarType.Min16Int:
+                case ScalarType.Min12Int:
+                    return 1;
+                case ScalarType.Uint:
+                case ScalarType.Min16Uint:
+                case ScalarType.Min12Uint:
+                    return 1u;
+                case ScalarType.Half:
+                case ScalarType.Float:
+                case ScalarType.Min16Float:
+                case ScalarType.Min10Float:
+                case ScalarType.UNormFloat:
+                case ScalarType.SNormFloat:
+                    return 1.0f;
+                case ScalarType.Double:
+                    return 1.0;
+                case ScalarType.String:
+                    return string.Empty;
+                case ScalarType.Char:
+                    return (char)1;
+                default:
+                    throw new InvalidOperationException();
+            }
+        }
+
+        public static NumericValue GetZeroValue(NumericValue val)
+        {
+            return val.Map(x =>
+            {
+                return GetZeroValue(val.Type);
+            });
+        }
+
+        public static NumericValue GetOneValue(NumericValue val)
+        {
+            return val.Map(x =>
+            {
+                return GetOneValue(val.Type);
+            });
+        }
+
         public static bool IsFloat(ScalarType type)
         {
             switch (type)
@@ -909,9 +959,7 @@ namespace UnityShaderParser.Test
             }
         }
 
-        // Given 2 params, promote such that no information is lost.
-        // This includes promoting SGPR to VGPR.
-        public static (NumericValue newLeft, NumericValue newRight) Promote(NumericValue left, NumericValue right, bool bitwiseOp)
+        public static (NumericValue newLeft, NumericValue newRight) PromoteThreadCount(NumericValue left, NumericValue right)
         {
             int leftThreadCount = left.ThreadCount;
             int rightThreadCount = right.ThreadCount;
@@ -920,14 +968,11 @@ namespace UnityShaderParser.Test
             else if (rightThreadCount < leftThreadCount)
                 right = right.Vectorize(leftThreadCount);
 
-            // Fast path
-            if (left.Type == right.Type && left.GetType() == right.GetType())
-                return (left, right);
+            return (left, right);
+        }
 
-            ScalarType type = bitwiseOp
-                ? PromoteForBitwiseBinOp(left.Type, right.Type)
-                : PromoteScalarType(left.Type, right.Type);
-
+        public static (NumericValue newLeft, NumericValue newRight) PromoteShape(NumericValue left, NumericValue right)
+        {
             bool needMatrix = left is MatrixValue || right is MatrixValue;
             bool needVector = left is VectorValue || right is VectorValue;
 
@@ -954,7 +999,31 @@ namespace UnityShaderParser.Test
                     right = right.BroadcastToVector(newSize);
             }
 
+            return (left, right);
+        }
+
+        public static (NumericValue newLeft, NumericValue newRight) PromoteType(NumericValue left, NumericValue right, bool bitwiseOp)
+        {
+            ScalarType type = bitwiseOp
+                ? PromoteForBitwiseBinOp(left.Type, right.Type)
+                : PromoteScalarType(left.Type, right.Type);
+
             return (left.Cast(type), right.Cast(type));
+        }
+
+        // Given 2 params, promote such that no information is lost.
+        // This includes promoting SGPR to VGPR.
+        public static (NumericValue newLeft, NumericValue newRight) Promote(NumericValue left, NumericValue right, bool bitwiseOp)
+        {
+            (left, right) = PromoteThreadCount(left, right);
+
+            // Fast path
+            if (left.Type == right.Type && left.GetType() == right.GetType())
+                return (left, right);
+
+            (left, right) = PromoteShape(left, right);
+
+            return PromoteType(left, right, bitwiseOp);
         }
 
         // Cast "right" to match the type of "left" and return it.

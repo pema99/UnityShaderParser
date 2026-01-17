@@ -24,6 +24,22 @@ void Intrinsic_QuadReadAcrossDiagonal()
     ASSERT(WaveReadLaneAt(negDiag, 2) == -5.0);
     ASSERT(WaveReadLaneAt(negDiag, 3) == 0.0);
     
+    // Test with zero
+    float zeroValue = QuadReadAcrossDiagonal(0.0);
+    ASSERT(zeroValue == 0.0);
+    
+    // Test that reading twice gets back to original
+    float doubleDiag = QuadReadAcrossDiagonal(QuadReadAcrossDiagonal(value));
+    ASSERT(doubleDiag == value);
+    
+    // Test with mixed positive/negative
+    float mixed = (lane < 2) ? lane : -lane;
+    float mixedDiag = QuadReadAcrossDiagonal(mixed);
+    ASSERT(WaveReadLaneAt(mixedDiag, 0) == -3.0);
+    ASSERT(WaveReadLaneAt(mixedDiag, 1) == -2.0);
+    ASSERT(WaveReadLaneAt(mixedDiag, 2) == 1.0);
+    ASSERT(WaveReadLaneAt(mixedDiag, 3) == 0.0);
+    
     // Test in varying control flow
     float conditional = 0.0;
     if (lane >= 2)
@@ -66,6 +82,17 @@ void Intrinsic_QuadReadLaneAt()
     // Test reading same lane
     float sameLane = QuadReadLaneAt(value, lane);
     ASSERT(sameLane == value);
+    
+    // Test with zero values
+    ASSERT(QuadReadLaneAt(0.0, 0) == 0.0);
+    ASSERT(QuadReadLaneAt(0.0, 2) == 0.0);
+    
+    // Test circular reads (each lane reads from next)
+    float nextLane = QuadReadLaneAt(value, (lane + 1) % 4);
+    ASSERT(WaveReadLaneAt(nextLane, 0) == 10.0);
+    ASSERT(WaveReadLaneAt(nextLane, 1) == 20.0);
+    ASSERT(WaveReadLaneAt(nextLane, 2) == 30.0);
+    ASSERT(WaveReadLaneAt(nextLane, 3) == 0.0);
 }
 
 [Test]
@@ -85,6 +112,10 @@ void Intrinsic_QuadReadAcrossX()
     ASSERT(WaveReadLaneAt(acrossX, 2) == 30.0); // Lane 2 reads from lane 3
     ASSERT(WaveReadLaneAt(acrossX, 3) == 20.0); // Lane 3 reads from lane 2
     
+    // Test that reading twice gets back to original
+    float doubleX = QuadReadAcrossX(QuadReadAcrossX(value));
+    ASSERT(doubleX == value);
+    
     // Test with vector values
     float3 vecValue = float3(lane, lane * 2.0, lane * 3.0);
     float3 vecAcross = QuadReadAcrossX(vecValue);
@@ -99,6 +130,17 @@ void Intrinsic_QuadReadAcrossX()
     
     ASSERT(WaveReadLaneAt(negAcross, 0) == -2.0);
     ASSERT(WaveReadLaneAt(negAcross, 1) == -1.0);
+    ASSERT(WaveReadLaneAt(negAcross, 2) == -4.0);
+    ASSERT(WaveReadLaneAt(negAcross, 3) == -3.0);
+    
+    // Test with zero
+    float zeroAcross = QuadReadAcrossX(0.0);
+    ASSERT(zeroAcross == 0.0);
+    
+    // Test combining X and Y reads
+    float xThenY = QuadReadAcrossY(QuadReadAcrossX(value));
+    ASSERT(WaveReadLaneAt(xThenY, 0) == 30.0); // 0->1->3
+    ASSERT(WaveReadLaneAt(xThenY, 1) == 20.0); // 1->0->2
 }
 
 [Test]
@@ -118,6 +160,10 @@ void Intrinsic_QuadReadAcrossY()
     ASSERT(WaveReadLaneAt(acrossY, 2) == 0.0);  // Lane 2 reads from lane 0
     ASSERT(WaveReadLaneAt(acrossY, 3) == 10.0); // Lane 3 reads from lane 1
     
+    // Test that reading twice gets back to original
+    float doubleY = QuadReadAcrossY(QuadReadAcrossY(value));
+    ASSERT(doubleY == value);
+    
     // Test with vector values
     float2 vecValue = float2(lane, lane * 5.0);
     float2 vecAcross = QuadReadAcrossY(vecValue);
@@ -132,7 +178,18 @@ void Intrinsic_QuadReadAcrossY()
     float negAcross = QuadReadAcrossY(negValue);
     
     ASSERT(WaveReadLaneAt(negAcross, 0) == -4.0);
+    ASSERT(WaveReadLaneAt(negAcross, 1) == -6.0);
     ASSERT(WaveReadLaneAt(negAcross, 2) == 0.0);
+    ASSERT(WaveReadLaneAt(negAcross, 3) == -2.0);
+    
+    // Test with zero
+    float zeroAcross = QuadReadAcrossY(0.0);
+    ASSERT(zeroAcross == 0.0);
+    
+    // Verify X and Y are independent
+    float yThenX = QuadReadAcrossX(QuadReadAcrossY(value));
+    ASSERT(WaveReadLaneAt(yThenX, 0) == 30.0); // 0->2->3
+    ASSERT(WaveReadLaneAt(yThenX, 1) == 20.0); // 1->3->2
 }
 
 [Test]
@@ -167,6 +224,22 @@ void Intrinsic_WaveActiveAllEqual()
     // Test where only some lanes match
     float partialMatch = (lane == 0 || lane == 1) ? 100.0 : 200.0;
     ASSERT(!WaveActiveAllEqual(partialMatch));
+    
+    // Test where only two adjacent lanes differ
+    float twoMatch = (lane == 1) ? 5.0 : 10.0;
+    ASSERT(!WaveActiveAllEqual(twoMatch));
+    
+    // Test in divergent flow where active lanes have same value
+    bool conditionalEqual = false;
+    if (lane >= 2)
+        conditionalEqual = WaveActiveAllEqual(99.0);
+    
+    ASSERT(WaveReadLaneAt(conditionalEqual, 2) == true);
+    ASSERT(WaveReadLaneAt(conditionalEqual, 3) == true);
+    
+    // Test integer values
+    ASSERT(WaveActiveAllEqual((uint)lane) == false);
+    ASSERT(WaveActiveAllEqual((uint)7) == true);
 }
 
 [Test]
@@ -179,6 +252,10 @@ void Intrinsic_WaveActiveBitAnd()
     uint allOnes = WaveActiveBitAnd(0xFFFFFFFF);
     ASSERT(allOnes == 0xFFFFFFFF);
     
+    // All zeros
+    uint allZeros = WaveActiveBitAnd(0);
+    ASSERT(allZeros == 0);
+    
     // Specific bit pattern
     uint pattern = WaveActiveBitAnd(0xFF00FF00);
     ASSERT(pattern == 0xFF00FF00);
@@ -189,20 +266,28 @@ void Intrinsic_WaveActiveBitAnd()
     uint laneAnd = WaveActiveBitAnd(lane);
     ASSERT(laneAnd == 0);
     
-    // Test with mask where lane 0,1,2,3 have different bits
+    // Test with mask where each lane clears different bits
     // Lane 0: 1111, Lane 1: 1110, Lane 2: 1101, Lane 3: 1100
     uint mask = 0xF & ~lane;
     uint maskAnd = WaveActiveBitAnd(mask);
     ASSERT(maskAnd == 0xC); // Only bits set in all lanes: 1100
     
+    // Test alternating bits
+    uint alternating = (lane & 1) ? 0xAAAAAAAA : 0xFFFFFFFF;
+    uint altAnd = WaveActiveBitAnd(alternating);
+    ASSERT(altAnd == 0xAAAAAAAA);
+    
+    // Test single bit per lane - all should be 0
+    uint singleBit = (1 << lane);
+    ASSERT(WaveActiveBitAnd(singleBit) == 0);
+    
     // Test in varying control flow
     uint conditional = 0xFFFFFFFF;
     if (lane >= 2)
-        conditional = 0x0000FFFF;
-    uint condAnd = WaveActiveBitAnd(conditional);
-    // Only lanes >= 2 participate, so result is 0x0000FFFF
-    ASSERT(WaveReadLaneAt(condAnd, 2) == 0x0000FFFF);
-    ASSERT(WaveReadLaneAt(condAnd, 3) == 0x0000FFFF);
+        conditional = WaveActiveBitAnd(0x0000FFFF);
+    
+    ASSERT(WaveReadLaneAt(conditional, 2) == 0x0000FFFF);
+    ASSERT(WaveReadLaneAt(conditional, 3) == 0x0000FFFF);
 }
 
 [Test]
@@ -214,6 +299,10 @@ void Intrinsic_WaveActiveBitOr()
     // All zeros
     uint allZeros = WaveActiveBitOr(0);
     ASSERT(allZeros == 0);
+    
+    // All ones
+    uint allOnes = WaveActiveBitOr(0xFFFFFFFF);
+    ASSERT(allOnes == 0xFFFFFFFF);
     
     // Single bit per lane
     // Lane 0: 0001, Lane 1: 0010, Lane 2: 0100, Lane 3: 1000
@@ -230,16 +319,20 @@ void Intrinsic_WaveActiveBitOr()
     // OR: 0x33333333
     ASSERT(orResult == 0x33333333);
     
-    // Test with full bits
-    ASSERT(WaveActiveBitOr(0xFFFFFFFF) == 0xFFFFFFFF);
+    // Test complementary patterns
+    uint complementary = (lane < 2) ? 0x0000FFFF : 0xFFFF0000;
+    ASSERT(WaveActiveBitOr(complementary) == 0xFFFFFFFF);
+    
+    // Test alternating bits
+    uint alternating = (lane & 1) ? 0xAAAAAAAA : 0x55555555;
+    ASSERT(WaveActiveBitOr(alternating) == 0xFFFFFFFF);
     
     // Test in varying control flow
     uint conditional = 0;
     if (lane >= 2)
-        conditional = 1 << lane;
-    uint condOr = WaveActiveBitOr(conditional);
-    // Lanes 2 and 3: 0100 | 1000 = 1100
-    ASSERT(WaveReadLaneAt(condOr, 2) == 0xC);
+        conditional = WaveActiveBitOr(1 << lane);
+    
+    ASSERT(WaveReadLaneAt(conditional, 2) == 0xC); // Bits 2 and 3
 }
 
 [Test]
@@ -248,9 +341,15 @@ void Intrinsic_WaveActiveBitXor()
 {
     uint lane = WaveGetLaneIndex();
     
-    // All same value - XOR should be 0
+    // All same value - XOR should be 0 (even number of lanes)
     uint allSame = WaveActiveBitXor(0xFF);
-    ASSERT(allSame == 0); // Even number of lanes (4)
+    ASSERT(allSame == 0);
+    
+    // All zeros
+    ASSERT(WaveActiveBitXor(0) == 0);
+    
+    // All ones - even lanes cancel out
+    ASSERT(WaveActiveBitXor(0xFFFFFFFF) == 0);
     
     // Lane indices: 0, 1, 2, 3
     // XOR: 0 ^ 1 ^ 2 ^ 3 = 0
@@ -261,13 +360,19 @@ void Intrinsic_WaveActiveBitXor()
     uint singleBit = WaveActiveBitXor(1 << lane);
     ASSERT(singleBit == 0xF); // All bits XOR together
     
-    // Alternating pattern
+    // Alternating pattern - pairs cancel
     uint alternating = (lane & 1) ? 0xAAAAAAAA : 0x55555555;
     uint altXor = WaveActiveBitXor(alternating);
-    ASSERT(altXor == 0x00000000); // Two of each cancel out in XOR
+    ASSERT(altXor == 0); // Two of each pattern
     
-    // Test with zero
-    ASSERT(WaveActiveBitXor(0) == 0);
+    // Test XOR properties: A XOR A = 0
+    uint duplicate = (lane < 2) ? 0x12345678 : 0x12345678;
+    ASSERT(WaveActiveBitXor(duplicate) == 0);
+    
+    // Three same, one different
+    uint threeSame = (lane == 3) ? 0xF0F0F0F0 : 0x0F0F0F0F;
+    uint threeSameXor = WaveActiveBitXor(threeSame);
+    ASSERT(threeSameXor == 0xFFFFFFFF); // Odd count of each bit
 }
 
 [Test]
@@ -304,6 +409,19 @@ void Intrinsic_WaveActiveCountBits()
     uint oddCount = WaveActiveCountBits(oddLanes);
     ASSERT(oddCount == 2);
     
+    // Even lanes
+    bool evenLanes = (lane & 1) == 0;
+    uint evenCount = WaveActiveCountBits(evenLanes);
+    ASSERT(evenCount == 2);
+    
+    // Three lanes true
+    bool threeTrue = lane != 2;
+    ASSERT(WaveActiveCountBits(threeTrue) == 3);
+    
+    // Complex condition
+    bool complex = (lane == 0) || (lane == 2);
+    ASSERT(WaveActiveCountBits(complex) == 2);
+    
     // Test in varying control flow
     uint conditional = 0;
     if (lane >= 2)
@@ -313,6 +431,13 @@ void Intrinsic_WaveActiveCountBits()
     ASSERT(WaveReadLaneAt(conditional, 1) == 0);
     ASSERT(WaveReadLaneAt(conditional, 2) == 2); // Lanes 2 and 3 active
     ASSERT(WaveReadLaneAt(conditional, 3) == 2);
+    
+    // Only one active lane in divergent flow
+    uint conditional2 = 0;
+    if (lane == 2)
+        conditional2 = WaveActiveCountBits(true);
+    
+    ASSERT(WaveReadLaneAt(conditional2, 2) == 1);
 }
 
 [Test]
@@ -329,9 +454,17 @@ void Intrinsic_WaveActiveMax()
     float laneMax = WaveActiveMax(lane);
     ASSERT(laneMax == 3.0);
     
+    // Reverse order
+    float reverseMax = WaveActiveMax(3.0 - lane);
+    ASSERT(reverseMax == 3.0);
+    
     // Negative values
     float negMax = WaveActiveMax(-lane);
     ASSERT(negMax == 0.0); // Max of 0, -1, -2, -3
+    
+    // All negative
+    float allNegMax = WaveActiveMax(-lane - 1.0);
+    ASSERT(allNegMax == -1.0); // Max of -1, -2, -3, -4
     
     // Mixed positive and negative
     float mixedMax = WaveActiveMax((lane < 2) ? lane : -lane);
@@ -340,6 +473,14 @@ void Intrinsic_WaveActiveMax()
     // Large values
     float largeMax = WaveActiveMax(lane * 1000.0);
     ASSERT(largeMax == 3000.0);
+    
+    // Single lane has max
+    float singleMax = WaveActiveMax((lane == 1) ? 100.0 : 0.0);
+    ASSERT(singleMax == 100.0);
+    
+    // Test with zero
+    float withZero = WaveActiveMax((lane == 2) ? 0.0 : -10.0);
+    ASSERT(withZero == 0.0);
     
     // Test in varying control flow
     float conditional = -999.0;
@@ -366,9 +507,17 @@ void Intrinsic_WaveActiveMin()
     float laneMin = WaveActiveMin(lane);
     ASSERT(laneMin == 0.0);
     
+    // Reverse order
+    float reverseMin = WaveActiveMin(3.0 - lane);
+    ASSERT(reverseMin == 0.0);
+    
     // Negative values
     float negMin = WaveActiveMin(-lane);
     ASSERT(negMin == -3.0); // Min of 0, -1, -2, -3
+    
+    // All negative
+    float allNegMin = WaveActiveMin(-lane - 1.0);
+    ASSERT(allNegMin == -4.0); // Min of -1, -2, -3, -4
     
     // Mixed positive and negative
     float mixedMin = WaveActiveMin((lane < 2) ? lane : -lane);
@@ -377,6 +526,14 @@ void Intrinsic_WaveActiveMin()
     // Large values
     float largeMin = WaveActiveMin(lane * 1000.0 + 100.0);
     ASSERT(largeMin == 100.0);
+    
+    // Single lane has min
+    float singleMin = WaveActiveMin((lane == 1) ? -100.0 : 0.0);
+    ASSERT(singleMin == -100.0);
+    
+    // Test with zero
+    float withZero = WaveActiveMin((lane == 2) ? 0.0 : 10.0);
+    ASSERT(withZero == 0.0);
     
     // Test in varying control flow
     float conditional = 999.0;
@@ -411,13 +568,25 @@ void Intrinsic_WaveActiveProduct()
     float withZero = WaveActiveProduct((lane == 2) ? 0.0 : 1.0);
     ASSERT(withZero == 0.0);
     
-    // Negative values: -1 * -2 * -3 * -4 = 24
+    // With zero at start
+    float zeroFirst = WaveActiveProduct((lane == 0) ? 0.0 : 2.0);
+    ASSERT(zeroFirst == 0.0);
+    
+    // Negative values: -1 * -2 * -3 * -4 = 24 (even count)
     float negProduct = WaveActiveProduct(-(lane + 1.0));
-    ASSERT(negProduct == 24.0); // Even number of negatives
+    ASSERT(negProduct == 24.0);
+    
+    // Odd number of negatives (3): -1 * -1 * -1 * 1 = -1
+    float oddNeg = WaveActiveProduct((lane < 3) ? -1.0 : 1.0);
+    ASSERT(oddNeg == -1.0);
     
     // Fractional values: 0.5^4 = 0.0625
     float fracProduct = WaveActiveProduct(0.5);
     ASSERT(abs(fracProduct - 0.0625) < 0.001);
+    
+    // Mixed fractions and integers
+    float mixed = WaveActiveProduct((lane < 2) ? 2.0 : 0.5);
+    ASSERT(abs(mixed - 1.0) < 0.001); // 2 * 2 * 0.5 * 0.5 = 1
     
     // Test in varying control flow
     float conditional = 1.0;
@@ -440,17 +609,33 @@ void Intrinsic_WaveActiveSum()
     float allOnes = WaveActiveSum(1.0);
     ASSERT(allOnes == 4.0);
     
+    // All tens
+    float allTens = WaveActiveSum(10.0);
+    ASSERT(allTens == 40.0);
+    
     // Lane indices: 0 + 1 + 2 + 3 = 6
     float laneSum = WaveActiveSum(lane);
     ASSERT(laneSum == 6.0);
+    
+    // Reverse indices: 3 + 2 + 1 + 0 = 6
+    float reverseSum = WaveActiveSum(3.0 - lane);
+    ASSERT(reverseSum == 6.0);
     
     // Negative values: -0 + -1 + -2 + -3 = -6
     float negSum = WaveActiveSum(-lane);
     ASSERT(negSum == -6.0);
     
+    // All negative
+    float allNegSum = WaveActiveSum(-5.0);
+    ASSERT(allNegSum == -20.0);
+    
     // Mixed positive and negative
     float mixedSum = WaveActiveSum((lane < 2) ? lane : -lane);
     ASSERT(mixedSum == -4.0); // 0 + 1 + (-2) + (-3)
+    
+    // Alternating signs
+    float alternating = WaveActiveSum((lane & 1) ? -1.0 : 1.0);
+    ASSERT(alternating == 0.0); // 1 + (-1) + 1 + (-1)
     
     // Large values
     float largeSum = WaveActiveSum(lane * 100.0);
@@ -458,6 +643,10 @@ void Intrinsic_WaveActiveSum()
     
     // Zero
     ASSERT(WaveActiveSum(0.0) == 0.0);
+    
+    // Single non-zero
+    float singleNonZero = WaveActiveSum((lane == 2) ? 50.0 : 0.0);
+    ASSERT(singleNonZero == 50.0);
     
     // Test in varying control flow
     float conditional = 0.0;
@@ -488,13 +677,29 @@ void Intrinsic_WaveActiveAllTrue()
     bool someTrue = WaveActiveAllTrue(lane < 2);
     ASSERT(!someTrue);
     
-    // Condition that varies
-    bool varyingCondition = WaveActiveAllTrue(lane >= 0); // Always true
-    ASSERT(varyingCondition);
+    // Condition that's always true
+    bool alwaysTrue = WaveActiveAllTrue(lane >= 0);
+    ASSERT(alwaysTrue);
     
     // Single false breaks it
     bool oneFalse = WaveActiveAllTrue(lane != 2);
     ASSERT(!oneFalse);
+    
+    // Only first lane false
+    bool firstFalse = WaveActiveAllTrue(lane != 0);
+    ASSERT(!firstFalse);
+    
+    // Only last lane false
+    bool lastFalse = WaveActiveAllTrue(lane != 3);
+    ASSERT(!lastFalse);
+    
+    // Complex condition - all even
+    bool allEven = WaveActiveAllTrue((lane & 1) == 0);
+    ASSERT(!allEven);
+    
+    // Test with varying values but evaluating to all true
+    bool varyingTrue = WaveActiveAllTrue(lane < 10);
+    ASSERT(varyingTrue);
     
     // Test in varying control flow - all active lanes true
     bool conditional = false;
@@ -512,6 +717,14 @@ void Intrinsic_WaveActiveAllTrue()
         conditional2 = WaveActiveAllTrue(lane == 2);
     
     ASSERT(WaveReadLaneAt(conditional2, 2) == false); // Lane 3 is false
+    ASSERT(WaveReadLaneAt(conditional2, 3) == false);
+    
+    // Single active lane that's true
+    bool conditional3 = false;
+    if (lane == 1)
+        conditional3 = WaveActiveAllTrue(true);
+    
+    ASSERT(WaveReadLaneAt(conditional3, 1) == true); // Only one active lane, it's true
 }
 
 [Test]
@@ -536,13 +749,29 @@ void Intrinsic_WaveActiveAnyTrue()
     bool lastTrue = WaveActiveAnyTrue(lane == 3);
     ASSERT(lastTrue);
     
+    // Only middle lane true
+    bool middleTrue = WaveActiveAnyTrue(lane == 2);
+    ASSERT(middleTrue);
+    
     // Some lanes true
     bool someTrue = WaveActiveAnyTrue(lane < 2);
     ASSERT(someTrue);
     
-    // Single true is enough
+    // Majority false, one true
     bool oneTrue = WaveActiveAnyTrue(lane == 2);
     ASSERT(oneTrue);
+    
+    // Odd lanes
+    bool oddTrue = WaveActiveAnyTrue((lane & 1) == 1);
+    ASSERT(oddTrue);
+    
+    // Even lanes
+    bool evenTrue = WaveActiveAnyTrue((lane & 1) == 0);
+    ASSERT(evenTrue);
+    
+    // Complex condition
+    bool complex = WaveActiveAnyTrue((lane == 1) || (lane == 3));
+    ASSERT(complex);
     
     // Test in varying control flow - any active lane true
     bool conditional = false;
@@ -561,6 +790,13 @@ void Intrinsic_WaveActiveAnyTrue()
     
     ASSERT(WaveReadLaneAt(conditional2, 2) == false);
     ASSERT(WaveReadLaneAt(conditional2, 3) == false);
+    
+    // Single active lane that's false
+    bool conditional3 = true;
+    if (lane == 1)
+        conditional3 = WaveActiveAnyTrue(false);
+    
+    ASSERT(WaveReadLaneAt(conditional3, 1) == false);
 }
 
 [Test]
@@ -585,9 +821,17 @@ void Intrinsic_WaveActiveBallot()
     uint4 lastOnly = WaveActiveBallot(lane == 3);
     ASSERT((lastOnly.x & 0xF) == 0x8); // Bit 3 set
     
+    // Only middle lanes
+    uint4 middleTwo = WaveActiveBallot(lane == 1 || lane == 2);
+    ASSERT((middleTwo.x & 0xF) == 0x6); // Bits 1,2 set (0110)
+    
     // First two lanes
     uint4 firstTwo = WaveActiveBallot(lane < 2);
     ASSERT((firstTwo.x & 0xF) == 0x3); // Bits 0-1 set
+    
+    // Last two lanes
+    uint4 lastTwo = WaveActiveBallot(lane >= 2);
+    ASSERT((lastTwo.x & 0xF) == 0xC); // Bits 2-3 set (1100)
     
     // Odd lanes
     uint4 oddLanes = WaveActiveBallot((lane & 1) == 1);
@@ -596,6 +840,10 @@ void Intrinsic_WaveActiveBallot()
     // Even lanes
     uint4 evenLanes = WaveActiveBallot((lane & 1) == 0);
     ASSERT((evenLanes.x & 0xF) == 0x5); // Bits 0,2 set (0101)
+    
+    // Specific pattern
+    uint4 pattern = WaveActiveBallot(lane == 0 || lane == 3);
+    ASSERT((pattern.x & 0xF) == 0x9); // Bits 0,3 set (1001)
     
     // Test in varying control flow
     uint4 conditional = uint4(0, 0, 0, 0);
@@ -606,6 +854,13 @@ void Intrinsic_WaveActiveBallot()
     ASSERT(WaveReadLaneAt(conditional.x, 1) == 0);
     ASSERT((WaveReadLaneAt(conditional.x, 2) & 0xF) == 0xC); // Bits 2,3 set
     ASSERT((WaveReadLaneAt(conditional.x, 3) & 0xF) == 0xC);
+    
+    // Test with varying condition in divergent flow
+    uint4 conditional2 = uint4(0, 0, 0, 0);
+    if (lane >= 1)
+        conditional2 = WaveActiveBallot(lane != 2);
+    
+    ASSERT((WaveReadLaneAt(conditional2.x, 1) & 0xF) == 0xA); // Lanes 1,3 (1010)
 }
 
 [Test]
@@ -623,6 +878,10 @@ void Intrinsic_WaveGetLaneCount()
     ASSERT(WaveReadLaneAt(count, 2) == 4);
     ASSERT(WaveReadLaneAt(count, 3) == 4);
     
+    // Verify consistency with other operations
+    uint ballotCount = WaveActiveCountBits(true);
+    ASSERT(ballotCount == count);
+    
     // Test in varying control flow (should still be same)
     uint conditional = 0;
     if (lane >= 2)
@@ -630,6 +889,9 @@ void Intrinsic_WaveGetLaneCount()
     
     ASSERT(WaveReadLaneAt(conditional, 2) == 4);
     ASSERT(WaveReadLaneAt(conditional, 3) == 4);
+    
+    // Verify lane index is always less than count
+    ASSERT(lane < WaveGetLaneCount());
 }
 
 [Test]
@@ -647,6 +909,17 @@ void Intrinsic_WaveGetLaneIndex()
     // Lane index should be less than lane count
     ASSERT(lane < WaveGetLaneCount());
     
+    // Each lane should have different index
+    ASSERT(!WaveActiveAllEqual(lane));
+    
+    // Sum of all lane indices
+    uint sumIndices = WaveActiveSum(lane);
+    ASSERT(sumIndices == 6); // 0 + 1 + 2 + 3
+    
+    // Max lane index should be count - 1
+    uint maxLane = WaveActiveMax(lane);
+    ASSERT(maxLane == WaveGetLaneCount() - 1);
+    
     // Test in varying control flow
     uint conditional = 99;
     if (lane >= 2)
@@ -656,6 +929,10 @@ void Intrinsic_WaveGetLaneIndex()
     ASSERT(WaveReadLaneAt(conditional, 1) == 99);
     ASSERT(WaveReadLaneAt(conditional, 2) == 2);
     ASSERT(WaveReadLaneAt(conditional, 3) == 3);
+    
+    // Lane index should be stable across reads
+    uint lane2 = WaveGetLaneIndex();
+    ASSERT(lane == lane2);
 }
 
 [Test]
@@ -664,7 +941,7 @@ void Intrinsic_WaveIsFirstLane()
 {
     uint lane = WaveGetLaneIndex();
     
-    // Only lane 0 should be first
+    // Only lane 0 should be first in uniform flow
     bool isFirst = WaveIsFirstLane();
     ASSERT(WaveReadLaneAt(isFirst, 0) == true);
     ASSERT(WaveReadLaneAt(isFirst, 1) == false);
@@ -674,6 +951,10 @@ void Intrinsic_WaveIsFirstLane()
     // Count how many lanes think they're first (should be 1)
     uint firstCount = WaveActiveCountBits(isFirst);
     ASSERT(firstCount == 1);
+    
+    // Only one lane should be first
+    uint4 firstBallot = WaveActiveBallot(isFirst);
+    ASSERT((firstBallot.x & 0xF) == 0x1);
     
     // Test in varying control flow - first active lane should be "first"
     bool conditional = false;
@@ -685,13 +966,28 @@ void Intrinsic_WaveIsFirstLane()
     ASSERT(WaveReadLaneAt(conditional, 2) == true);  // First of active lanes
     ASSERT(WaveReadLaneAt(conditional, 3) == false);
     
-    // Test with different control flow pattern
+    // Test with different control flow pattern - lanes 1 and 3
     bool conditional2 = false;
     if (lane == 1 || lane == 3)
         conditional2 = WaveIsFirstLane();
     
     ASSERT(WaveReadLaneAt(conditional2, 1) == true);  // First of lanes 1,3
     ASSERT(WaveReadLaneAt(conditional2, 3) == false);
+    
+    // Test with only last lane active
+    bool conditional3 = false;
+    if (lane == 3)
+        conditional3 = WaveIsFirstLane();
+    
+    ASSERT(WaveReadLaneAt(conditional3, 3) == true); // Only active lane is first
+    
+    // Test even lanes only
+    bool conditional4 = false;
+    if ((lane & 1) == 0)
+        conditional4 = WaveIsFirstLane();
+    
+    ASSERT(WaveReadLaneAt(conditional4, 0) == true);  // Lane 0 is first even
+    ASSERT(WaveReadLaneAt(conditional4, 2) == false); // Lane 2 is not first
 }
 
 [Test]
@@ -706,6 +1002,10 @@ void Intrinsic_WavePrefixCountBits()
     ASSERT(WaveReadLaneAt(allTrue, 1) == 1); // Lane 0 before 1
     ASSERT(WaveReadLaneAt(allTrue, 2) == 2); // Lanes 0,1 before 2
     ASSERT(WaveReadLaneAt(allTrue, 3) == 3); // Lanes 0,1,2 before 3
+    
+    // Verify prefix + current = total for all true
+    uint totalTrue = allTrue + 1;
+    ASSERT(WaveReadLaneAt(totalTrue, 3) == 4);
     
     // All false
     uint allFalse = WavePrefixCountBits(false);
@@ -728,6 +1028,20 @@ void Intrinsic_WavePrefixCountBits()
     ASSERT(WaveReadLaneAt(oddOnly, 2) == 1); // Lane 1 before 2
     ASSERT(WaveReadLaneAt(oddOnly, 3) == 1); // Lane 1 before 3
     
+    // Only first lane true
+    uint firstOnly = WavePrefixCountBits(lane == 0);
+    ASSERT(WaveReadLaneAt(firstOnly, 0) == 0);
+    ASSERT(WaveReadLaneAt(firstOnly, 1) == 1);
+    ASSERT(WaveReadLaneAt(firstOnly, 2) == 1);
+    ASSERT(WaveReadLaneAt(firstOnly, 3) == 1);
+    
+    // Only last lane true
+    uint lastOnly = WavePrefixCountBits(lane == 3);
+    ASSERT(WaveReadLaneAt(lastOnly, 0) == 0);
+    ASSERT(WaveReadLaneAt(lastOnly, 1) == 0);
+    ASSERT(WaveReadLaneAt(lastOnly, 2) == 0);
+    ASSERT(WaveReadLaneAt(lastOnly, 3) == 0);
+    
     // Test in varying control flow
     uint conditional = 0;
     if (lane >= 2)
@@ -737,6 +1051,10 @@ void Intrinsic_WavePrefixCountBits()
     ASSERT(WaveReadLaneAt(conditional, 1) == 0);
     ASSERT(WaveReadLaneAt(conditional, 2) == 0); // No active lanes before 2
     ASSERT(WaveReadLaneAt(conditional, 3) == 1); // Lane 2 before 3
+    
+    // Use prefix count to generate unique IDs
+    uint uniqueID = WavePrefixCountBits(true);
+    ASSERT(uniqueID == lane); // Should match lane index when all active
 }
 
 [Test]
@@ -747,7 +1065,7 @@ void Intrinsic_WavePrefixProduct()
     
     // All ones - product stays 1
     float allOnes = WavePrefixProduct(1.0);
-    ASSERT(WaveReadLaneAt(allOnes, 0) == 1.0);
+    ASSERT(WaveReadLaneAt(allOnes, 0) == 1.0); // Identity
     ASSERT(WaveReadLaneAt(allOnes, 1) == 1.0);
     ASSERT(WaveReadLaneAt(allOnes, 2) == 1.0);
     ASSERT(WaveReadLaneAt(allOnes, 3) == 1.0);
@@ -759,6 +1077,9 @@ void Intrinsic_WavePrefixProduct()
     ASSERT(WaveReadLaneAt(allTwos, 2) == 4.0);   // 2 * 2
     ASSERT(WaveReadLaneAt(allTwos, 3) == 8.0);   // 2 * 2 * 2
     
+    // Verify: prefix * current = next prefix
+    ASSERT(WaveReadLaneAt(allTwos, 1) * 2.0 == WaveReadLaneAt(allTwos, 2));
+    
     // Lane index + 1: progressive factorial-like
     float laneProduct = WavePrefixProduct(lane + 1.0);
     ASSERT(WaveReadLaneAt(laneProduct, 0) == 1.0);  // Identity
@@ -766,19 +1087,33 @@ void Intrinsic_WavePrefixProduct()
     ASSERT(WaveReadLaneAt(laneProduct, 2) == 2.0);  // 1 * 2
     ASSERT(WaveReadLaneAt(laneProduct, 3) == 6.0);  // 1 * 2 * 3
     
-    // With zero in the middle
-    float withZero = WavePrefixProduct((lane == 2) ? 0.0 : 2.0);
+    // With zero early in sequence
+    float withZero = WavePrefixProduct((lane == 1) ? 0.0 : 2.0);
     ASSERT(WaveReadLaneAt(withZero, 0) == 1.0);
     ASSERT(WaveReadLaneAt(withZero, 1) == 2.0);
-    ASSERT(WaveReadLaneAt(withZero, 2) == 4.0);
-    ASSERT(WaveReadLaneAt(withZero, 3) == 0.0);  // Includes the zero
+    ASSERT(WaveReadLaneAt(withZero, 2) == 0.0);  // Includes zero from lane 1
+    ASSERT(WaveReadLaneAt(withZero, 3) == 0.0);  // Still zero
+    
+    // With zero at start
+    float zeroFirst = WavePrefixProduct((lane == 0) ? 0.0 : 3.0);
+    ASSERT(WaveReadLaneAt(zeroFirst, 0) == 1.0);
+    ASSERT(WaveReadLaneAt(zeroFirst, 1) == 0.0);
+    ASSERT(WaveReadLaneAt(zeroFirst, 2) == 0.0);
+    ASSERT(WaveReadLaneAt(zeroFirst, 3) == 0.0);
     
     // Negative values
     float negValues = WavePrefixProduct(-2.0);
     ASSERT(WaveReadLaneAt(negValues, 0) == 1.0);
-    ASSERT(WaveReadLaneAt(negValues, 1) == -2.0);
+    ASSERT(WaveReadLaneAt(negValues, 1) == -2.0);  // One negative
     ASSERT(WaveReadLaneAt(negValues, 2) == 4.0);   // Two negatives
     ASSERT(WaveReadLaneAt(negValues, 3) == -8.0);  // Three negatives
+    
+    // Fractional values
+    float fractions = WavePrefixProduct(0.5);
+    ASSERT(WaveReadLaneAt(fractions, 0) == 1.0);
+    ASSERT(abs(WaveReadLaneAt(fractions, 1) - 0.5) < 0.001);
+    ASSERT(abs(WaveReadLaneAt(fractions, 2) - 0.25) < 0.001);
+    ASSERT(abs(WaveReadLaneAt(fractions, 3) - 0.125) < 0.001);
     
     // Test in varying control flow
     float conditional = 0.0;
@@ -803,6 +1138,13 @@ void Intrinsic_WavePrefixSum()
     ASSERT(WaveReadLaneAt(allOnes, 1) == 1.0); // Sum of lane 0
     ASSERT(WaveReadLaneAt(allOnes, 2) == 2.0); // Sum of lanes 0,1
     ASSERT(WaveReadLaneAt(allOnes, 3) == 3.0); // Sum of lanes 0,1,2
+    
+    // Verify: prefix + current = next prefix
+    ASSERT(WaveReadLaneAt(allOnes, 1) + 1.0 == WaveReadLaneAt(allOnes, 2));
+    
+    // Verify: last prefix + last value = total sum
+    float totalSum = WaveActiveSum(1.0);
+    ASSERT(WaveReadLaneAt(allOnes, 3) + 1.0 == totalSum);
     
     // Lane indices: 0, 1, 2, 3
     float laneSum = WavePrefixSum(lane);
@@ -832,6 +1174,17 @@ void Intrinsic_WavePrefixSum()
     ASSERT(WaveReadLaneAt(mixed, 2) == 2.0);
     ASSERT(WaveReadLaneAt(mixed, 3) == 1.0);  // 1 + 1 + (-1)
     
+    // Alternating signs
+    float alternating = WavePrefixSum((lane & 1) ? -5.0 : 5.0);
+    ASSERT(WaveReadLaneAt(alternating, 0) == 0.0);
+    ASSERT(WaveReadLaneAt(alternating, 1) == 5.0);
+    ASSERT(WaveReadLaneAt(alternating, 2) == 0.0);   // 5 + (-5)
+    ASSERT(WaveReadLaneAt(alternating, 3) == 5.0);   // 5 + (-5) + 5
+    
+    // Use for array indexing - assign unique increasing indices
+    uint arrayIndex = WavePrefixSum(1);
+    ASSERT(arrayIndex == lane); // Each gets unique index when all lanes contribute 1
+    
     // Test in varying control flow
     float conditional = -999.0;
     if (lane >= 2)
@@ -854,6 +1207,9 @@ void Intrinsic_WaveReadLaneFirst()
     float firstValue = WaveReadLaneFirst(laneValue);
     ASSERT(firstValue == 0.0);
     
+    // Verify all lanes get same result
+    ASSERT(WaveActiveAllEqual(firstValue));
+    
     // All lanes have same value
     float sameValue = WaveReadLaneFirst(42.0);
     ASSERT(sameValue == 42.0);
@@ -862,10 +1218,23 @@ void Intrinsic_WaveReadLaneFirst()
     float negValue = WaveReadLaneFirst(-lane);
     ASSERT(negValue == 0.0);
     
+    // Large values
+    float largeValue = WaveReadLaneFirst(lane * 1000.0);
+    ASSERT(largeValue == 0.0);
+    
     // Test with vector
     float3 vecValue = float3(lane, lane * 2.0, lane * 3.0);
     float3 firstVec = WaveReadLaneFirst(vecValue);
     ASSERT(firstVec.x == 0.0 && firstVec.y == 0.0 && firstVec.z == 0.0);
+    
+    // Test consistency - reading first twice should give same result
+    float first1 = WaveReadLaneFirst(laneValue);
+    float first2 = WaveReadLaneFirst(laneValue);
+    ASSERT(first1 == first2);
+    
+    // Compare with WaveReadLaneAt(value, 0) in uniform flow
+    float readZero = WaveReadLaneAt(laneValue, 0);
+    ASSERT(firstValue == readZero);
     
     // Test in varying control flow - reads from first active lane
     float conditional = 0.0;
@@ -877,13 +1246,27 @@ void Intrinsic_WaveReadLaneFirst()
     ASSERT(WaveReadLaneAt(conditional, 2) == 200.0); // First active is lane 2
     ASSERT(WaveReadLaneAt(conditional, 3) == 200.0);
     
-    // Test with different control flow pattern
+    // Test with different control flow pattern - odd lanes only
     float conditional2 = 0.0;
-    if (lane == 1 || lane == 3)
+    if ((lane & 1) == 1)
         conditional2 = WaveReadLaneFirst(lane * 50.0);
     
     ASSERT(WaveReadLaneAt(conditional2, 1) == 50.0);  // First active is lane 1
     ASSERT(WaveReadLaneAt(conditional2, 3) == 50.0);
+    
+    // Test with only last lane active
+    float conditional3 = 0.0;
+    if (lane == 3)
+        conditional3 = WaveReadLaneFirst(999.0);
+    
+    ASSERT(WaveReadLaneAt(conditional3, 3) == 999.0); // Only lane 3 active
+    
+    // Verify relationship with WaveIsFirstLane
+    bool isFirst = WaveIsFirstLane();
+    float myValue = lane * 7.0;
+    float firstRead = WaveReadLaneFirst(myValue);
+    if (isFirst)
+        ASSERT(firstRead == myValue);
 }
 
 [Test]
@@ -900,17 +1283,19 @@ void Intrinsic_WaveReadLaneAt()
     ASSERT(WaveReadLaneAt(value, 2) == 20.0);
     ASSERT(WaveReadLaneAt(value, 3) == 30.0);
     
-    // Read from same lane
+    // Read from same lane as current
     float sameLane = WaveReadLaneAt(value, lane);
     ASSERT(sameLane == value);
     
     // All lanes read from lane 0
     float fromZero = WaveReadLaneAt(value, 0);
     ASSERT(fromZero == 0.0);
+    ASSERT(WaveActiveAllEqual(fromZero)); // All should get same value
     
     // All lanes read from lane 3
     float fromThree = WaveReadLaneAt(value, 3);
     ASSERT(fromThree == 30.0);
+    ASSERT(WaveActiveAllEqual(fromThree));
     
     // Test with negative values
     float negValue = -lane - 1.0;
@@ -919,12 +1304,31 @@ void Intrinsic_WaveReadLaneAt()
     ASSERT(WaveReadLaneAt(negValue, 2) == -3.0);
     ASSERT(WaveReadLaneAt(negValue, 3) == -4.0);
     
+    // Test with zero
+    float zeroValue = 0.0;
+    ASSERT(WaveReadLaneAt(zeroValue, 0) == 0.0);
+    ASSERT(WaveReadLaneAt(zeroValue, 2) == 0.0);
+    
     // Test with vector
     float2 vecValue = float2(lane, lane * 5.0);
     float2 vecRead = WaveReadLaneAt(vecValue, 2);
     ASSERT(vecRead.x == 2.0 && vecRead.y == 10.0);
     
-    // Test in varying control flow
+    // Circular read pattern
+    float nextValue = WaveReadLaneAt(value, (lane + 1) % 4);
+    ASSERT(WaveReadLaneAt(nextValue, 0) == 10.0);
+    ASSERT(WaveReadLaneAt(nextValue, 1) == 20.0);
+    ASSERT(WaveReadLaneAt(nextValue, 2) == 30.0);
+    ASSERT(WaveReadLaneAt(nextValue, 3) == 0.0);
+    
+    // Reverse read pattern
+    float reverseValue = WaveReadLaneAt(value, 3 - lane);
+    ASSERT(WaveReadLaneAt(reverseValue, 0) == 30.0);
+    ASSERT(WaveReadLaneAt(reverseValue, 1) == 20.0);
+    ASSERT(WaveReadLaneAt(reverseValue, 2) == 10.0);
+    ASSERT(WaveReadLaneAt(reverseValue, 3) == 0.0);
+    
+    // Test reading across control flow boundaries
     float conditional = -1.0;
     if (lane >= 2)
         conditional = lane * 7.0;
@@ -935,10 +1339,27 @@ void Intrinsic_WaveReadLaneAt()
     ASSERT(WaveReadLaneAt(conditional, 2) == 14.0);
     ASSERT(WaveReadLaneAt(conditional, 3) == 21.0);
     
-    // Cross-read between active and inactive
-    float crossRead1 = WaveReadLaneAt(conditional, (lane + 1) % 4);
-    ASSERT(WaveReadLaneAt(crossRead1, 0) == -1.0); // Lane 0 reads lane 1
-    ASSERT(WaveReadLaneAt(crossRead1, 1) == 14.0); // Lane 1 reads lane 2
-    ASSERT(WaveReadLaneAt(crossRead1, 2) == 21.0); // Lane 2 reads lane 3
-    ASSERT(WaveReadLaneAt(crossRead1, 3) == -1.0); // Lane 3 reads lane 0
+    // Active lanes reading from inactive lanes
+    float crossRead = 0.0;
+    if (lane >= 2)
+        crossRead = WaveReadLaneAt(conditional, 0);
+    
+    ASSERT(WaveReadLaneAt(crossRead, 2) == -1.0);
+    ASSERT(WaveReadLaneAt(crossRead, 3) == -1.0);
+    
+    // Inactive lanes reading from active lanes
+    float crossRead2 = 0.0;
+    if (lane < 2)
+        crossRead2 = WaveReadLaneAt(conditional, 3);
+    
+    ASSERT(WaveReadLaneAt(crossRead2, 0) == 21.0);
+    ASSERT(WaveReadLaneAt(crossRead2, 1) == 21.0);
+    
+    // Test stability - reading same lane multiple times
+    float stable1 = WaveReadLaneAt(value, 2);
+    float stable2 = WaveReadLaneAt(value, 2);
+    ASSERT(stable1 == stable2);
+    
+    // Verify WaveReadLaneAt(x, 0) == WaveReadLaneFirst(x) in uniform flow
+    ASSERT(WaveReadLaneAt(value, 0) == WaveReadLaneFirst(value));
 }
