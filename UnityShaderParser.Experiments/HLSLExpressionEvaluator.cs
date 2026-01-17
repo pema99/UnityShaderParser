@@ -59,20 +59,63 @@ namespace UnityShaderParser.Test
                 return result;
 
             // Now handle special intrinsics that affect or read from the execution state
+            // TODO: Put this into a helper function
             switch (name)
             {
                 case "printf":
                 case "errorf":
                     HLSLIntrinsics.Printf(executionState, args);
                     return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
-                case "WaveGetLaneIndex":
-                    return HLSLIntrinsics.WaveGetLaneIndex(executionState);
+
+                case "QuadReadAcrossDiagonal":
+                    return HLSLIntrinsics.QuadReadAcrossDiagonal(executionState, (NumericValue)args[0]);
+                case "QuadReadLaneAt":
+                    return HLSLIntrinsics.QuadReadLaneAt(executionState, (NumericValue)args[0], (ScalarValue)args[1]);
+                case "QuadReadAcrossX":
+                    return HLSLIntrinsics.QuadReadAcrossX(executionState, (NumericValue)args[0]);
+                case "QuadReadAcrossY":
+                    return HLSLIntrinsics.QuadReadAcrossY(executionState, (NumericValue)args[0]);
+                case "WaveActiveAllEqual":
+                    return HLSLIntrinsics.WaveActiveAllEqual(executionState, (NumericValue)args[0]);
+                case "WaveActiveBitAnd":
+                    return HLSLIntrinsics.WaveActiveBitAnd(executionState, (NumericValue)args[0]);
+                case "WaveActiveBitOr":
+                    return HLSLIntrinsics.WaveActiveBitOr(executionState, (NumericValue)args[0]);
+                case "WaveActiveBitXor":
+                    return HLSLIntrinsics.WaveActiveBitXor(executionState, (NumericValue)args[0]);
+                case "WaveActiveCountBits":
+                    return HLSLIntrinsics.WaveActiveCountBits(executionState, (NumericValue)args[0]);
+                case "WaveActiveMax":
+                    return HLSLIntrinsics.WaveActiveMax(executionState, (NumericValue)args[0]);
+                case "WaveActiveMin":
+                    return HLSLIntrinsics.WaveActiveMin(executionState, (NumericValue)args[0]);
+                case "WaveActiveProduct":
+                    return HLSLIntrinsics.WaveActiveProduct(executionState, (NumericValue)args[0]);
+                case "WaveActiveSum":
+                    return HLSLIntrinsics.WaveActiveSum(executionState, (NumericValue)args[0]);
+                case "WaveActiveAllTrue":
+                    return HLSLIntrinsics.WaveActiveAllTrue(executionState, (NumericValue)args[0]);
+                case "WaveActiveAnyTrue":
+                    return HLSLIntrinsics.WaveActiveAnyTrue(executionState, (NumericValue)args[0]);
+                case "WaveActiveBallot":
+                    return HLSLIntrinsics.WaveActiveBallot(executionState, (NumericValue)args[0]);
                 case "WaveGetLaneCount":
                     return HLSLIntrinsics.WaveGetLaneCount(executionState);
+                case "WaveGetLaneIndex":
+                    return HLSLIntrinsics.WaveGetLaneIndex(executionState);
                 case "WaveIsFirstLane":
                     return HLSLIntrinsics.WaveIsFirstLane(executionState);
+                case "WavePrefixCountBits":
+                    return HLSLIntrinsics.WavePrefixCountBits(executionState, (NumericValue)args[0]);
+                case "WavePrefixProduct":
+                    return HLSLIntrinsics.WavePrefixProduct(executionState, (NumericValue)args[0]);
+                case "WavePrefixSum":
+                    return HLSLIntrinsics.WavePrefixSum(executionState, (NumericValue)args[0]);
+                case "WaveReadLaneFirst":
+                    return HLSLIntrinsics.WaveReadLaneFirst(executionState, (NumericValue)args[0]);
                 case "WaveReadLaneAt":
                     return HLSLIntrinsics.WaveReadLaneAt(executionState, (NumericValue)args[0], (ScalarValue)args[1]);
+
                 case "ddx":
                     return HLSLIntrinsics.Ddx(executionState, (NumericValue)args[0]);
                 case "ddy":
@@ -83,17 +126,20 @@ namespace UnityShaderParser.Test
                     return HLSLIntrinsics.DdyFine(executionState, (NumericValue)args[0]);
                 case "fwidth":
                     return HLSLIntrinsics.Fwidth(executionState, (NumericValue)args[0]);
+
                 case "clip":
                     HLSLIntrinsics.Clip(executionState, (NumericValue)args[0]);
                     return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
                 case "abort":
                     HLSLIntrinsics.Abort(executionState);
                     return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+
                 case "AllMemoryBarrier":
                 case "DeviceMemoryBarrier":
                 case "GroupMemoryBarrier":
                     System.Threading.Thread.MemoryBarrier();
                     return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+
                 default:
                     break;
             }
@@ -736,61 +782,7 @@ namespace UnityShaderParser.Test
             var left = EvaluateNumeric(node.TrueCase);
             var right = EvaluateNumeric(node.FalseCase);
 
-            (left, right) = HLSLValueUtils.Promote(left, right, false);
-            if (cond is MatrixValue matrix)
-            {
-                left = left.BroadcastToMatrix(matrix.Rows, matrix.Columns);
-                right = right.BroadcastToMatrix(matrix.Rows, matrix.Columns);
-            }
-            else if (cond is VectorValue vector)
-            {
-                left = left.BroadcastToVector(vector.Size);
-                right = right.BroadcastToVector(vector.Size);
-            }
-
-            object[] values = new object[executionState.GetThreadCount()];
-            for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
-            {
-                if (cond is ScalarValue condScalar && left is ScalarValue leftScalar && right is ScalarValue rightScalar)
-                {
-                    var channel = Convert.ToBoolean(condScalar.Value.Get(threadIndex))
-                        ? leftScalar.Value.Get(threadIndex)
-                        : rightScalar.Value.Get(threadIndex);
-                    values[threadIndex] = channel;
-                }
-                else if (cond is VectorValue condVector && left is VectorValue leftVector && right is VectorValue rightVector)
-                {
-                    object[] channels = new object[condVector.Size];
-                    for (int channel = 0; channel < channels.Length; channel++)
-                    {
-                        channels[channel] = Convert.ToBoolean(condVector.Values.Get(threadIndex)[channel])
-                            ? leftVector.Values.Get(threadIndex)[channel]
-                            : rightVector.Values.Get(threadIndex)[channel];
-                    }
-                    values[threadIndex] = channels;
-                }
-                else if (cond is MatrixValue condMatrix && left is MatrixValue leftMatrix && right is MatrixValue rightMatrix)
-                {
-                    object[] channels = new object[condMatrix.Rows * condMatrix.Columns];
-                    for (int channel = 0; channel < channels.Length; channel++)
-                    {
-                        channels[channel] = Convert.ToBoolean(condMatrix.Values.Get(threadIndex)[channel])
-                            ? leftMatrix.Values.Get(threadIndex)[channel]
-                            : rightMatrix.Values.Get(threadIndex)[channel];
-                    }
-                    values[threadIndex] = channels;
-                }
-                else
-                    throw Error(node, "Invalid ternary expression.");
-            }
-
-            if (cond is ScalarValue)
-                return new ScalarValue(left.Type, new HLSLRegister<object>(values).Converge());
-            if (cond is VectorValue)
-                return new VectorValue(left.Type, new HLSLRegister<object[]>(values.Select(x => (object[])x).ToArray()).Converge());
-            if (cond is MatrixValue finalMatrix)
-                return new MatrixValue(left.Type, finalMatrix.Rows, finalMatrix.Columns, new HLSLRegister<object[]>(values.Select(x => (object[])x).ToArray()).Converge());
-            throw Error(node, "Invalid ternary expression.");
+            return HLSLIntrinsics.Select(cond, left, right);
         }
 
         public override HLSLValue VisitSamplerStateLiteralExpressionNode(SamplerStateLiteralExpressionNode node) => throw new NotImplementedException();

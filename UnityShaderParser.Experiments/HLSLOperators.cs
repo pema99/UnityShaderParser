@@ -154,7 +154,7 @@ namespace UnityShaderParser.Test
             switch (left)
             {
                 case int x: return -x;
-                case uint x: return -x;
+                case uint x: return (int)-x;
                 case float x: return -x;
                 case double x: return -x;
                 case bool x: return (-(x ? 1 : 0)) != 0;
@@ -309,7 +309,10 @@ namespace UnityShaderParser.Test
 
         public static NumericValue Negate(NumericValue left)
         {
-            return left.Map(Negate);
+            var res = left.Map(Negate);
+            if (res.Type == ScalarType.Uint)
+                return res.Cast(ScalarType.Int);
+            return res;
         }
 
         public static NumericValue BoolNegate(NumericValue left)

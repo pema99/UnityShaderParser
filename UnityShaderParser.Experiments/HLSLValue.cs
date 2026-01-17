@@ -828,12 +828,12 @@ namespace UnityShaderParser.Test
             switch (left)
             {
                 case ScalarType.Bool: return 0;
-                case ScalarType.Min12Int: return 1;
-                case ScalarType.Min16Int: return 2;
-                case ScalarType.Int: return 3;
-                case ScalarType.Min12Uint: return 4;
-                case ScalarType.Min16Uint: return 5;
-                case ScalarType.Uint: return 6;
+                case ScalarType.Min12Uint: return 1;
+                case ScalarType.Min16Uint: return 2;
+                case ScalarType.Uint: return 3;
+                case ScalarType.Min12Int: return 4;
+                case ScalarType.Min16Int: return 5;
+                case ScalarType.Int: return 6;
                 case ScalarType.Min10Float: return 7;
                 case ScalarType.Min16Float: return 8;
                 case ScalarType.Half: return 9;
