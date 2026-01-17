@@ -207,12 +207,12 @@ namespace UnityShaderParser.Test
         public static NumericValue operator !(NumericValue left) => HLSLOperators.BoolNegate(left);
         public static NumericValue operator -(NumericValue left) => HLSLOperators.Negate(left);
 
-        public static implicit operator NumericValue(int v) => new ScalarValue(ScalarType.Int, new HLSLRegister<object>(v));
-        public static implicit operator NumericValue(uint v) => new ScalarValue(ScalarType.Uint, new HLSLRegister<object>(v));
-        public static implicit operator NumericValue(float v) => new ScalarValue(ScalarType.Float, new HLSLRegister<object>(v));
-        public static implicit operator NumericValue(double v) => new ScalarValue(ScalarType.Double, new HLSLRegister<object>(v));
-        public static implicit operator NumericValue(bool v) => new ScalarValue(ScalarType.Bool, new HLSLRegister<object>(v));
-        public static implicit operator NumericValue(char v) => new ScalarValue(ScalarType.Char, new HLSLRegister<object>(v));
+        public static implicit operator NumericValue(int v) => (ScalarValue)v;
+        public static implicit operator NumericValue(uint v) => (ScalarValue)v;
+        public static implicit operator NumericValue(float v) => (ScalarValue)v;
+        public static implicit operator NumericValue(double v) => (ScalarValue)v;
+        public static implicit operator NumericValue(bool v) => (ScalarValue)v;
+        public static implicit operator NumericValue(char v) => (ScalarValue)v;
     }
 
     public sealed class StructValue : HLSLValue
@@ -370,6 +370,13 @@ namespace UnityShaderParser.Test
         public static ScalarValue operator ~(ScalarValue left) => (ScalarValue)(~(NumericValue)left);
         public static ScalarValue operator !(ScalarValue left) => (ScalarValue)(!(NumericValue)left);
         public static ScalarValue operator -(ScalarValue left) => (ScalarValue)(-(NumericValue)left);
+
+        public static implicit operator ScalarValue(int v) => new ScalarValue(ScalarType.Int, new HLSLRegister<object>(v));
+        public static implicit operator ScalarValue(uint v) => new ScalarValue(ScalarType.Uint, new HLSLRegister<object>(v));
+        public static implicit operator ScalarValue(float v) => new ScalarValue(ScalarType.Float, new HLSLRegister<object>(v));
+        public static implicit operator ScalarValue(double v) => new ScalarValue(ScalarType.Double, new HLSLRegister<object>(v));
+        public static implicit operator ScalarValue(bool v) => new ScalarValue(ScalarType.Bool, new HLSLRegister<object>(v));
+        public static implicit operator ScalarValue(char v) => new ScalarValue(ScalarType.Char, new HLSLRegister<object>(v));
     }
 
     public sealed class VectorValue : NumericValue
