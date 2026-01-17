@@ -98,7 +98,12 @@ namespace UnityShaderParser.Test
         public ReferenceValue GetReference(string name)
         {
             if (TryFindVariable(name, out var scope, out var resolvedName, out _))
-                return new ReferenceValue(() => scope[resolvedName], val => scope[resolvedName] = val);
+            {
+                if (scope[resolvedName] is ReferenceValue refVal)
+                    return refVal;
+                else
+                    return new ReferenceValue(() => scope[resolvedName], val => scope[resolvedName] = val);
+            }
             return null;
         }
 
