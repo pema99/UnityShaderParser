@@ -51,12 +51,12 @@ namespace UnityShaderParser.Test
             interpreter = new HLSLInterpreter(defaultThreadsX, defaultThreadsY);
 
             // Add magic callbacks for test running
-            interpreter.AddCallback("FORMAT", args =>
+            interpreter.AddCallback("FORMAT", (state, args) =>
             {
                 throw new NotImplementedException();
             });
 
-            ScalarValue Assert(ExpressionNode[] args)
+            ScalarValue Assert(HLSLExecutionState state, ExpressionNode[] args)
             {
                 if (args.Length > 0)
                 {
@@ -69,7 +69,7 @@ namespace UnityShaderParser.Test
                     {
                         for (int i = 0; i < sv.ThreadCount; i++)
                         {
-                            if (!Convert.ToBoolean(sv.Value.Get(i)))
+                            if (state.IsThreadActive(i) && !Convert.ToBoolean(sv.Value.Get(i)))
                             {
                                 throw new TestFailException(message ?? $"Assertion failed: {args[0].GetPrettyPrintedCode()}");
                             }
@@ -81,7 +81,7 @@ namespace UnityShaderParser.Test
                         {
                             foreach (var b in vv.Values.Get(i))
                             {
-                                if (!Convert.ToBoolean(b))
+                                if (state.IsThreadActive(i) && !Convert.ToBoolean(b))
                                 {
                                     throw new TestFailException(message ?? $"Assertion failed: {args[0].GetPrettyPrintedCode()}");
                                 }
@@ -94,7 +94,7 @@ namespace UnityShaderParser.Test
                         {
                             foreach (var b in mv.Values.Get(i))
                             {
-                                if (!Convert.ToBoolean(b))
+                                if (state.IsThreadActive(i) && !Convert.ToBoolean(b))
                                 {
                                     throw new TestFailException(message ?? $"Assertion failed: {args[0].GetPrettyPrintedCode()}");
                                 }
@@ -109,35 +109,38 @@ namespace UnityShaderParser.Test
                 return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
             }
 
-            interpreter.AddCallback("ASSERT", args =>
+            interpreter.AddCallback("ASSERT", (state, args) =>
             {
-                return Assert(args);
+                return Assert(state, args);
             });
 
-            interpreter.AddCallback("ASSERT_MSG", args =>
+            interpreter.AddCallback("ASSERT_MSG", (state, args) =>
             {
-                return Assert(args);
+                return Assert(state, args);
             });
 
-            interpreter.AddCallback("PASS_TEST", args =>
+            interpreter.AddCallback("PASS_TEST", (state, args) =>
             {
-                if (args.Length > 0)
-                    throw new TestPassException(interpreter.EvaluateExpression(args[0]).ToString());
-                else
-                    throw new TestPassException();
+                if (state.IsAnyThreadActive())
+                {
+                    if (args.Length > 0)
+                        throw new TestPassException(interpreter.EvaluateExpression(args[0]).ToString());
+                    else
+                        throw new TestPassException();
+                }
+                return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
             });
 
-            interpreter.AddCallback("FAIL_TEST", args =>
+            interpreter.AddCallback("FAIL_TEST", (state, args) =>
             {
-                if (args.Length > 0)
-                    throw new TestFailException(interpreter.EvaluateExpression(args[0]).ToString());
-                else
-                    throw new TestFailException();
-            });
-
-            interpreter.AddCallback("NAMEOF", args =>
-            {
-                throw new NotImplementedException();
+                if (state.IsAnyThreadActive())
+                {
+                    if (args.Length > 0)
+                        throw new TestFailException(interpreter.EvaluateExpression(args[0]).ToString());
+                    else
+                        throw new TestFailException();
+                }
+                return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
             });
         }
 

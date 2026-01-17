@@ -15,7 +15,7 @@ namespace UnityShaderParser.Test
         protected HLSLInterpreterContext context;
         protected HLSLExecutionState executionState;
 
-        protected Dictionary<string, Func<ExpressionNode[], HLSLValue>> callbacks = new Dictionary<string, Func<ExpressionNode[], HLSLValue>>();
+        protected Dictionary<string, Func<HLSLExecutionState, ExpressionNode[], HLSLValue>> callbacks = new Dictionary<string, Func<HLSLExecutionState, ExpressionNode[], HLSLValue>>();
 
         public HLSLExpressionEvaluator(HLSLInterpreter interpreter, HLSLInterpreterContext context, HLSLExecutionState executionState)
         {
@@ -25,7 +25,7 @@ namespace UnityShaderParser.Test
         }
 
         // Public API
-        public void AddCallback(string name, Func<ExpressionNode[], HLSLValue> callback) => callbacks.Add(name, callback);
+        public void AddCallback(string name, Func<HLSLExecutionState, ExpressionNode[], HLSLValue> callback) => callbacks.Add(name, callback);
         public void RemoveCallback(string name) => callbacks.Remove(name);
 
         public HLSLValue CallFunction(string name, params HLSLValue[] args)
@@ -580,7 +580,7 @@ namespace UnityShaderParser.Test
 
             string name = node.Name.GetName();
             if (callbacks.ContainsKey(name))
-                return callbacks[name](node.Arguments.ToArray());
+                return callbacks[name](executionState, node.Arguments.ToArray());
             
             // Handle out/inout parameters
             FunctionDefinitionNode func = context.GetFunction(name, args);

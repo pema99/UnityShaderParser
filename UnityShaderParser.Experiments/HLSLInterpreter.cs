@@ -62,7 +62,7 @@ namespace UnityShaderParser.Test
             expressionEvaluator = new HLSLExpressionEvaluator(this, context, executionState);
         }
 
-        public void AddCallback(string name, Func<ExpressionNode[], HLSLValue> callback) => expressionEvaluator.AddCallback(name, callback);
+        public void AddCallback(string name, Func<HLSLExecutionState, ExpressionNode[], HLSLValue> callback) => expressionEvaluator.AddCallback(name, callback);
         public void RemoveCallback(string name) => expressionEvaluator.RemoveCallback(name);
         public HLSLValue CallFunction(string name, params HLSLValue[] args) => expressionEvaluator.CallFunction(name, args);
 

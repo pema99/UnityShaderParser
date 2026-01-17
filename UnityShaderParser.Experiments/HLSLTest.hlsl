@@ -12,7 +12,6 @@
         #define PASS_TEST()
         #define FAIL_TEST()
         #define TEST_NAME
-        #define NAMEOF(x)
     #endif
 
 #endif
