@@ -114,11 +114,8 @@ namespace UnityShaderParser.Test
         private static readonly Dictionary<string, (int arity, BasicIntrinsic fn)> basicIntrinsics = new Dictionary<string, (int arity, BasicIntrinsic fn)>()
         {
             // Need multi-group support:
-            //AllMemoryBarrier
             //AllMemoryBarrierWithGroupSync
-            //DeviceMemoryBarrier
             //DeviceMemoryBarrierWithGroupSync
-            //GroupMemoryBarrier
             //GroupMemoryBarrierWithGroupSync
 
             // Need atomic support:

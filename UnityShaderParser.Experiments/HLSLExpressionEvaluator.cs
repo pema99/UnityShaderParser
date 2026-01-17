@@ -89,6 +89,11 @@ namespace UnityShaderParser.Test
                 case "abort":
                     HLSLIntrinsics.Abort(executionState);
                     return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+                case "AllMemoryBarrier":
+                case "DeviceMemoryBarrier":
+                case "GroupMemoryBarrier":
+                    System.Threading.Thread.MemoryBarrier();
+                    return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
                 default:
                     break;
             }
