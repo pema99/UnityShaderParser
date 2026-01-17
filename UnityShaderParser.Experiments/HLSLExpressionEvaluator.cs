@@ -529,14 +529,17 @@ namespace UnityShaderParser.Test
             // TODO: Matrix swizzle
             var target = Visit(node.Target);
             var targetStruct = target as StructValue;
-            var targetNumeric = target as VectorValue;
+            var targetNumeric = target as NumericValue;
 
             // Vector swizzle
             if (!(targetNumeric is null))
             {
                 if (node.Name.Identifier.Length > 4)
                     throw Error($"Invalid vector swizzle '{node.Name.Identifier}'.");
-                return targetNumeric.Swizzle(node.Name);
+                if (targetNumeric is VectorValue vec)
+                    return vec.Swizzle(node.Name);
+                else
+                    return targetNumeric.BroadcastToVector(1).Swizzle(node.Name);
             }
 
             if (targetStruct is null && targetNumeric is null)
