@@ -217,7 +217,7 @@ public class Program
 
     public static void Main()
     {
-        //RunRaymarcher();
+        //RunShaderToy();
         RunTests();   
     }
 }
