@@ -217,14 +217,14 @@ namespace UnityShaderParser.Test
                 if (args.Length > 1)
                 {
                     Asuint((NumericValue)args[0], (ReferenceValue)args[1], (ReferenceValue)args[2]);
-                    return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+                    return ScalarValue.Null;
                 }
                 return Asuint((NumericValue)args[0]);
             }),
             ["sincos"] = (3, args =>
             {
                 Sincos((NumericValue)args[0], (ReferenceValue)args[1], (ReferenceValue)args[2]);
-                return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+                return ScalarValue.Null;
             }),
         };
 

@@ -227,7 +227,7 @@ namespace UnityShaderParser.Test
         public void PushReturn()
         {
             // We don't know the type yet, so just put a dummy object
-            returnStack.Push(new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null)));
+            returnStack.Push(ScalarValue.Null);
         }
 
         public void SetReturn(int threadIndex, HLSLValue value)

@@ -66,7 +66,7 @@ namespace UnityShaderParser.Test
                 case "printf":
                 case "errorf":
                     HLSLIntrinsics.Printf(executionState, args);
-                    return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+                    return ScalarValue.Null;
 
                 case "QuadReadAcrossDiagonal":
                     return HLSLIntrinsics.QuadReadAcrossDiagonal(executionState, (NumericValue)args[0]);
@@ -130,16 +130,16 @@ namespace UnityShaderParser.Test
 
                 case "clip":
                     HLSLIntrinsics.Clip(executionState, (NumericValue)args[0]);
-                    return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+                    return ScalarValue.Null;
                 case "abort":
                     HLSLIntrinsics.Abort(executionState);
-                    return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+                    return ScalarValue.Null;
 
                 case "AllMemoryBarrier":
                 case "DeviceMemoryBarrier":
                 case "GroupMemoryBarrier":
                     System.Threading.Thread.MemoryBarrier();
-                    return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+                    return ScalarValue.Null;
 
                 default:
                     break;
@@ -282,7 +282,7 @@ namespace UnityShaderParser.Test
                     else
                         throw Error(node, $"Invalid boolean literal '{node.Lexeme}'.");
                 case LiteralKind.Null:
-                    return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+                    return ScalarValue.Null;
                 default:
                     throw Error(node, $"Unknown literal '{node.Lexeme}'.");
             }
@@ -341,6 +341,7 @@ namespace UnityShaderParser.Test
 
             // TODO: Inout/Out array
             // TODO: Inout/Out struct
+            // TODO: Matrix column assignment
             HLSLValue SetValue(HLSLValue value)
             {
                 if (node.Left is NamedExpressionNode named)
@@ -354,21 +355,11 @@ namespace UnityShaderParser.Test
 
                     if (variable is VectorValue vec)
                     {
-                        var swizzledExtended = vec.Swizzle(fieldAccess.Name.Identifier).BroadcastToVector(vec.Size).ToScalars();
-                        for (int i = fieldAccess.Name.Identifier.Length; i < vec.Size; i++)
-                        {
-                            swizzledExtended[i] = vec[i];
-                        }
-                        return SetValueSimpleNamed(name, VectorValue.FromScalars(swizzledExtended));
+                        return SetValueSimpleNamed(name, vec.SwizzleAssign(fieldAccess.Name, (NumericValue)value));
                     }
                     else if (variable is ReferenceValue refVec && refVec.Get() is VectorValue vecInner)
                     {
-                        var swizzledExtended = vecInner.Swizzle(fieldAccess.Name.Identifier).BroadcastToVector(vecInner.Size).ToScalars();
-                        for (int i = fieldAccess.Name.Identifier.Length; i < vecInner.Size; i++)
-                        {
-                            swizzledExtended[i] = vecInner[i];
-                        }
-                        return SetValueSimpleNamed(name, VectorValue.FromScalars(swizzledExtended));
+                        return SetValueSimpleNamed(name, vecInner.SwizzleAssign(fieldAccess.Name, (NumericValue)value));
                     }
                     else
                     {

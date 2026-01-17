@@ -377,6 +377,8 @@ namespace UnityShaderParser.Test
         public static implicit operator ScalarValue(double v) => new ScalarValue(ScalarType.Double, new HLSLRegister<object>(v));
         public static implicit operator ScalarValue(bool v) => new ScalarValue(ScalarType.Bool, new HLSLRegister<object>(v));
         public static implicit operator ScalarValue(char v) => new ScalarValue(ScalarType.Char, new HLSLRegister<object>(v));
+
+        public static ScalarValue Null => new ScalarValue(ScalarType.Void, new HLSLRegister<object>(0));
     }
 
     public sealed class VectorValue : NumericValue
@@ -458,6 +460,60 @@ namespace UnityShaderParser.Test
                     return new ScalarValue(Type, HLSLValueUtils.MakeScalarVGPR(perThreadSwizzle.Select(x => x[0])));
                 else
                     return new VectorValue(Type, HLSLValueUtils.MakeVectorVGPR(perThreadSwizzle));
+            }
+        }
+
+        public VectorValue SwizzleAssign(string swizzle, NumericValue value)
+        {
+            object GetComponent(object arrayOrSingle, int index)
+            {
+                if (arrayOrSingle is object[] array)
+                    return array[index];
+                return arrayOrSingle;
+            }
+
+            int maxThreadCount = Math.Max(ThreadCount, value.ThreadCount);
+            object[][] perThreadSwizzle = new object[maxThreadCount][];
+            for (int threadIndex = 0; threadIndex < perThreadSwizzle.Length; threadIndex++)
+            {
+                // Write current values
+                perThreadSwizzle[threadIndex] = new object[Size];
+                for (int component = 0; component < Size; component++)
+                {
+                    perThreadSwizzle[threadIndex][component] = Values.Get(threadIndex)[component];
+                }
+
+                // Splat swizzle assign
+                for (int component = 0; component < swizzle.Length; component++)
+                {
+                    switch (swizzle[component])
+                    {
+                        case 'r':
+                        case 'x':
+                            perThreadSwizzle[threadIndex][0] = GetComponent(value.GetThreadValue(threadIndex), component);
+                            break;
+                        case 'g':
+                        case 'y':
+                            perThreadSwizzle[threadIndex][1] = GetComponent(value.GetThreadValue(threadIndex), component);
+                            break;
+                        case 'b':
+                        case 'z':
+                            perThreadSwizzle[threadIndex][2] = GetComponent(value.GetThreadValue(threadIndex), component);
+                            break;
+                        case 'a':
+                        case 'w':
+                            perThreadSwizzle[threadIndex][3] = GetComponent(value.GetThreadValue(threadIndex), component);
+                            break;
+                    }
+                }
+            }
+            if (maxThreadCount == 1)
+            {
+                return new VectorValue(Type, HLSLValueUtils.MakeVectorSGPR(perThreadSwizzle[0]));
+            }
+            else
+            {
+                return new VectorValue(Type, HLSLValueUtils.MakeVectorVGPR(perThreadSwizzle));
             }
         }
 

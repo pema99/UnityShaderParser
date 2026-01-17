@@ -106,7 +106,7 @@ namespace UnityShaderParser.Test
                         throw new TestFailException("Argument to ASSERT should be a boolean value.");
                     }
                 }
-                return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+                return ScalarValue.Null;
             }
 
             interpreter.AddCallback("ASSERT", (state, args) =>
@@ -128,7 +128,7 @@ namespace UnityShaderParser.Test
                     else
                         throw new TestPassException();
                 }
-                return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+                return ScalarValue.Null;
             });
 
             interpreter.AddCallback("FAIL_TEST", (state, args) =>
@@ -140,7 +140,7 @@ namespace UnityShaderParser.Test
                     else
                         throw new TestFailException();
                 }
-                return new ScalarValue(ScalarType.Void, new HLSLRegister<object>(null));
+                return ScalarValue.Null;
             });
         }
 
