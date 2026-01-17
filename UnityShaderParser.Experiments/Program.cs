@@ -107,8 +107,11 @@ public class Program
         int progress = 0;
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
+#if DEBUG
+        for (int y = 0; y < resolutionY / warpSize; y++)
+#else
         Parallel.For(0, resolutionY / warpSize, y =>
-        //for (int y = 0; y < resolutionY / warpSize; y++)
+#endif
         {
             HLSLRunner runner = new HLSLRunner();
             runner.ProcessCode(toks);
@@ -150,7 +153,9 @@ public class Program
             }
             Console.WriteLine($"{Interlocked.Add(ref progress, 1) / (float)(resolutionY / warpSize) * 100f}%");
         }
+#if !DEBUG
         );
+#endif
         sw.Stop();
         Console.WriteLine("Took " + sw.ElapsedMilliseconds / 1000.0f + " seconds.");
         BitmapWriter.WriteBmp("output.bmp", colors);
