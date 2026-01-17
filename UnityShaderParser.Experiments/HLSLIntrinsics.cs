@@ -895,40 +895,15 @@ namespace UnityShaderParser.Test
             VectorValue vx = CastToVector(x);
             VectorValue vy = CastToVector(y);
 
-            bool isFloat = HLSLValueUtils.IsFloat(vx.Type);
+            var scalarsX = vx.ToScalars();
+            var scalarsY = vy.ToScalars();
 
-            int threadCount = Math.Max(vx.ThreadCount, vy.ThreadCount);
-            if (threadCount == 1) // TODO: This can be refactored probably
+            var accum = scalarsX[0] - scalarsX[0];
+            for (int i = 0; i < scalarsX.Length; i++)
             {
-                float valueFloat = 0;
-                int valueInt = 0;
-                for (int channel = 0; channel < vx.Size; channel++)
-                {
-                    if (isFloat)
-                        valueFloat += Convert.ToSingle(vx.Values.Get(0)[channel]) * Convert.ToSingle(vy.Values.Get(0)[channel]);
-                    else
-                        valueInt += Convert.ToInt32(vx.Values.Get(0)[channel]) * Convert.ToInt32(vy.Values.Get(0)[channel]);
-                }
-                return new ScalarValue(vx.Type, new HLSLRegister<object>(isFloat ? valueFloat : valueInt));
+                accum += scalarsX[i] * scalarsY[i];
             }
-            else
-            {
-                object[] results = new object[threadCount];
-                for (int threadIndex = 0; threadIndex < threadCount; threadIndex++)
-                {
-                    float valueFloat = 0;
-                    int valueInt = 0;
-                    for (int channel = 0; channel < vx.Size; channel++)
-                    {
-                        if (isFloat)
-                            valueFloat += Convert.ToSingle(vx.Values.Get(threadIndex)[channel]) * Convert.ToSingle(vy.Values.Get(threadIndex)[channel]);
-                        else
-                            valueInt += Convert.ToInt32(vx.Values.Get(threadIndex)[channel]) * Convert.ToInt32(vy.Values.Get(threadIndex)[channel]);
-                    }
-                    results[threadIndex] = isFloat ? valueFloat : valueInt;
-                }
-                return new ScalarValue(vx.Type, new HLSLRegister<object>(results));
-            }
+            return accum;
         }
 
         public static NumericValue Dst(NumericValue src0, NumericValue src1)
