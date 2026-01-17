@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using UnityShaderParser.Common;
 using UnityShaderParser.HLSL;
 
@@ -306,51 +307,77 @@ namespace UnityShaderParser.Test
                 return newValue;
             }
 
+            HLSLValue SetValueSimpleNamed(string name, HLSLValue value)
+            {
+                if (executionState.IsVaryingExecution())
+                {
+                    HLSLValue curr;
+                    if (context.TryGetVariable(name, out var variable) &&
+                        variable is ReferenceValue reference)
+                    {
+                        curr = reference.Get();
+                    }
+                    else
+                    {
+                        curr = context.GetVariable(name);
+                    }
+                    value = SplatActiveThreadValues(curr, value);
+                }
+
+                {
+                    if (context.TryGetVariable(name, out var variable) &&
+                        variable is ReferenceValue reference)
+                    {
+                        reference.Set(value);
+                    }
+                    else
+                    {
+                        context.SetVariable(name, value);
+                    }
+                }
+
+                return value;
+            }
+
             // TODO: Inout/Out array
             // TODO: Inout/Out struct
-            // TODO: Handle assignment in varying control flow
             HLSLValue SetValue(HLSLValue value)
             {
                 if (node.Left is NamedExpressionNode named)
                 {
-                    string name = named.GetName();
-                    if (executionState.IsVaryingExecution())
-                    {
-                        HLSLValue curr;
-                        if (context.TryGetVariable(name, out var variable) &&
-                            variable is ReferenceValue reference)
-                        {
-                            curr = reference.Get();
-                        }
-                        else
-                        {
-                            curr = context.GetVariable(name);
-                        }
-                        value = SplatActiveThreadValues(curr, value);
-                    }
-
-                    {
-                        if (context.TryGetVariable(name, out var variable) &&
-                            variable is ReferenceValue reference)
-                        {
-                            reference.Set(value);
-                        }
-                        else
-                        {
-                            context.SetVariable(name, value);
-                        }
-                    }
-                    return value;
+                    return SetValueSimpleNamed(named.GetName(), value);
                 }
                 else if (node.Left is FieldAccessExpressionNode fieldAccess && fieldAccess.Target is NamedExpressionNode namedTarget)
                 {
-                    // TODO: Swizzle assign
                     string name = namedTarget.GetName();
-                    var structVal = (StructValue)context.GetVariable(name);
-                    if (executionState.IsVaryingExecution())
-                        value = SplatActiveThreadValues(structVal.Members[fieldAccess.Name.Identifier], value);
-                    structVal.Members[fieldAccess.Name.Identifier] = value;
-                    return value;
+                    var variable = context.GetVariable(name);
+
+                    if (variable is VectorValue vec)
+                    {
+                        var swizzledExtended = vec.Swizzle(fieldAccess.Name.Identifier).BroadcastToVector(vec.Size).ToScalars();
+                        for (int i = fieldAccess.Name.Identifier.Length; i < vec.Size; i++)
+                        {
+                            swizzledExtended[i] = vec[i];
+                        }
+                        return SetValueSimpleNamed(name, VectorValue.FromScalars(swizzledExtended));
+                    }
+                    else if (variable is ReferenceValue refVec && refVec.Get() is VectorValue vecInner)
+                    {
+                        var swizzledExtended = vecInner.Swizzle(fieldAccess.Name.Identifier).BroadcastToVector(vecInner.Size).ToScalars();
+                        for (int i = fieldAccess.Name.Identifier.Length; i < vecInner.Size; i++)
+                        {
+                            swizzledExtended[i] = vecInner[i];
+                        }
+                        return SetValueSimpleNamed(name, VectorValue.FromScalars(swizzledExtended));
+                    }
+                    else
+                    {
+                        var structVal = (StructValue)variable;
+                        if (executionState.IsVaryingExecution())
+                            value = SplatActiveThreadValues(structVal.Members[fieldAccess.Name.Identifier], value);
+                        structVal.Members[fieldAccess.Name.Identifier] = value;
+                        return value;
+                    }
                 }
                 else if (node.Left is ElementAccessExpressionNode elem && elem.Target is NamedExpressionNode arr)
                 {
@@ -516,51 +543,9 @@ namespace UnityShaderParser.Test
             // Vector swizzle
             if (!(targetNumeric is null))
             {
-                string swizzle = node.Name;
-                if (swizzle.Length > 4)
-                    throw Error($"Invalid vector swizzle '{node.Name}'.");
-                object[][] perThreadSwizzle = new object[targetNumeric.ThreadCount][];
-                for (int threadIndex = 0; threadIndex < perThreadSwizzle.Length; threadIndex++)
-                {
-                    perThreadSwizzle[threadIndex] = new object[swizzle.Length];
-                    for (int component = 0; component < swizzle.Length; component++)
-                    {
-                        switch (swizzle[component])
-                        {
-                            case 'r':
-                            case 'x':
-                                perThreadSwizzle[threadIndex][component] = targetNumeric.Values.Get(threadIndex)[0];
-                                break;
-                            case 'g':
-                            case 'y':
-                                perThreadSwizzle[threadIndex][component] = targetNumeric.Values.Get(threadIndex)[1];
-                                break;
-                            case 'b':
-                            case 'z':
-                                perThreadSwizzle[threadIndex][component] = targetNumeric.Values.Get(threadIndex)[2];
-                                break;
-                            case 'a':
-                            case 'w':
-                                perThreadSwizzle[threadIndex][component] = targetNumeric.Values.Get(threadIndex)[3];
-                                break;
-                        }
-                    }
-                }
-                if (targetNumeric.ThreadCount == 1)
-                {
-                    if (swizzle.Length == 1)
-                        return new ScalarValue(targetNumeric.Type, HLSLValueUtils.MakeScalarSGPR(perThreadSwizzle[0][0]));
-                    else
-                        return new VectorValue(targetNumeric.Type, HLSLValueUtils.MakeVectorSGPR(perThreadSwizzle[0]));
-                }
-                else
-                {
-                    if (swizzle.Length == 1)
-                        return new ScalarValue(targetNumeric.Type, HLSLValueUtils.MakeScalarVGPR(perThreadSwizzle.Select(x => x[0])));
-                    else
-                        return new VectorValue(targetNumeric.Type, HLSLValueUtils.MakeVectorVGPR(perThreadSwizzle));
-                }
-                return targetNumeric;
+                if (node.Name.Identifier.Length > 4)
+                    throw Error($"Invalid vector swizzle '{node.Name.Identifier}'.");
+                return targetNumeric.Swizzle(node.Name);
             }
 
             if (targetStruct is null && targetNumeric is null)
@@ -642,6 +627,10 @@ namespace UnityShaderParser.Test
                         flattened.Add(scalar.Value.Get(threadIdx));
                     if (numeric is VectorValue vector)
                         flattened.AddRange(vector.Values.Get(threadIdx));
+                }
+                for (int i = 0; i < flattened.Count; i++)
+                {
+                    flattened[i] = HLSLValueUtils.CastNumeric(node.Kind.Kind, flattened[i]);
                 }
                 lanes[threadIdx] = flattened.ToArray();
             }

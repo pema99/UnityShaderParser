@@ -416,6 +416,51 @@ namespace UnityShaderParser.Test
         public ScalarValue z => this[2];
         public ScalarValue w => this[3];
 
+        public NumericValue Swizzle(string swizzle)
+        {
+            object[][] perThreadSwizzle = new object[ThreadCount][];
+            for (int threadIndex = 0; threadIndex < perThreadSwizzle.Length; threadIndex++)
+            {
+                perThreadSwizzle[threadIndex] = new object[swizzle.Length];
+                for (int component = 0; component < swizzle.Length; component++)
+                {
+                    switch (swizzle[component])
+                    {
+                        case 'r':
+                        case 'x':
+                            perThreadSwizzle[threadIndex][component] = Values.Get(threadIndex)[0];
+                            break;
+                        case 'g':
+                        case 'y':
+                            perThreadSwizzle[threadIndex][component] = Values.Get(threadIndex)[1];
+                            break;
+                        case 'b':
+                        case 'z':
+                            perThreadSwizzle[threadIndex][component] = Values.Get(threadIndex)[2];
+                            break;
+                        case 'a':
+                        case 'w':
+                            perThreadSwizzle[threadIndex][component] = Values.Get(threadIndex)[3];
+                            break;
+                    }
+                }
+            }
+            if (ThreadCount == 1)
+            {
+                if (swizzle.Length == 1)
+                    return new ScalarValue(Type, HLSLValueUtils.MakeScalarSGPR(perThreadSwizzle[0][0]));
+                else
+                    return new VectorValue(Type, HLSLValueUtils.MakeVectorSGPR(perThreadSwizzle[0]));
+            }
+            else
+            {
+                if (swizzle.Length == 1)
+                    return new ScalarValue(Type, HLSLValueUtils.MakeScalarVGPR(perThreadSwizzle.Select(x => x[0])));
+                else
+                    return new VectorValue(Type, HLSLValueUtils.MakeVectorVGPR(perThreadSwizzle));
+            }
+        }
+
         public static VectorValue FromScalars(params ScalarValue[] scalars)
         {
             return new VectorValue(scalars[0].Type, HLSLValueUtils.RegisterFromScalars(scalars));
