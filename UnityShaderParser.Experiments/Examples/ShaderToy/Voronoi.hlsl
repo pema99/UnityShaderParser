@@ -1,3 +1,5 @@
+// Shader: https://www.shadertoy.com/view/ldl3W8
+// Converted using https://pema.dev/glsl2hlsl
 
 struct appdata
 {
