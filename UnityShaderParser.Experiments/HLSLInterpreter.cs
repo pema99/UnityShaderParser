@@ -222,7 +222,7 @@ namespace UnityShaderParser.Test
                         initializerValue = expressionEvaluator.Visit(initializer.Expression);
                     }
 
-                    context.SetVariable(decl.Name, initializerValue);
+                    context.AddVariable(decl.Name, initializerValue);
                 }
                 else
                 {
@@ -263,7 +263,7 @@ namespace UnityShaderParser.Test
                     }
                     if (!isArray)
                     {
-                        context.SetVariable(decl.Name, defaultValue);
+                        context.AddVariable(decl.Name, defaultValue);
                     }
                     else
                     {
@@ -272,7 +272,7 @@ namespace UnityShaderParser.Test
                         {
                             vals[i] = defaultValue.Copy();
                         }
-                        context.SetVariable(decl.Name, new ArrayValue(vals));
+                        context.AddVariable(decl.Name, new ArrayValue(vals));
                     }
                 }
             }
@@ -470,6 +470,17 @@ namespace UnityShaderParser.Test
         {
             // TODO: Inline struct types
             context.AddStruct(node.StructType.Name.GetName(), node.StructType);
+
+            foreach (var method in node.StructType.Methods)
+            {
+                if (method is FunctionDefinitionNode func)
+                {
+                    if (method.Modifiers.Contains(BindingModifier.Static))
+                    {
+                        context.AddFunction($"{node.StructType.Name.GetName()}::{func.Name.GetName()}", func);
+                    }
+                }
+            }
         }
 
         public override void VisitNamespaceNode(NamespaceNode node)

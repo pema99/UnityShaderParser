@@ -45,7 +45,7 @@ namespace UnityShaderParser.Test
                 {
                     var param = func.Parameters[i];
                     var declarator = param.Declarator;
-                    context.SetVariable(declarator.Name, args[i]);
+                    context.AddVariable(declarator.Name, args[i]);
                 }
                 interpreter.Visit(func.Body);
 
@@ -547,7 +547,75 @@ namespace UnityShaderParser.Test
             return targetStruct.Members[node.Name];
         }
         
-        public override HLSLValue VisitMethodCallExpressionNode(MethodCallExpressionNode node) => throw new NotImplementedException();
+        public override HLSLValue VisitMethodCallExpressionNode(MethodCallExpressionNode node)
+        {
+            // TODO: Methods on builtin types like Texture2D
+            var target = Visit(node.Target);
+            if (target is StructValue str)
+            {
+                HLSLValue[] args = new HLSLValue[node.Arguments.Count];
+                for (int i = 0; i < args.Length; i++)
+                {
+                    args[i] = Visit(node.Arguments[i]);
+                }
+
+                var methods = context.GetStruct(str.Name).Methods;
+                foreach (var method in methods)
+                {
+                    if (method.Name.GetName() == node.Name.Identifier)
+                    {
+                        // Handle out/inout parameters
+                        for (int i = 0; i < args.Length; i++)
+                        {
+                            if (method.Parameters[i].Modifiers.Contains(BindingModifier.Inout) ||
+                                method.Parameters[i].Modifiers.Contains(BindingModifier.Out))
+                            {
+                                // TODO: Other kinds of Lvalues
+                                if (node.Arguments[i] is NamedExpressionNode named)
+                                {
+                                    args[i] = context.GetReference(named.GetName());
+                                }
+                            }
+                        }
+
+                        if (args.Length != method.Parameters.Count)
+                            throw Error($"Argument count mismatch in call to '{method}'.");
+
+                        context.PushScope(isFunction: true);
+                        context.PushReturn();
+                        executionState.PushExecutionMask(ExecutionScope.Function);
+
+                        // Push local state as references
+                        if (!method.Modifiers.Contains(BindingModifier.Static))
+                        {
+                            foreach (string field in str.Members.Keys)
+                            {
+                                context.AddVariable(field, new ReferenceValue(
+                                    () => str.Members[field],
+                                    val => str.Members[field] = val));
+                            }
+                        }
+
+                        for (int i = 0; i < method.Parameters.Count; i++)
+                        {
+                            var param = method.Parameters[i];
+                            var declarator = param.Declarator;
+                            context.AddVariable(declarator.Name, args[i]);
+                        }
+                        interpreter.Visit(((FunctionDefinitionNode)method).Body);
+
+                        executionState.PopExecutionMask();
+                        context.PopScope();
+
+                        return context.PopReturn();
+                    }
+                }
+
+                throw Error(node, $"Couldn't find method '{node.Name.Identifier}' on type '{str.Name}'.");
+            }
+
+            throw Error(node, $"Can't call method '{node.Name.Identifier}' on non-struct type.");
+        }
         
         public override HLSLValue VisitFunctionCallExpressionNode(FunctionCallExpressionNode node)
         {
