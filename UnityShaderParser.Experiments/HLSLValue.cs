@@ -1226,8 +1226,6 @@ namespace UnityShaderParser.Test
                     foreach (var kvp in members)
                         members.Add(kvp.Key, Scalarize(kvp.Value, threadIndex));
                     return new StructValue(str.Name, members);
-                case PredefinedObjectValue pre:
-                    return new PredefinedObjectValue(pre.Type, pre.TemplateArguments);
                 case ArrayValue arr:
                     HLSLValue[] vals = new HLSLValue[arr.Values.Length];
                     for (int i = 0; i < vals.Length; i++)
@@ -1249,8 +1247,6 @@ namespace UnityShaderParser.Test
                     foreach (var kvp in members)
                         members.Add(kvp.Key, Vectorize(kvp.Value, threadCount));
                     return new StructValue(str.Name, members);
-                case PredefinedObjectValue pre:
-                    return new PredefinedObjectValue(pre.Type, pre.TemplateArguments);
                 case ArrayValue arr:
                     HLSLValue[] vals = new HLSLValue[arr.Values.Length];
                     for (int i = 0; i < vals.Length; i++)
@@ -1278,11 +1274,6 @@ namespace UnityShaderParser.Test
                         members.Add(kvp.Key, SetThreadValue(kvp.Value, threadIndex, rightV));
                 }
                 return new StructValue(strLeft.Name, members);
-            }
-
-            if (allValue is PredefinedObjectValue preLeft && threadValue is PredefinedObjectValue preRight)
-            {
-                return new PredefinedObjectValue(preLeft.Type, preLeft.TemplateArguments);
             }
 
             if (allValue is ArrayValue arrLeft && threadValue is ArrayValue arrRight)
