@@ -141,6 +141,11 @@ namespace UnityShaderParser.Test
                     System.Threading.Thread.MemoryBarrier();
                     return ScalarValue.Null;
 
+                case "GetRenderTargetSampleCount":
+                    return (ScalarValue)1u;
+                case "GetRenderTargetSamplePosition":
+                    return VectorValue.FromScalars(0.5, 0.5f);
+
                 default:
                     break;
             }
