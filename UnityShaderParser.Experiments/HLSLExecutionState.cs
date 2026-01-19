@@ -46,18 +46,6 @@ namespace UnityShaderParser.Test
             executionMask.Pop();
         }
 
-        public void FlipExecutionMask()
-        {
-            for (int threadIndex = 0; threadIndex < GetThreadCount(); threadIndex++)
-            {
-                var threadState = executionMask.Peek().mask[threadIndex];
-                if (threadState == ThreadState.Active)
-                    DisableThread(threadIndex);
-                else if (threadState == ThreadState.Inactive)
-                    EnableThread(threadIndex);
-            }
-        }
-
         public bool IsThreadActive(int threadIndex)
         {
             return executionMask.Peek().mask[threadIndex] == ThreadState.Active;

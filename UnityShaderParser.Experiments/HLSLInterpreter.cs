@@ -283,20 +283,30 @@ namespace UnityShaderParser.Test
         {
             ScalarValue boolCondValue = EvaluateScalar(node.Condition);
 
+            bool[] perThreadCond = new bool[executionState.GetThreadCount()];
+
             context.PushScope();
             executionState.PushExecutionMask(ExecutionScope.Conditional);
             for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
             {
-                if (!Convert.ToBoolean(boolCondValue.Value.Get(threadIndex)))
+                perThreadCond[threadIndex] = Convert.ToBoolean(boolCondValue.Value.Get(threadIndex));
+                if (perThreadCond[threadIndex] == false)
                     executionState.DisableThread(threadIndex);
             }
 
             if (executionState.IsAnyThreadActive())
                 Visit(node.Body);
 
+            executionState.PopExecutionMask();
             context.PopScope();
-            executionState.FlipExecutionMask();
+
             context.PushScope();
+            executionState.PushExecutionMask(ExecutionScope.Conditional);
+            for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+            {
+                if (perThreadCond[threadIndex] == true)
+                    executionState.DisableThread(threadIndex);
+            }
 
             if (node.ElseClause != null)
             {
