@@ -1542,3 +1542,991 @@ void AssignToFloatArray_InVaryingControlFlow_OnlyAssignsActiveLane()
     ASSERT(WaveReadLaneAt(arr[1], 2) == 2);
     ASSERT(WaveReadLaneAt(arr[1], 3) == 2);
 }
+
+// Basic switch statement
+[Test]
+void Switch_BasicCase()
+{
+    int value = 2;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 1:
+            result = 10;
+            break;
+        case 2:
+            result = 20;
+            break;
+        case 3:
+            result = 30;
+            break;
+    }
+    
+    ASSERT(result == 20);
+}
+
+// Switch with default case
+[Test]
+void Switch_DefaultCase()
+{
+    int value = 5;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 1:
+            result = 10;
+            break;
+        case 2:
+            result = 20;
+            break;
+        default:
+            result = 99;
+            break;
+    }
+    
+    ASSERT(result == 99);
+}
+
+// Switch with empty case fall-through
+[Test]
+void Switch_EmptyCaseFallthrough()
+{
+    int value = 2;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 1:
+        case 2:
+        case 3:
+            result = 10;
+            break;
+        case 4:
+        case 5:
+            result = 20;
+            break;
+    }
+    
+    ASSERT(result == 10);
+}
+
+// Multiple empty cases falling through
+[Test]
+void Switch_MultipleEmptyCases()
+{
+    int value = 4;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 1:
+        case 2:
+        case 3:
+            result = 100;
+            break;
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+            result = 200;
+            break;
+        default:
+            result = 300;
+            break;
+    }
+    
+    ASSERT(result == 200);
+}
+
+// Switch with first case matching
+[Test]
+void Switch_FirstCase()
+{
+    int value = 0;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 0:
+            result = 100;
+            break;
+        case 1:
+            result = 200;
+            break;
+        case 2:
+            result = 300;
+            break;
+    }
+    
+    ASSERT(result == 100);
+}
+
+// Switch with last case matching
+[Test]
+void Switch_LastCase()
+{
+    int value = 3;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 0:
+            result = 100;
+            break;
+        case 1:
+            result = 200;
+            break;
+        case 3:
+            result = 300;
+            break;
+    }
+    
+    ASSERT(result == 300);
+}
+
+// Switch with no matching case and no default
+[Test]
+void Switch_NoMatchNoDefault()
+{
+    int value = 10;
+    int result = 5;
+    
+    switch (value)
+    {
+        case 1:
+            result = 10;
+            break;
+        case 2:
+            result = 20;
+            break;
+    }
+    
+    ASSERT(result == 5); // Unchanged
+}
+
+// Switch with negative case values
+[Test]
+void Switch_NegativeCases()
+{
+    int value = -2;
+    int result = 0;
+    
+    switch (value)
+    {
+        case -3:
+            result = 1;
+            break;
+        case -2:
+            result = 2;
+            break;
+        case -1:
+            result = 3;
+            break;
+        case 0:
+            result = 4;
+            break;
+    }
+    
+    ASSERT(result == 2);
+}
+
+// Switch with large case values
+[Test]
+void Switch_LargeCaseValues()
+{
+    int value = 1000;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 100:
+            result = 1;
+            break;
+        case 500:
+            result = 2;
+            break;
+        case 1000:
+            result = 3;
+            break;
+        case 5000:
+            result = 4;
+            break;
+    }
+    
+    ASSERT(result == 3);
+}
+
+// Switch with default at beginning
+[Test]
+void Switch_DefaultAtBeginning()
+{
+    int value = 99;
+    int result = 0;
+    
+    switch (value)
+    {
+        default:
+            result = 100;
+            break;
+        case 1:
+            result = 10;
+            break;
+        case 2:
+            result = 20;
+            break;
+    }
+    
+    ASSERT(result == 100);
+}
+
+// Switch with default in middle
+[Test]
+void Switch_DefaultInMiddle()
+{
+    int value = 99;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 1:
+            result = 10;
+            break;
+        default:
+            result = 100;
+            break;
+        case 2:
+            result = 20;
+            break;
+    }
+    
+    ASSERT(result == 100);
+}
+
+// Switch inside loop
+[Test]
+void Switch_InsideLoop()
+{
+    int sum = 0;
+    
+    for (int i = 0; i < 5; i++)
+    {
+        switch (i)
+        {
+            case 0:
+                sum += 1;
+                break;
+            case 1:
+                sum += 2;
+                break;
+            case 2:
+                sum += 3;
+                break;
+            case 3:
+                sum += 4;
+                break;
+            case 4:
+                sum += 5;
+                break;
+        }
+    }
+    
+    ASSERT(sum == 15); // 1 + 2 + 3 + 4 + 5
+}
+
+// Loop inside switch
+[Test]
+void Switch_LoopInside()
+{
+    int value = 2;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 1:
+            for (int i = 0; i < 3; i++)
+                result += 1;
+            break;
+        case 2:
+            for (int i = 0; i < 5; i++)
+                result += 2;
+            break;
+        case 3:
+            for (int i = 0; i < 2; i++)
+                result += 3;
+            break;
+    }
+    
+    ASSERT(result == 10); // 5 * 2
+}
+
+// Nested switch statements
+[Test]
+void Switch_Nested()
+{
+    int outer = 2;
+    int inner = 3;
+    int result = 0;
+    
+    switch (outer)
+    {
+        case 1:
+            result = 10;
+            break;
+        case 2:
+            switch (inner)
+            {
+                case 1:
+                    result = 21;
+                    break;
+                case 2:
+                    result = 22;
+                    break;
+                case 3:
+                    result = 23;
+                    break;
+            }
+            break;
+        case 3:
+            result = 30;
+            break;
+    }
+    
+    ASSERT(result == 23);
+}
+
+// Switch with if-else inside
+[Test]
+void Switch_IfElseInside()
+{
+    int value = 2;
+    int condition = 1;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 1:
+            result = 10;
+            break;
+        case 2:
+            if (condition > 0)
+                result = 20;
+            else
+                result = 25;
+            break;
+        case 3:
+            result = 30;
+            break;
+    }
+    
+    ASSERT(result == 20);
+}
+
+// If-else with switch inside
+[Test]
+void Switch_InsideIfElse()
+{
+    int condition = 1;
+    int value = 2;
+    int result = 0;
+    
+    if (condition > 0)
+    {
+        switch (value)
+        {
+            case 1:
+                result = 10;
+                break;
+            case 2:
+                result = 20;
+                break;
+        }
+    }
+    else
+    {
+        result = 99;
+    }
+    
+    ASSERT(result == 20);
+}
+
+// Switch with multiple statements per case
+[Test]
+void Switch_MultipleStatementsPerCase()
+{
+    int value = 2;
+    int result = 0;
+    int multiplier = 1;
+    
+    switch (value)
+    {
+        case 1:
+            result = 10;
+            multiplier = 2;
+            result *= multiplier;
+            break;
+        case 2:
+            result = 5;
+            multiplier = 3;
+            result *= multiplier;
+            break;
+        case 3:
+            result = 2;
+            multiplier = 5;
+            result *= multiplier;
+            break;
+    }
+    
+    ASSERT(result == 15); // 5 * 3
+}
+
+// Switch with break in nested loop
+[Test]
+void Switch_BreakInNestedLoop()
+{
+    int value = 2;
+    int count = 0;
+    
+    switch (value)
+    {
+        case 1:
+            count = 10;
+            break;
+        case 2:
+            for (int i = 0; i < 10; i++)
+            {
+                if (i == 5)
+                    break;
+                count++;
+            }
+            break;
+        case 3:
+            count = 30;
+            break;
+    }
+    
+    ASSERT(count == 5);
+}
+
+// Switch inside loop with break (break exits switch, not loop)
+[Test]
+void Switch_InsideLoopWithBreak()
+{
+    int sum = 0;
+    
+    for (int i = 0; i < 5; i++)
+    {
+        switch (i)
+        {
+            case 0:
+                sum += 1;
+                break;
+            case 1:
+                sum += 2;
+                break;
+            case 2:
+                break; // Does nothing, continues loop
+            case 3:
+                sum += 4;
+                break;
+            default:
+                sum += 5;
+                break;
+        }
+    }
+    
+    ASSERT(sum == 12); // 1 + 2 + 0 + 4 + 5
+}
+
+// Switch with only default case
+[Test]
+void Switch_OnlyDefault()
+{
+    int value = 5;
+    int result = 0;
+    
+    switch (value)
+    {
+        default:
+            result = 100;
+            break;
+    }
+    
+    ASSERT(result == 100);
+}
+
+// Switch with single case
+[Test]
+void Switch_SingleCase()
+{
+    int value = 1;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 1:
+            result = 50;
+            break;
+    }
+    
+    ASSERT(result == 50);
+}
+
+// Switch with many cases
+[Test]
+void Switch_ManyCases()
+{
+    int value = 7;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 0: result = 0; break;
+        case 1: result = 1; break;
+        case 2: result = 2; break;
+        case 3: result = 3; break;
+        case 4: result = 4; break;
+        case 5: result = 5; break;
+        case 6: result = 6; break;
+        case 7: result = 7; break;
+        case 8: result = 8; break;
+        case 9: result = 9; break;
+        default: result = -1; break;
+    }
+    
+    ASSERT(result == 7);
+}
+
+// Switch with non-contiguous case values
+[Test]
+void Switch_NonContiguousCases()
+{
+    int value = 50;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 10:
+            result = 1;
+            break;
+        case 50:
+            result = 2;
+            break;
+        case 100:
+            result = 3;
+            break;
+        case 200:
+            result = 4;
+            break;
+    }
+    
+    ASSERT(result == 2);
+}
+
+// Switch with variable modified in case
+[Test]
+void Switch_ModifyVariable()
+{
+    int value = 2;
+    int counter = 0;
+    
+    switch (value)
+    {
+        case 1:
+            counter++;
+            counter *= 2;
+            break;
+        case 2:
+            counter += 5;
+            counter *= 3;
+            break;
+        case 3:
+            counter += 10;
+            break;
+    }
+    
+    ASSERT(counter == 15); // (0 + 5) * 3
+}
+
+// Switch evaluating expression
+[Test]
+void Switch_Expression()
+{
+    int a = 5;
+    int b = 3;
+    int result = 0;
+    
+    switch (a - b)
+    {
+        case 0:
+            result = 10;
+            break;
+        case 1:
+            result = 20;
+            break;
+        case 2:
+            result = 30;
+            break;
+        case 3:
+            result = 40;
+            break;
+    }
+    
+    ASSERT(result == 30); // a - b = 2
+}
+
+// Switch with variable declared in case
+[Test]
+void Switch_VariableInCase()
+{
+    int value = 2;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 1:
+        {
+            int temp = 10;
+            result = temp;
+            break;
+        }
+        case 2:
+        {
+            int temp = 20;
+            result = temp;
+            break;
+        }
+        case 3:
+        {
+            int temp = 30;
+            result = temp;
+            break;
+        }
+    }
+    
+    ASSERT(result == 20);
+}
+
+// Switch with zero case
+[Test]
+void Switch_ZeroCase()
+{
+    int value = 0;
+    int result = 0;
+    
+    switch (value)
+    {
+        case -1:
+            result = 10;
+            break;
+        case 0:
+            result = 20;
+            break;
+        case 1:
+            result = 30;
+            break;
+    }
+    
+    ASSERT(result == 20);
+}
+
+// Switch with compound operations in cases
+[Test]
+void Switch_CompoundOperations()
+{
+    int value = 2;
+    int a = 10;
+    int b = 5;
+    
+    switch (value)
+    {
+        case 1:
+            a += b;
+            break;
+        case 2:
+            a -= b;
+            b *= 2;
+            break;
+        case 3:
+            a *= b;
+            break;
+    }
+    
+    ASSERT(a == 5);   // 10 - 5
+    ASSERT(b == 10);  // 5 * 2
+}
+
+// Switch with empty cases at beginning
+[Test]
+void Switch_EmptyCasesAtBeginning()
+{
+    int value = 1;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 1:
+        case 2:
+        case 3:
+            result = 100;
+            break;
+        case 4:
+            result = 200;
+            break;
+        default:
+            result = 300;
+            break;
+    }
+    
+    ASSERT(result == 100);
+}
+
+// Switch with empty cases at end
+[Test]
+void Switch_EmptyCasesAtEnd()
+{
+    int value = 6;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 1:
+            result = 100;
+            break;
+        case 4:
+        case 5:
+        case 6:
+            result = 200;
+            break;
+        default:
+            result = 300;
+            break;
+    }
+    
+    ASSERT(result == 200);
+}
+
+// Switch default without break (falls off end)
+[Test]
+void Switch_DefaultNoBreak()
+{
+    int value = 99;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 1:
+            result = 10;
+            break;
+        default:
+            result = 100;
+            // No break - falls off end
+    }
+    
+    ASSERT(result == 100);
+}
+
+// Switch with boolean converted to int
+[Test]
+void Switch_BooleanValue()
+{
+    bool flag = true;
+    int result = 0;
+    
+    switch (flag ? 1 : 0)
+    {
+        case 0:
+            result = 10;
+            break;
+        case 1:
+            result = 20;
+            break;
+    }
+    
+    ASSERT(result == 20);
+}
+
+// Empty case falling to default
+[Test]
+void Switch_EmptyCaseFallToDefault()
+{
+    int value = 5;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 1:
+            result = 10;
+            break;
+        case 2:
+            result = 20;
+            break;
+        case 5:
+        default:
+            result = 100;
+            break;
+    }
+    
+    ASSERT(result == 100);
+}
+
+// Multiple empty cases with different targets
+[Test]
+void Switch_MultipleEmptyCaseGroups()
+{
+    int value = 8;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 1:
+        case 2:
+            result = 10;
+            break;
+        case 3:
+        case 4:
+        case 5:
+            result = 20;
+            break;
+        case 6:
+        case 7:
+        case 8:
+        case 9:
+            result = 30;
+            break;
+        default:
+            result = 40;
+            break;
+    }
+    
+    ASSERT(result == 30);
+}
+
+// Switch with all empty cases except one
+[Test]
+void Switch_MostlyEmptyCases()
+{
+    int value = 3;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+        case 8:
+        case 9:
+        case 10:
+            result = 999;
+            break;
+        default:
+            result = 1;
+            break;
+    }
+    
+    ASSERT(result == 999);
+}
+
+// Switch matching first of empty cases
+[Test]
+void Switch_MatchFirstEmptyCase()
+{
+    int value = 10;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 5:
+            result = 50;
+            break;
+        case 10:
+        case 11:
+        case 12:
+            result = 100;
+            break;
+        case 20:
+            result = 200;
+            break;
+    }
+    
+    ASSERT(result == 100);
+}
+
+// Switch matching middle of empty cases
+[Test]
+void Switch_MatchMiddleEmptyCase()
+{
+    int value = 11;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 5:
+            result = 50;
+            break;
+        case 10:
+        case 11:
+        case 12:
+            result = 100;
+            break;
+        case 20:
+            result = 200;
+            break;
+    }
+    
+    ASSERT(result == 100);
+}
+
+// Switch matching last of empty cases
+[Test]
+void Switch_MatchLastEmptyCase()
+{
+    int value = 12;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 5:
+            result = 50;
+            break;
+        case 10:
+        case 11:
+        case 12:
+            result = 100;
+            break;
+        case 20:
+            result = 200;
+            break;
+    }
+    
+    ASSERT(result == 100);
+}
+
+// Switch with no break on last case
+[Test]
+void Switch_LastCaseNoBreak()
+{
+    int value = 3;
+    int result = 0;
+    
+    switch (value)
+    {
+        case 1:
+            result = 10;
+            break;
+        case 2:
+            result = 20;
+            break;
+        case 3:
+            result = 30;
+            // No break, but it's the last case
+    }
+    
+    ASSERT(result == 30);
+}
+
