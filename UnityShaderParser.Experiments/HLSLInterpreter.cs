@@ -386,6 +386,9 @@ namespace UnityShaderParser.Test
 
                 for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
                 {
+                    if (!executionState.IsThreadActive(threadIndex))
+                        continue;
+
                     bool threadCond = Convert.ToBoolean(boolCondValue.Value.Get(threadIndex));
                     if (!threadCond)
                         executionState.DisableThread(threadIndex);
@@ -417,6 +420,9 @@ namespace UnityShaderParser.Test
 
                 for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
                 {
+                    if (!executionState.IsThreadActive(threadIndex))
+                        continue;
+
                     bool threadCond = Convert.ToBoolean(boolCondValue.Value.Get(threadIndex));
                     if (!threadCond)
                         executionState.DisableThread(threadIndex);
@@ -446,6 +452,9 @@ namespace UnityShaderParser.Test
 
                 for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
                 {
+                    if (!executionState.IsThreadActive(threadIndex))
+                        continue;
+
                     bool threadCond = Convert.ToBoolean(boolCondValue.Value.Get(threadIndex));
                     if (!threadCond)
                         executionState.DisableThread(threadIndex);

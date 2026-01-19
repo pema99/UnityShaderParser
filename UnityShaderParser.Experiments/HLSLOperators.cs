@@ -313,13 +313,13 @@ namespace UnityShaderParser.Test
 
         public static NumericValue BoolAnd(NumericValue left, NumericValue right)
         {
-            (left, right) = HLSLValueUtils.Promote(left, right, false);
+            (left, right) = HLSLValueUtils.Promote(left.Cast(ScalarType.Bool), right.Cast(ScalarType.Bool), false);
             return HLSLValueUtils.Map2(left, right, BoolAnd);
         }
 
         public static NumericValue BoolOr(NumericValue left, NumericValue right)
         {
-            (left, right) = HLSLValueUtils.Promote(left, right, false);
+            (left, right) = HLSLValueUtils.Promote(left.Cast(ScalarType.Bool), right.Cast(ScalarType.Bool), false);
             return HLSLValueUtils.Map2(left, right, BoolOr);
         }
 
@@ -333,7 +333,7 @@ namespace UnityShaderParser.Test
 
         public static NumericValue BoolNegate(NumericValue left)
         {
-            return left.Map(BoolNegate);
+            return left.Cast(ScalarType.Bool).Map(BoolNegate);
         }
 
         public static NumericValue BitNot(NumericValue left)
