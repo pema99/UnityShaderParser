@@ -179,18 +179,25 @@ public class Program
         {
             string shaderSource = File.ReadAllText(file);
 
-        // Ignore macros for the purpose of editing
-        var config = new HLSLParserConfig()
-        {
-            PreProcessorMode = PreProcessorMode.ExpandAll,
-            Defines = new Dictionary<string, string>() { { "HLSL_TEST", "1" } }
-        };
+            // Ignore macros for the purpose of editing
+            var config = new HLSLParserConfig()
+            {
+                PreProcessorMode = PreProcessorMode.ExpandAll,
+                Defines = new Dictionary<string, string>() { { "HLSL_TEST", "1" } }
+            };
 
-        HLSLRunner runner = new HLSLRunner();
-        runner.ProcessCode(shaderSource, config, out var diags, out var prags);
-            results.AddRange(runner.RunTests());
+            HLSLRunner runner = new HLSLRunner();
+            runner.ProcessCode(shaderSource, config, out var diags, out var prags);
+            results.AddRange(runner.RunTests(runBeforeTest: test =>
+            {
+                Console.Write($"Running test {test.TestName}... ");
+            },
+            runAfterTest: (test, res) =>
+            {
+                Console.WriteLine(res.Pass ? "Passed" : "Failed");
+            }));
         }
-
+        Console.WriteLine();
         foreach (var result in results)
         {
             bool hasMessage = !string.IsNullOrEmpty(result.Message);

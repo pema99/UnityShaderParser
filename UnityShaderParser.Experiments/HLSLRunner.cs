@@ -27,13 +27,13 @@ namespace UnityShaderParser.Test
             public TestPassException(string message, Exception innerException) : base(message, innerException) { }
         }
 
-        private struct TestRun
+        public struct TestRun
         {
-            public string name;
-            public bool customWarpSize;
-            public int threadsX;
-            public int threadsY;
-            public Func<List<HLSLValue>> input;
+            public string TestName;
+            public bool UsesCustomWarpSize;
+            public int WarpSizeX;
+            public int WarpSizeY;
+            public Func<List<HLSLValue>> GetInputs;
         }
 
         public struct TestResult
@@ -183,8 +183,7 @@ namespace UnityShaderParser.Test
             return interpreter.CallFunction(name, args);
         }
 
-        public TestResult[] RunTests() => RunTests(null);
-        public TestResult[] RunTests(string testFilter)
+        public TestResult[] RunTests(string testFilter = null, Action<TestRun> runBeforeTest = null, Action<TestRun, TestResult> runAfterTest = null)
         {
             FunctionDefinitionNode[] functions = interpreter.GetFunctions();
 
@@ -195,7 +194,7 @@ namespace UnityShaderParser.Test
                 bool hasTestAttribute = false;
                 List<Func<List<HLSLValue>>> testCases = new List<Func<List<HLSLValue>>>();
                 TestRun testRun = default;
-                testRun.name = func.Name.GetName();
+                testRun.TestName = func.Name.GetName();
                 foreach (var attribute in func.Attributes)
                 {
                     string lexeme = attribute.Name.Identifier.ToLower();
@@ -207,15 +206,15 @@ namespace UnityShaderParser.Test
                         case "warpsize":
                             if (attribute.Arguments.Count > 1)
                             {
-                                testRun.customWarpSize = true;
-                                testRun.threadsX = Convert.ToInt32((interpreter.EvaluateExpression(attribute.Arguments[0]) as ScalarValue).GetThreadValue(0));
-                                testRun.threadsY = Convert.ToInt32((interpreter.EvaluateExpression(attribute.Arguments[1]) as ScalarValue).GetThreadValue(0));
+                                testRun.UsesCustomWarpSize = true;
+                                testRun.WarpSizeX = Convert.ToInt32((interpreter.EvaluateExpression(attribute.Arguments[0]) as ScalarValue).GetThreadValue(0));
+                                testRun.WarpSizeY = Convert.ToInt32((interpreter.EvaluateExpression(attribute.Arguments[1]) as ScalarValue).GetThreadValue(0));
                             }
                             else if (attribute.Arguments.Count > 0)
                             {
-                                testRun.customWarpSize = true;
-                                testRun.threadsX = Convert.ToInt32((interpreter.EvaluateExpression(attribute.Arguments[0]) as ScalarValue).GetThreadValue(0));
-                                testRun.threadsY = 1;
+                                testRun.UsesCustomWarpSize = true;
+                                testRun.WarpSizeX = Convert.ToInt32((interpreter.EvaluateExpression(attribute.Arguments[0]) as ScalarValue).GetThreadValue(0));
+                                testRun.WarpSizeY = 1;
                             }
                             break;
                         case "testcase":
@@ -244,7 +243,7 @@ namespace UnityShaderParser.Test
                     {
                         foreach (var testCase in testCases)
                         {
-                            testRun.input = testCase;
+                            testRun.GetInputs = testCase;
                             testsToRun.Add(testRun);
                         }
                     }
@@ -255,21 +254,24 @@ namespace UnityShaderParser.Test
             var oldConsoleOut = Console.Out;
             for (int i = 0; i < testsToRun.Count; i++)
             {
+                if (runBeforeTest != null)
+                    runBeforeTest(testsToRun[i]);
+
                 var sw = new StringWriter();
                 Console.SetOut(sw);
 
-                string formattedName = testsToRun[i].name;
+                string formattedName = testsToRun[i].TestName;
                 try
                 {
-                    if (testsToRun[i].input != null)
+                    if (testsToRun[i].GetInputs != null)
                     {
-                        var inputs = testsToRun[i].input();
+                        var inputs = testsToRun[i].GetInputs();
                         formattedName += $"({string.Join(", ", inputs)})";
-                        interpreter.CallFunction(testsToRun[i].name, inputs.ToArray());
+                        interpreter.CallFunction(testsToRun[i].TestName, inputs.ToArray());
                     }
                     else
                     {
-                        interpreter.CallFunction(testsToRun[i].name, Array.Empty<object>());
+                        interpreter.CallFunction(testsToRun[i].TestName, Array.Empty<object>());
                     }
                     results[i] = new TestResult
                     {
@@ -298,8 +300,12 @@ namespace UnityShaderParser.Test
                         Message = ex.Message
                     };
                 }
+
+                Console.SetOut(oldConsoleOut);
+
+                if (runAfterTest != null)
+                    runAfterTest(testsToRun[i], results[i]);
             }
-            Console.SetOut(oldConsoleOut);
             return results;
         }
     }
