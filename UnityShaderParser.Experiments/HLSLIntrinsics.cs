@@ -413,8 +413,8 @@ namespace UnityShaderParser.Test
             // Match thread count and shape of all args
             (cond, a) = HLSLValueUtils.PromoteThreadCount(cond, a);
             (cond, b) = HLSLValueUtils.PromoteThreadCount(cond, b);
+            (a, b) = HLSLValueUtils.PromoteShape(a, b);
             (cond, a) = HLSLValueUtils.PromoteShape(cond, a);
-            (cond, b) = HLSLValueUtils.PromoteShape(cond, b);
 
             // Match types of branches
             (a, b) = HLSLValueUtils.PromoteType(a, b, false);

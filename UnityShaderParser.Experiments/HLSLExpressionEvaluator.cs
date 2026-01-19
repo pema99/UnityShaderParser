@@ -55,7 +55,7 @@ namespace UnityShaderParser.Test
                 {
                     var param = func.Parameters[i];
                     var declarator = param.Declarator;
-                    context.AddVariable(declarator.Name, args[i]);
+                    context.AddVariable(declarator.Name, HLSLValueUtils.CastForParameter(args[i], param.ParamType));
                 }
                 interpreter.Visit(func.Body);
 
@@ -273,6 +273,7 @@ namespace UnityShaderParser.Test
             // TODO: Inout/Out array
             // TODO: Inout/Out struct
             // TODO: Matrix column assignment
+            // TODO: Nested swizzle assignment like a.zyx.yx = float2(1,2);
             HLSLValue SetValue(HLSLValue value)
             {
                 if (node.Left is NamedExpressionNode named)
@@ -532,7 +533,7 @@ namespace UnityShaderParser.Test
                         {
                             var param = method.Parameters[i];
                             var declarator = param.Declarator;
-                            context.AddVariable(declarator.Name, args[i]);
+                            context.AddVariable(declarator.Name, HLSLValueUtils.CastForParameter(args[i], param.ParamType));
                         }
                         interpreter.Visit(((FunctionDefinitionNode)method).Body);
 
