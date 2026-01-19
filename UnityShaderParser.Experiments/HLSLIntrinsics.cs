@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 using UnityShaderParser.HLSL;
 
 namespace UnityShaderParser.Test
@@ -10,6 +11,17 @@ namespace UnityShaderParser.Test
     public static class HLSLIntrinsics
     {
         #region Helpers
+        public static bool TryInvokeIntrinsic(HLSLExecutionState executionState, string name, HLSLValue[] args, out HLSLValue result)
+        {
+            if (TryInvokeBasicIntrinsic(name, args, out result))
+                return true;
+
+            if (TryInvokeExecutionStateIntrinsic(executionState, name, args, out result))
+                return true;
+
+            return false;
+        }
+
         private static void CheckArity(string name, HLSLValue[] args, int arity)
         {
             if (arity >= 0 && args.Length != arity)
@@ -78,17 +90,6 @@ namespace UnityShaderParser.Test
         #endregion
 
         #region Basic intrinsics
-        private delegate HLSLValue BasicIntrinsic(HLSLValue[] args);
-
-        private static (int arity, BasicIntrinsic) N1(Func<NumericValue, NumericValue> fn) =>
-            (1, args => fn((NumericValue)args[0]));
-
-        private static (int arity, BasicIntrinsic) N2(Func<NumericValue, NumericValue, NumericValue> fn) =>
-            (2, args => fn((NumericValue)args[0], (NumericValue)args[1]));
-
-        private static (int arity, BasicIntrinsic) N3(Func<NumericValue, NumericValue, NumericValue, NumericValue> fn) =>
-            (3, args => fn((NumericValue)args[0], (NumericValue)args[1], (NumericValue)args[2]));
-
         private static readonly HashSet<string> unsupportedIntrinsics = new HashSet<string>()
         {
             "CheckAccessFullyMapped",
@@ -110,6 +111,17 @@ namespace UnityShaderParser.Test
         };
 
         public static bool IsUnsupportedIntrinsic(string name) => unsupportedIntrinsics.Contains(name);
+
+        private delegate HLSLValue BasicIntrinsic(HLSLValue[] args);
+
+        private static (int arity, BasicIntrinsic) N1(Func<NumericValue, NumericValue> fn) =>
+            (1, args => fn((NumericValue)args[0]));
+
+        private static (int arity, BasicIntrinsic) N2(Func<NumericValue, NumericValue, NumericValue> fn) =>
+            (2, args => fn((NumericValue)args[0], (NumericValue)args[1]));
+
+        private static (int arity, BasicIntrinsic) N3(Func<NumericValue, NumericValue, NumericValue, NumericValue> fn) =>
+            (3, args => fn((NumericValue)args[0], (NumericValue)args[1], (NumericValue)args[2]));
 
         private static readonly Dictionary<string, (int arity, BasicIntrinsic fn)> basicIntrinsics = new Dictionary<string, (int arity, BasicIntrinsic fn)>()
         {
@@ -240,7 +252,7 @@ namespace UnityShaderParser.Test
             }
         }
 
-        public static bool TryInvokeIntrinsic(string name, HLSLValue[] args, out HLSLValue result)
+        public static bool TryInvokeBasicIntrinsic(string name, HLSLValue[] args, out HLSLValue result)
         {
             if (!basicIntrinsics.TryGetValue(name, out var entry))
             {
@@ -1152,6 +1164,136 @@ namespace UnityShaderParser.Test
         #endregion
 
         #region Special intrinsics that touch execution state
+        public static bool TryInvokeExecutionStateIntrinsic(HLSLExecutionState executionState, string name, HLSLValue[] args, out HLSLValue result)
+        {
+            switch (name)
+            {
+                case "printf":
+                case "errorf":
+                    Printf(executionState, args);
+                    result = ScalarValue.Null;
+                    return true;
+
+                case "QuadReadAcrossDiagonal":
+                    result = QuadReadAcrossDiagonal(executionState, (NumericValue)args[0]);
+                    return true;
+                case "QuadReadLaneAt":
+                    result = QuadReadLaneAt(executionState, (NumericValue)args[0], (ScalarValue)args[1]);
+                    return true;
+                case "QuadReadAcrossX":
+                    result = QuadReadAcrossX(executionState, (NumericValue)args[0]);
+                    return true;
+                case "QuadReadAcrossY":
+                    result = QuadReadAcrossY(executionState, (NumericValue)args[0]);
+                    return true;
+                case "WaveActiveAllEqual":
+                    result = WaveActiveAllEqual(executionState, (NumericValue)args[0]);
+                    return true;
+                case "WaveActiveBitAnd":
+                    result = WaveActiveBitAnd(executionState, (NumericValue)args[0]);
+                    return true;
+                case "WaveActiveBitOr":
+                    result = WaveActiveBitOr(executionState, (NumericValue)args[0]);
+                    return true;
+                case "WaveActiveBitXor":
+                    result = WaveActiveBitXor(executionState, (NumericValue)args[0]);
+                    return true;
+                case "WaveActiveCountBits":
+                    result = WaveActiveCountBits(executionState, (NumericValue)args[0]);
+                    return true;
+                case "WaveActiveMax":
+                    result = WaveActiveMax(executionState, (NumericValue)args[0]);
+                    return true;
+                case "WaveActiveMin":
+                    result = WaveActiveMin(executionState, (NumericValue)args[0]);
+                    return true;
+                case "WaveActiveProduct":
+                    result = WaveActiveProduct(executionState, (NumericValue)args[0]);
+                    return true;
+                case "WaveActiveSum":
+                    result = WaveActiveSum(executionState, (NumericValue)args[0]);
+                    return true;
+                case "WaveActiveAllTrue":
+                    result = WaveActiveAllTrue(executionState, (NumericValue)args[0]);
+                    return true;
+                case "WaveActiveAnyTrue":
+                    result = WaveActiveAnyTrue(executionState, (NumericValue)args[0]);
+                    return true;
+                case "WaveActiveBallot":
+                    result = WaveActiveBallot(executionState, (NumericValue)args[0]);
+                    return true;
+                case "WaveGetLaneCount":
+                    result = WaveGetLaneCount(executionState);
+                    return true;
+                case "WaveGetLaneIndex":
+                    result = WaveGetLaneIndex(executionState);
+                    return true;
+                case "WaveIsFirstLane":
+                    result = WaveIsFirstLane(executionState);
+                    return true;
+                case "WavePrefixCountBits":
+                    result = WavePrefixCountBits(executionState, (NumericValue)args[0]);
+                    return true;
+                case "WavePrefixProduct":
+                    result = WavePrefixProduct(executionState, (NumericValue)args[0]);
+                    return true;
+                case "WavePrefixSum":
+                    result = WavePrefixSum(executionState, (NumericValue)args[0]);
+                    return true;
+                case "WaveReadLaneFirst":
+                    result = WaveReadLaneFirst(executionState, (NumericValue)args[0]);
+                    return true;
+                case "WaveReadLaneAt":
+                    result = WaveReadLaneAt(executionState, (NumericValue)args[0], (ScalarValue)args[1]);
+                    return true;
+
+                case "ddx":
+                case "ddx_coarse":
+                    result = Ddx(executionState, (NumericValue)args[0]);
+                    return true;
+                case "ddy":
+                case "ddy_coarse":
+                    result = Ddy(executionState, (NumericValue)args[0]);
+                    return true;
+                case "ddx_fine":
+                    result = DdxFine(executionState, (NumericValue)args[0]);
+                    return true;
+                case "ddy_fine":
+                    result = DdyFine(executionState, (NumericValue)args[0]);
+                    return true;
+                case "fwidth":
+                    result = Fwidth(executionState, (NumericValue)args[0]);
+                    return true;
+
+                case "clip":
+                    Clip(executionState, (NumericValue)args[0]);
+                    result = ScalarValue.Null;
+                    return true;
+                case "abort":
+                    Abort(executionState);
+                    result = ScalarValue.Null;
+                    return true;
+
+                case "AllMemoryBarrier":
+                case "DeviceMemoryBarrier":
+                case "GroupMemoryBarrier":
+                    System.Threading.Thread.MemoryBarrier();
+                    result = ScalarValue.Null;
+                    return true;
+
+                case "GetRenderTargetSampleCount":
+                    result = (ScalarValue)1u;
+                    return true;
+                case "GetRenderTargetSamplePosition":
+                    result = VectorValue.FromScalars(0.5, 0.5f);
+                    return true;
+
+                default:
+                    result = null;
+                    return false;
+            }
+        }
+
         public static void Printf(HLSLExecutionState executionState, HLSLValue[] args)
         {
             if (args.Length > 0)

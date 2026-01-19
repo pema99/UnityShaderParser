@@ -165,7 +165,6 @@ namespace UnityShaderParser.Test
         public override string ToString() => $"Ref({Get()})";
     }
 
-    // TODO: Use a union over "object" to avoid boxing of every individual value.
     public abstract class NumericValue : HLSLValue
     {
         public readonly ScalarType Type;
@@ -625,7 +624,7 @@ namespace UnityShaderParser.Test
         public string ToString(int threadIndex)
         {
             string type = PrintingUtil.GetEnumName(Type);
-            return $"{type}{Size}({string.Join(", ", Values.Get(threadIndex).Select(x => Convert.ToString(x, CultureInfo.InvariantCulture)))})"; // TODO: not thread 0
+            return $"{type}{Size}({string.Join(", ", Values.Get(threadIndex).Select(x => Convert.ToString(x, CultureInfo.InvariantCulture)))})";
         }
 
         public static VectorValue operator +(VectorValue left, VectorValue right) => (VectorValue)((NumericValue)left + (NumericValue)right);
@@ -776,7 +775,7 @@ namespace UnityShaderParser.Test
         public string ToString(int threadIndex)
         {
             string type = PrintingUtil.GetEnumName(Type);
-            return $"{type}{Rows}x{Columns}({string.Join(", ", Values.Get(threadIndex).Select(x => Convert.ToString(x, CultureInfo.InvariantCulture)))})"; // TODO: not thread 0
+            return $"{type}{Rows}x{Columns}({string.Join(", ", Values.Get(threadIndex).Select(x => Convert.ToString(x, CultureInfo.InvariantCulture)))})";
         }
 
         public static MatrixValue operator +(MatrixValue left, MatrixValue right) => (MatrixValue)((NumericValue)left + (NumericValue)right);
@@ -1479,7 +1478,6 @@ namespace UnityShaderParser.Test
         }
 
         // Given a function and a list of parameters, evaluate how well the function matches the parameters
-        // TODO: Array overloadds
         public static int GetOverloadScore(FunctionDefinitionNode candidate, IList<HLSLValue> parameters)
         {
             if (parameters.Count != candidate.Parameters.Count)

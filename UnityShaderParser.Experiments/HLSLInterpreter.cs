@@ -15,22 +15,14 @@ namespace UnityShaderParser.Test
     //     CBuffer/TBuffer
     // 
     // Expressions:
-    //     VisitMethodCallExpressionNode
     //     VisitSamplerStateLiteralExpressionNode
     // 
     // Semantics support
     // More test attributes
-    // Out/Inout parameters
     // Texture/StructuredBuffer
-    // Function overloading
     // Array cast
     // Struct initialization (0)
     // Generic vector/matrix types
-    //
-    // Perf:
-    // - Use DU instead of object to avoid 1 layer of boxing
-    // - Use merged struct (non-overlapped DU) for HLSLValue to avoid another level of boxing
-    // - Use fixed size arrays instead of regular arrays to another level of boxing for vector types?
 
     public class HLSLInterpreter : HLSLSyntaxVisitor
     {
@@ -178,10 +170,6 @@ namespace UnityShaderParser.Test
 
         public override void VisitVariableDeclarationStatementNode(VariableDeclarationStatementNode node)
         {
-            // TODO: Modifiers
-            // TODO: Multiple declarations
-            // TODO: Check type?
-
             foreach (VariableDeclaratorNode decl in node.Declarators)
             {
                 bool isArray = decl.ArrayRanks.Count > 0;
