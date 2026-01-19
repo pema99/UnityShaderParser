@@ -225,12 +225,28 @@ namespace UnityShaderParser.Test
 
         private static object Equal(object left, object right)
         {
-            return left.Equals(right);
+            switch (left)
+            {
+                case int x: return x == (int)right;
+                case uint x: return x == (uint)right;
+                case float x: return x == (float)right;
+                case double x: return x == (double)right;
+                case bool x: return x == (bool)right;
+                default: return left.Equals(right);
+            }
         }
 
         private static object NotEqual(object left, object right)
         {
-            return !left.Equals(right);
+            switch (left)
+            {
+                case int x: return x != (int)right;
+                case uint x: return x != (uint)right;
+                case float x: return x != (float)right;
+                case double x: return x != (double)right;
+                case bool x: return x != (bool)right;
+                default: return !left.Equals(right);
+            }
         }
         #endregion
 
