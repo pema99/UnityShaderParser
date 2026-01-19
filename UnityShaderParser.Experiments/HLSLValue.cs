@@ -429,18 +429,22 @@ namespace UnityShaderParser.Test
                     {
                         case 'r':
                         case 'x':
+                        case 's':
                             perThreadSwizzle[threadIndex][component] = Values.Get(threadIndex)[0];
                             break;
                         case 'g':
                         case 'y':
+                        case 't':
                             perThreadSwizzle[threadIndex][component] = Values.Get(threadIndex)[1];
                             break;
                         case 'b':
                         case 'z':
+                        case 'p':
                             perThreadSwizzle[threadIndex][component] = Values.Get(threadIndex)[2];
                             break;
                         case 'a':
                         case 'w':
+                        case 'q':
                             perThreadSwizzle[threadIndex][component] = Values.Get(threadIndex)[3];
                             break;
                     }
@@ -489,18 +493,22 @@ namespace UnityShaderParser.Test
                     {
                         case 'r':
                         case 'x':
+                        case 's':
                             perThreadSwizzle[threadIndex][0] = GetComponent(value.GetThreadValue(threadIndex), component);
                             break;
                         case 'g':
                         case 'y':
+                        case 't':
                             perThreadSwizzle[threadIndex][1] = GetComponent(value.GetThreadValue(threadIndex), component);
                             break;
                         case 'b':
                         case 'z':
+                        case 'p':
                             perThreadSwizzle[threadIndex][2] = GetComponent(value.GetThreadValue(threadIndex), component);
                             break;
                         case 'a':
                         case 'w':
+                        case 'q':
                             perThreadSwizzle[threadIndex][3] = GetComponent(value.GetThreadValue(threadIndex), component);
                             break;
                     }
@@ -701,9 +709,23 @@ namespace UnityShaderParser.Test
 
         public override MatrixValue BroadcastToMatrix(int rows, int columns)
         {
-            if (Rows != rows ||Columns != columns)
-                throw new NotImplementedException();
-            return this;
+            if (Rows != rows || Columns != columns)
+            {
+                var scalars = ToScalars();
+                ScalarValue[] newScalars = new ScalarValue[rows * columns];
+                for (int row = 0; row < rows; row++)
+                {
+                    for (int col = 0; col  < columns; col++)
+                    {
+                        if (row < Rows && col < Columns)
+                            newScalars[row * columns + col] = scalars[row * Columns + col];
+                        else
+                            newScalars[row * columns + col] = (ScalarValue)HLSLValueUtils.GetZeroValue(scalars[0]);
+                    }
+                }
+                return FromScalars(rows, columns, newScalars);
+            }
+            return (MatrixValue)Copy();
         }
 
         public override VectorValue BroadcastToVector(int size)
