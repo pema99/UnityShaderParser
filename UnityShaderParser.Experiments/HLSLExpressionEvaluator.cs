@@ -274,6 +274,8 @@ namespace UnityShaderParser.Test
             // TODO: Inout/Out struct
             // TODO: Matrix column assignment
             // TODO: Nested swizzle assignment like a.zyx.yx = float2(1,2);
+            // TODO: StructuredBuffer/Resource writes
+            // TODO: Write to struct array
             HLSLValue SetValue(HLSLValue value)
             {
                 if (node.Left is NamedExpressionNode named)
@@ -332,8 +334,6 @@ namespace UnityShaderParser.Test
                     }
                     return value;
                 }
-                // TODO: StructuredBuffer/Resource writes
-                // TODO: Write to struct array
                 else
                     throw Error(node, $"Invalid assignment.");
             }
