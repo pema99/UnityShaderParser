@@ -410,11 +410,44 @@ namespace UnityShaderParser.Test
         
         public static NumericValue Select(NumericValue cond, NumericValue a, NumericValue b)
         {
-            // Match thread count and shape of all args
+            // Match thread count all args
             (cond, a) = HLSLValueUtils.PromoteThreadCount(cond, a);
             (cond, b) = HLSLValueUtils.PromoteThreadCount(cond, b);
-            (a, b) = HLSLValueUtils.PromoteShape(a, b);
-            (cond, a) = HLSLValueUtils.PromoteShape(cond, a);
+
+            // Match shape of all args
+            {
+                bool needMatrix = cond is MatrixValue || a is MatrixValue || b is MatrixValue;
+                bool needVector = cond is VectorValue || a is VectorValue || b is VectorValue;
+
+                if (needMatrix)
+                {
+                    (int condRows, int condColumns) = cond.TensorSize;
+                    (int aRows, int aColumns) = a.TensorSize;
+                    (int bRows, int bColumns) = b.TensorSize;
+                    int newRows = Math.Max(condRows, Math.Max(aRows, bRows));
+                    int newColumns = Math.Max(condColumns, Math.Max(aColumns, bColumns));
+                    if (condRows != newRows || condColumns != newColumns)
+                        cond = cond.BroadcastToMatrix(newRows, newColumns);
+                    if (aRows != newRows || aColumns != newColumns)
+                        a = a.BroadcastToMatrix(newRows, newColumns);
+                    if (bRows != newRows || bColumns != newColumns)
+                        b = b.BroadcastToMatrix(newRows, newColumns);
+                }
+
+                else if (needVector)
+                {
+                    (int condSize, _) = cond.TensorSize;
+                    (int aSize, _) = a.TensorSize;
+                    (int bSize, _) = b.TensorSize;
+                    int newSize = Math.Max(condSize, Math.Max(aSize, bSize));
+                    if (condSize != newSize)
+                        cond = cond.BroadcastToVector(newSize);
+                    if (aSize != newSize)
+                        a = a.BroadcastToVector(newSize);
+                    if (bSize != newSize)
+                        b = b.BroadcastToVector(newSize);
+                }
+            }
 
             // Match types of branches
             (a, b) = HLSLValueUtils.PromoteType(a, b, false);
