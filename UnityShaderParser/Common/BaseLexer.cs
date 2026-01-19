@@ -114,6 +114,7 @@ namespace UnityShaderParser.Common
             {
                 builder.Append(Advance());
             }
+            bool scientific = false;
             while (true)
             {
                 char c = Peek();
@@ -128,6 +129,7 @@ namespace UnityShaderParser.Common
                     var sign = Peek();
                     if (sign == '-' || sign == '+')
                         builder.Append(Advance());
+                    scientific = true;
                 }
                 else
                 {
@@ -143,7 +145,8 @@ namespace UnityShaderParser.Common
                 number.EndsWith("f") ||
                 number.EndsWith("F") ||
                 number.EndsWith("h") ||
-                number.EndsWith("H");
+                number.EndsWith("H") ||
+                scientific;
             return number;
         }
 
