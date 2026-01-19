@@ -37,6 +37,16 @@ namespace UnityShaderParser.Test
                 if (args.Length != func.Parameters.Count)
                     throw Error($"Argument count mismatch in call to '{name}'.");
 
+                // Enter namespace
+                string[] namespaces = null;
+                if (name.Contains("::"))
+                {
+                    namespaces = name.Split("::");
+                    for (int i = 0; i < namespaces.Length - 1; i++)
+                        context.EnterNamespace(namespaces[i]);
+                }
+
+                // Call function
                 context.PushScope(isFunction: true);
                 context.PushReturn();
                 executionState.PushExecutionMask(ExecutionScope.Function);
@@ -51,7 +61,14 @@ namespace UnityShaderParser.Test
 
                 executionState.PopExecutionMask();
                 context.PopScope();
-                
+
+                // Exit namespace
+                if (namespaces != null)
+                {
+                    for (int i = 0; i < namespaces.Length - 1; i++)
+                        context.ExitNamespace();
+                }
+
                 return context.PopReturn();
             }
             
@@ -464,6 +481,7 @@ namespace UnityShaderParser.Test
         public override HLSLValue VisitMethodCallExpressionNode(MethodCallExpressionNode node)
         {
             // TODO: Methods on builtin types like Texture2D
+            // TODO: Namespace handling
             var target = Visit(node.Target);
             if (target is StructValue str)
             {

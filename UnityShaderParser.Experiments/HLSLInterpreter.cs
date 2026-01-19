@@ -144,6 +144,109 @@ namespace UnityShaderParser.Test
                 throw Error(node, $"Expected a scalar expression, but got a {value.GetType().Name}.");
             }
         }
+
+        private HLSLValue GetVariableDeclarationInitialValue(TypeNode type, VariableDeclaratorNode decl)
+        {
+            bool isArray = decl.ArrayRanks.Count > 0;
+            int arrayLength = isArray ? Convert.ToInt32(EvaluateNumeric(decl.ArrayRanks[0].Dimension).GetThreadValue(0)) : 0;
+
+            // TODO: StateInitializer, StateArrayInitializer
+            var initializer = decl.Initializer as ValueInitializerNode;
+            if (initializer != null)
+            {
+                HLSLValue initializerValue;
+                if (type is NumericTypeNode && !isArray)
+                {
+                    NumericValue numericInitializerValue = EvaluateNumeric(initializer.Expression);
+
+                    switch (type)
+                    {
+                        case ScalarTypeNode scalarType:
+                            initializerValue = numericInitializerValue.Cast(scalarType.Kind);
+                            break;
+                        case VectorTypeNode vectorType:
+                            initializerValue = numericInitializerValue.Cast(vectorType.Kind)
+                                .BroadcastToVector(vectorType.Dimension);
+                            break;
+                        case MatrixTypeNode matrixType:
+                            initializerValue = numericInitializerValue.Cast(matrixType.Kind)
+                                .BroadcastToMatrix(matrixType.FirstDimension, matrixType.SecondDimension);
+                            break;
+
+                        case GenericVectorTypeNode genVectorType:
+                        case GenericMatrixTypeNode genMatrixType:
+                        case StructTypeNode structType:
+                        default:
+                            throw new NotImplementedException();
+                    }
+                }
+                else
+                {
+                    initializerValue = EvaluateExpression(initializer.Expression);
+                }
+
+                return initializerValue;
+            }
+            else
+            {
+                HLSLValue defaultValue;
+                switch (type)
+                {
+                    case ScalarTypeNode scalarType:
+                        defaultValue = new ScalarValue(scalarType.Kind, new HLSLRegister<object>(HLSLValueUtils.GetZeroValue(scalarType.Kind)));
+                        break;
+                    case VectorTypeNode vectorType:
+                        defaultValue = new VectorValue(vectorType.Kind,
+                            new HLSLRegister<object[]>(Enumerable.Repeat(HLSLValueUtils.GetZeroValue(vectorType.Kind), vectorType.Dimension).ToArray()));
+                        break;
+                    case MatrixTypeNode matrixType:
+                        defaultValue = new MatrixValue(matrixType.Kind, matrixType.FirstDimension, matrixType.SecondDimension,
+                            new HLSLRegister<object[]>(Enumerable.Repeat(HLSLValueUtils.GetZeroValue(matrixType.Kind), matrixType.FirstDimension * matrixType.SecondDimension).ToArray()));
+                        break;
+                    case PredefinedObjectTypeNode predefinedObjectType:
+                        defaultValue = new PredefinedObjectValue(predefinedObjectType.Kind, predefinedObjectType.TemplateArguments.ToArray());
+                        break;
+                    case QualifiedNamedTypeNode qualifiedNamedTypeNodeType:
+                        string fullName = qualifiedNamedTypeNodeType.GetName();
+                        string[] namespaces = fullName.Split("::");
+                        for (int i = 0; i < namespaces.Length-1; i++)
+                            context.EnterNamespace(namespaces[i]);
+
+                        var qualNamedStruct = context.GetStruct(qualifiedNamedTypeNodeType.GetName());
+                        if (qualNamedStruct == null)
+                            throw Error(decl, $"Undefined named type '{qualifiedNamedTypeNodeType.GetName()}'.");
+                        defaultValue = CreateStructValue(qualNamedStruct);
+
+                        for (int i = 0; i < namespaces.Length - 1; i++)
+                            context.ExitNamespace();
+                        break;
+                    case NamedTypeNode namedTypeNodeType:
+                        var namedStruct = context.GetStruct(namedTypeNodeType.GetName());
+                        if (namedStruct == null)
+                            throw Error(decl, $"Undefined named type '{namedTypeNodeType.GetName()}'.");
+                        defaultValue = CreateStructValue(namedStruct);
+                        break;
+                    case GenericVectorTypeNode genVectorType:
+                    case GenericMatrixTypeNode genMatrixType:
+                    case StructTypeNode structType:
+                    default:
+                        throw new NotImplementedException();
+                }
+                if (!isArray)
+                {
+                    return defaultValue;
+                }
+                else
+                {
+                    HLSLValue[] vals = new HLSLValue[arrayLength];
+                    for (int i = 0; i < vals.Length; i++)
+                    {
+                        vals[i] = defaultValue.Copy();
+                    }
+                    return new ArrayValue(vals);
+                }
+            }
+        }
         
         private StructValue CreateStructValue(StructTypeNode structType)
         {
@@ -153,7 +256,7 @@ namespace UnityShaderParser.Test
             {
                 foreach (var decl in field.Declarators)
                 {
-                    members[decl.Name] = expressionEvaluator.Visit(decl.Initializer);
+                    members[decl.Name] = GetVariableDeclarationInitialValue(field.Kind, decl);
                 }
             }
             return new StructValue(structType.Name.GetName(), members);
@@ -172,97 +275,7 @@ namespace UnityShaderParser.Test
         {
             foreach (VariableDeclaratorNode decl in node.Declarators)
             {
-                bool isArray = decl.ArrayRanks.Count > 0;
-                int arrayLength = isArray ? Convert.ToInt32(EvaluateNumeric(decl.ArrayRanks[0].Dimension).GetThreadValue(0)) : 0;
-
-                // TODO: StateInitializer, StateArrayInitializer
-                var initializer = decl.Initializer as ValueInitializerNode;
-                if (initializer != null)
-                {
-                    HLSLValue initializerValue;
-                    if (node.Kind is NumericTypeNode && !isArray)
-                    {
-                        NumericValue numericInitializerValue = EvaluateNumeric(initializer.Expression);
-
-                        switch (node.Kind)
-                        {
-                            case ScalarTypeNode scalarType:
-                                initializerValue = numericInitializerValue.Cast(scalarType.Kind);
-                                break;
-                            case VectorTypeNode vectorType:
-                                initializerValue = numericInitializerValue.Cast(vectorType.Kind)
-                                    .BroadcastToVector(vectorType.Dimension);
-                                break;
-                            case MatrixTypeNode matrixType:
-                                initializerValue = numericInitializerValue.Cast(matrixType.Kind)
-                                    .BroadcastToMatrix(matrixType.FirstDimension, matrixType.SecondDimension);
-                                break;
-
-                            case GenericVectorTypeNode genVectorType:
-                            case GenericMatrixTypeNode genMatrixType:
-                            case StructTypeNode structType:
-                            default:
-                                throw new NotImplementedException();
-                        }
-                    }
-                    else
-                    {
-                        initializerValue = expressionEvaluator.Visit(initializer.Expression);
-                    }
-
-                    context.AddVariable(decl.Name, initializerValue);
-                }
-                else
-                {
-                    HLSLValue defaultValue;
-                    switch (node.Kind)
-                    {
-                        case ScalarTypeNode scalarType:
-                            defaultValue = new ScalarValue(scalarType.Kind, new HLSLRegister<object>(HLSLValueUtils.GetZeroValue(scalarType.Kind)));
-                            break;
-                        case VectorTypeNode vectorType:
-                            defaultValue = new VectorValue(vectorType.Kind, 
-                                new HLSLRegister<object[]>(Enumerable.Repeat(HLSLValueUtils.GetZeroValue(vectorType.Kind), vectorType.Dimension).ToArray()));
-                            break;
-                        case MatrixTypeNode matrixType:
-                            defaultValue = new MatrixValue(matrixType.Kind, matrixType.FirstDimension, matrixType.SecondDimension,
-                                new HLSLRegister<object[]>(Enumerable.Repeat(HLSLValueUtils.GetZeroValue(matrixType.Kind), matrixType.FirstDimension * matrixType.SecondDimension).ToArray()));
-                            break;
-                        case PredefinedObjectTypeNode predefinedObjectType:
-                            defaultValue = new PredefinedObjectValue(predefinedObjectType.Kind, predefinedObjectType.TemplateArguments.ToArray());
-                            break;
-                        case QualifiedNamedTypeNode qualifiedNamedTypeNodeType:
-                            var qualNamedStruct = context.GetStruct(qualifiedNamedTypeNodeType.GetName());
-                            if (qualNamedStruct == null)
-                                throw Error($"Undefined named type '{qualifiedNamedTypeNodeType.GetName()}'.");
-                            defaultValue = CreateStructValue(qualNamedStruct);
-                            break;
-                        case NamedTypeNode namedTypeNodeType:
-                            var namedStruct = context.GetStruct(namedTypeNodeType.GetName());
-                            if (namedStruct == null)
-                                throw Error($"Undefined named type '{namedTypeNodeType.GetName()}'.");
-                            defaultValue = CreateStructValue(namedStruct);
-                            break;
-                        case GenericVectorTypeNode genVectorType:
-                        case GenericMatrixTypeNode genMatrixType:
-                        case StructTypeNode structType:
-                        default:
-                            throw new NotImplementedException();
-                    }
-                    if (!isArray)
-                    {
-                        context.AddVariable(decl.Name, defaultValue);
-                    }
-                    else
-                    {
-                        HLSLValue[] vals = new HLSLValue[arrayLength];
-                        for (int i = 0; i < vals.Length; i++)
-                        {
-                            vals[i] = defaultValue.Copy();
-                        }
-                        context.AddVariable(decl.Name, new ArrayValue(vals));
-                    }
-                }
+                context.AddVariable(decl.Name, GetVariableDeclarationInitialValue(node.Kind, decl));
             }
         }
 

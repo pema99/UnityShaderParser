@@ -1267,7 +1267,7 @@ namespace UnityShaderParser.Test
             if (allValue is StructValue strLeft && threadValue is StructValue strRight)
             {
                 Dictionary<string, HLSLValue> members = new Dictionary<string, HLSLValue>();
-                foreach (var kvp in members)
+                foreach (var kvp in strLeft.Members)
                 {
                     if (strRight.Members.TryGetValue(kvp.Key, out var rightV))
                         members.Add(kvp.Key, SetThreadValue(kvp.Value, threadIndex, rightV));
