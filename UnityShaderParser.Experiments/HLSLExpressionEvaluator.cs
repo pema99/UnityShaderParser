@@ -135,6 +135,51 @@ namespace UnityShaderParser.Test
             }
         }
 
+        private HLSLValue SplatActiveThreadValues(HLSLValue prevValue, HLSLValue value)
+        {
+            HLSLValue newValue = HLSLValueUtils.Vectorize(prevValue, executionState.GetThreadCount());
+            for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
+            {
+                if (executionState.IsThreadActive(threadIndex))
+                {
+                    newValue = HLSLValueUtils.SetThreadValue(newValue, threadIndex, value);
+                }
+            }
+            return newValue;
+        }
+
+        private HLSLValue SetValueSimpleNamed(string name, HLSLValue value)
+        {
+            if (executionState.IsVaryingExecution())
+            {
+                HLSLValue curr;
+                if (context.TryGetVariable(name, out var variable) &&
+                    variable is ReferenceValue reference)
+                {
+                    curr = reference.Get();
+                }
+                else
+                {
+                    curr = context.GetVariable(name);
+                }
+                value = SplatActiveThreadValues(curr, value);
+            }
+
+            {
+                if (context.TryGetVariable(name, out var variable) &&
+                    variable is ReferenceValue reference)
+                {
+                    reference.Set(value);
+                }
+                else
+                {
+                    context.SetVariable(name, value);
+                }
+            }
+
+            return value;
+        }
+
         // Visit implementation
         protected override HLSLValue DefaultVisit(HLSLSyntaxNode node)
         {
@@ -224,51 +269,6 @@ namespace UnityShaderParser.Test
             var left = Visit(node.Left);
             var right = Visit(node.Right);
             right = HLSLValueUtils.CastForAssignment(left, right);
-
-            HLSLValue SplatActiveThreadValues(HLSLValue prevValue, HLSLValue value)
-            {
-                HLSLValue newValue = HLSLValueUtils.Vectorize(prevValue, executionState.GetThreadCount());
-                for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
-                {
-                    if (executionState.IsThreadActive(threadIndex))
-                    {
-                        newValue = HLSLValueUtils.SetThreadValue(newValue, threadIndex, value);
-                    }
-                }
-                return newValue;
-            }
-
-            HLSLValue SetValueSimpleNamed(string name, HLSLValue value)
-            {
-                if (executionState.IsVaryingExecution())
-                {
-                    HLSLValue curr;
-                    if (context.TryGetVariable(name, out var variable) &&
-                        variable is ReferenceValue reference)
-                    {
-                        curr = reference.Get();
-                    }
-                    else
-                    {
-                        curr = context.GetVariable(name);
-                    }
-                    value = SplatActiveThreadValues(curr, value);
-                }
-
-                {
-                    if (context.TryGetVariable(name, out var variable) &&
-                        variable is ReferenceValue reference)
-                    {
-                        reference.Set(value);
-                    }
-                    else
-                    {
-                        context.SetVariable(name, value);
-                    }
-                }
-
-                return value;
-            }
 
             // TODO: Inout/Out array
             // TODO: Inout/Out struct
@@ -432,10 +432,10 @@ namespace UnityShaderParser.Test
                 case OperatorKind.Not: return !num;
                 case OperatorKind.BitFlip: return ~num;
                 case OperatorKind.Increment when node.Expression is NamedExpressionNode named:
-                    context.SetVariable(named.GetName(), num + 1);
+                    SetValueSimpleNamed(named.GetName(), num + 1);
                     return num + 1;
                 case OperatorKind.Decrement when node.Expression is NamedExpressionNode named:
-                    context.SetVariable(named.GetName(), num - 1);
+                    SetValueSimpleNamed(named.GetName(), num - 1);
                     return num - 1;
             }
             throw Error(node, "Invalid prefix unary expression.");
@@ -447,10 +447,10 @@ namespace UnityShaderParser.Test
             switch (node.Operator)
             {
                 case OperatorKind.Increment when node.Expression is NamedExpressionNode named:
-                    context.SetVariable(named.GetName(), num + 1);
+                    SetValueSimpleNamed(named.GetName(), num + 1);
                     return num;
                 case OperatorKind.Decrement when node.Expression is NamedExpressionNode named:
-                    context.SetVariable(named.GetName(), num - 1);
+                    SetValueSimpleNamed(named.GetName(), num - 1);
                     return num;
             }
             throw Error(node, "Invalid postfix unary expression.");
