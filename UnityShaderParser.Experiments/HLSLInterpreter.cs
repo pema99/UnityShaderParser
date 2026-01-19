@@ -259,7 +259,7 @@ namespace UnityShaderParser.Test
                     members[decl.Name] = GetVariableDeclarationInitialValue(field.Kind, decl);
                 }
             }
-            return new StructValue(structType.Name.GetName(), members);
+            return new StructValue(context.GetQualifiedName(structType.Name.GetName()), members);
         }
 
         // Visitor implementation

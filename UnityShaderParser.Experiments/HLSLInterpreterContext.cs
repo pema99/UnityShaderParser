@@ -147,15 +147,17 @@ namespace UnityShaderParser.Test
             environment.Peek().table[name] = val;
         }
 
+        public string GetQualifiedName(string name)
+        {
+            if (namespaceStack.Count > 0)
+                name = $"{string.Join("::", namespaceStack.Reverse())}::{name}";
+
+            return name;
+        }
+
         public void SetGlobalVariable(string name, HLSLValue type)
         {
-            // If we are in a namespace (and in global scope), prepend the namespace to the name
-            if (namespaceStack.Count > 0)
-            {
-                name = $"{string.Join("::", namespaceStack.Reverse())}::{name}";
-            }
-
-            environment.Peek().table[name] = type;
+            environment.Peek().table[GetQualifiedName(name)] = type;
         }
 
         public FunctionDefinitionNode GetFunction(string name, HLSLValue[] args)
@@ -195,10 +197,8 @@ namespace UnityShaderParser.Test
 
         public void AddFunction(string name, FunctionDefinitionNode func)
         {
-            if (namespaceStack.Count > 0)
-            {
-                name = $"{string.Join("::", namespaceStack.Reverse())}::{name}";
-            }
+            name = GetQualifiedName(name);
+
             if (!functions.TryGetValue(name, out var overloads))
             {
                 overloads = new List<FunctionDefinitionNode>();
@@ -234,11 +234,7 @@ namespace UnityShaderParser.Test
 
         public void AddStruct(string name, StructTypeNode structType)
         {
-            if (namespaceStack.Count > 0)
-            {
-                name = $"{string.Join("::", namespaceStack.Reverse())}::{name}";
-            }
-            structs[name] = structType;
+            structs[GetQualifiedName(name)] = structType;
         }
 
         public void PushReturn()
