@@ -138,6 +138,12 @@ namespace UnityShaderParser.Test
         // Like SetVariable but always add to top scope
         public void AddVariable(string name, HLSLValue val)
         {
+            if (environment.Count <= 1)
+            {
+                SetGlobalVariable(name, val);
+                return;
+            }
+
             environment.Peek().table[name] = val;
         }
 

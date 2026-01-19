@@ -474,7 +474,7 @@ namespace UnityShaderParser.Test
         public override void VisitNamespaceNode(NamespaceNode node)
         {
             context.EnterNamespace(node.Name.GetName());
-            base.VisitNamespaceNode(node);
+            VisitMany(node.Declarations);
             context.ExitNamespace();
         }
 
