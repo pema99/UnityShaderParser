@@ -1383,8 +1383,7 @@ namespace UnityShaderParser.Test
 
         // Cast "value" to match the given type and return it.
         // Performs any implicit conversions, either promotion or demotion, needed to pass as a function parameter.
-        // TODO: Generic vector, matrix
-        public static HLSLValue CastForParameter(HLSLValue value, TypeNode typeNode)
+        public static HLSLValue CastForParameter(HLSLExpressionEvaluator evaluator, HLSLValue value, TypeNode typeNode)
         {
             if (value is NumericValue valueNum && typeNode is NumericTypeNode typeNum)
             {
@@ -1395,13 +1394,22 @@ namespace UnityShaderParser.Test
                 if (typeNode is VectorTypeNode vec)
                     valueNum = valueNum.BroadcastToVector(vec.Dimension);
 
+                if (typeNode is GenericMatrixTypeNode matGen)
+                {
+                    int rows = Convert.ToInt32(((ScalarValue)evaluator.Visit(matGen.FirstDimension)).Cast(ScalarType.Int).GetThreadValue(0));
+                    int cols = Convert.ToInt32(((ScalarValue)evaluator.Visit(matGen.SecondDimension)).Cast(ScalarType.Int).GetThreadValue(0));
+                    valueNum = valueNum.BroadcastToMatrix(rows, cols);
+                }
+
+                if (typeNode is GenericVectorTypeNode vecGen)
+                    valueNum = valueNum.BroadcastToVector(Convert.ToInt32(((ScalarValue)evaluator.Visit(vecGen.Dimension)).Cast(ScalarType.Int).GetThreadValue(0)));
+
                 return valueNum.Cast(typeNum.Kind);
             }
             return value;
         }
 
-        // TODO: Generic vector, matrix
-        public static bool TypeEquals(HLSLValue from, TypeNode to, IList<ArrayRankNode> arrayRanks = null)
+        public static bool TypeEquals(HLSLExpressionEvaluator evaluator, HLSLValue from, TypeNode to, IList<ArrayRankNode> arrayRanks = null)
         {
             if (to is ScalarTypeNode scalarType &&
                 from is ScalarValue scalarValue &&
@@ -1412,11 +1420,22 @@ namespace UnityShaderParser.Test
                 vecType.Kind == vecValue.Type &&
                 vecType.Dimension == vecValue.Size)
                 return true;
+            if (to is GenericVectorTypeNode genVecType &&
+                from is VectorValue genVecValue &&
+                genVecType.Kind == genVecValue.Type &&
+                Convert.ToInt32(((ScalarValue)evaluator.Visit(genVecType.Dimension)).Cast(ScalarType.Int).GetThreadValue(0)) == genVecValue.Size)
+                return true;
             if (to is MatrixTypeNode matType
                 && from is MatrixValue matValue
                 && matType.Kind == matValue.Type
                 && matType.FirstDimension == matValue.Rows
                 && matType.SecondDimension == matValue.Columns)
+                return true;
+            if (to is GenericMatrixTypeNode genMatType
+                && from is MatrixValue genMatValue
+                && genMatType.Kind == genMatValue.Type
+                && Convert.ToInt32(((ScalarValue)evaluator.Visit(genMatType.FirstDimension)).Cast(ScalarType.Int).GetThreadValue(0)) == genMatValue.Rows
+                && Convert.ToInt32(((ScalarValue)evaluator.Visit(genMatType.SecondDimension)).Cast(ScalarType.Int).GetThreadValue(0)) == genMatValue.Columns)
                 return true;
             if (to is StructTypeNode strType &&
                 from is StructValue strValue &&
@@ -1449,19 +1468,18 @@ namespace UnityShaderParser.Test
                 arrayRanks[0].Dimension is LiteralExpressionNode litDim &&
                 int.Parse(litDim.Lexeme) == arrValue.Values.Length)
             {
-                return TypeEquals(arrValue.Values[0], to, arrayRanks.Skip(1).ToList());
+                return TypeEquals(evaluator, arrValue.Values[0], to, arrayRanks.Skip(1).ToList());
             }
             if (from is ReferenceValue reference)
             {
-                return TypeEquals(reference.Get(), to);
+                return TypeEquals(evaluator, reference.Get(), to);
             }
 
             return false;
         }
 
         // Can we convert a value to a type without loss of information?
-        // TODO: Generic vector, matrix
-        public static bool CanPromoteTo(HLSLValue from, TypeNode to)
+        public static bool CanPromoteTo(HLSLExpressionEvaluator evaluator, HLSLValue from, TypeNode to)
         {
             if (from is NumericValue fromNum && to is NumericTypeNode toNum)
             {
@@ -1477,13 +1495,21 @@ namespace UnityShaderParser.Test
                 // Matrix extension
                 if (fromNum is MatrixValue fromMat && toNum is MatrixTypeNode toMat)
                     return fromMat.Rows <= toMat.FirstDimension && fromMat.Columns <= toMat.SecondDimension;
+                // Same but for generic
+                if (fromNum is VectorValue fromVecGen && toNum is GenericVectorTypeNode toVecGen)
+                    return fromVecGen.Size <= Convert.ToInt32(((ScalarValue)evaluator.Visit(toVecGen.Dimension)).Cast(ScalarType.Int).GetThreadValue(0));
+                if (fromNum is MatrixValue fromMatGen && toNum is GenericMatrixTypeNode toMatGen)
+                {
+                    int rows = Convert.ToInt32(((ScalarValue)evaluator.Visit(toMatGen.FirstDimension)).Cast(ScalarType.Int).GetThreadValue(0));
+                    int cols = Convert.ToInt32(((ScalarValue)evaluator.Visit(toMatGen.SecondDimension)).Cast(ScalarType.Int).GetThreadValue(0));
+                    return fromMatGen.Rows <= rows && fromMatGen.Columns <= cols;
+                }
             }
             return false;
         }
 
         // Can we convert a value to a type with loss of information?
-        // TODO: Generic vector, matrix
-        public static bool CanDemoteTo(HLSLValue from, TypeNode to)
+        public static bool CanDemoteTo(HLSLExpressionEvaluator evaluator, HLSLValue from, TypeNode to)
         {
             if (from is NumericValue fromNum && to is NumericTypeNode toNum)
             {
@@ -1495,12 +1521,20 @@ namespace UnityShaderParser.Test
                     return fromVec.Size > toVec.Dimension;
                 if (fromNum is MatrixValue fromMat && toNum is MatrixTypeNode toMat)
                     return fromMat.Rows > toMat.FirstDimension && fromMat.Columns > toMat.SecondDimension;
+                if (fromNum is VectorValue fromVecGen && toNum is GenericVectorTypeNode toVecGen)
+                    return fromVecGen.Size > Convert.ToInt32(((ScalarValue)evaluator.Visit(toVecGen.Dimension)).Cast(ScalarType.Int).GetThreadValue(0));
+                if (fromNum is MatrixValue fromMatGen && toNum is GenericMatrixTypeNode toMatGen)
+                {
+                    int rows = Convert.ToInt32(((ScalarValue)evaluator.Visit(toMatGen.FirstDimension)).Cast(ScalarType.Int).GetThreadValue(0));
+                    int cols = Convert.ToInt32(((ScalarValue)evaluator.Visit(toMatGen.SecondDimension)).Cast(ScalarType.Int).GetThreadValue(0));
+                    return fromMatGen.Rows > rows && fromMatGen.Columns > cols;
+                }
             }
             return false;
         }
 
         // Given a function and a list of parameters, evaluate how well the function matches the parameters
-        public static int GetOverloadScore(FunctionDefinitionNode candidate, IList<HLSLValue> parameters)
+        public static int GetOverloadScore(HLSLExpressionEvaluator evaluator, FunctionDefinitionNode candidate, IList<HLSLValue> parameters)
         {
             if (parameters.Count != candidate.Parameters.Count)
                 return -1;
@@ -1510,24 +1544,24 @@ namespace UnityShaderParser.Test
             {
                 var from = parameters[i];
                 var to = candidate.Parameters[i].ParamType;
-                if (TypeEquals(from, to, candidate.Parameters[i].Declarator.ArrayRanks))
+                if (TypeEquals(evaluator, from, to, candidate.Parameters[i].Declarator.ArrayRanks))
                     score += 3; // Exact match, best case
-                else if (CanPromoteTo(from, to))
+                else if (CanPromoteTo(evaluator, from, to))
                     score += 2; // Promotion is almost as good
-                else if (CanDemoteTo(from, to))
+                else if (CanDemoteTo(evaluator, from, to))
                     score += 1; // Demotion is a last resort
             }
             return score;
         }
 
         // Pick a function overload from a list of candidates based on the parameters. Returns null if no viable overload.
-        public static FunctionDefinitionNode PickOverload(IEnumerable<FunctionDefinitionNode> candidates, IList<HLSLValue> parameters)
+        public static FunctionDefinitionNode PickOverload(HLSLExpressionEvaluator evaluator, IEnumerable<FunctionDefinitionNode> candidates, IList<HLSLValue> parameters)
         {
             int bestScore = -1;
             FunctionDefinitionNode selected = null;
             foreach (var candidate in candidates)
             {
-                int score = GetOverloadScore(candidate, parameters);
+                int score = GetOverloadScore(evaluator, candidate, parameters);
                 if (score > bestScore)
                 {
                     bestScore = score;

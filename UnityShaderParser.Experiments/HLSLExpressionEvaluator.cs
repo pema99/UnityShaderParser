@@ -31,7 +31,7 @@ namespace UnityShaderParser.Test
 
         public HLSLValue CallFunction(string name, params HLSLValue[] args)
         {
-            FunctionDefinitionNode func = context.GetFunction(name, args);
+            FunctionDefinitionNode func = context.GetFunction(this, name, args);
             if (func != null)
             {
                 if (args.Length != func.Parameters.Count)
@@ -55,7 +55,7 @@ namespace UnityShaderParser.Test
                 {
                     var param = func.Parameters[i];
                     var declarator = param.Declarator;
-                    context.AddVariable(declarator.Name, HLSLValueUtils.CastForParameter(args[i], param.ParamType));
+                    context.AddVariable(declarator.Name, HLSLValueUtils.CastForParameter(this, args[i], param.ParamType));
                 }
                 interpreter.Visit(func.Body);
 
@@ -533,7 +533,7 @@ namespace UnityShaderParser.Test
                         {
                             var param = method.Parameters[i];
                             var declarator = param.Declarator;
-                            context.AddVariable(declarator.Name, HLSLValueUtils.CastForParameter(args[i], param.ParamType));
+                            context.AddVariable(declarator.Name, HLSLValueUtils.CastForParameter(this, args[i], param.ParamType));
                         }
                         interpreter.Visit(((FunctionDefinitionNode)method).Body);
 
@@ -563,7 +563,7 @@ namespace UnityShaderParser.Test
                 return callbacks[name](executionState, node.Arguments.ToArray());
             
             // Handle out/inout parameters
-            FunctionDefinitionNode func = context.GetFunction(name, args);
+            FunctionDefinitionNode func = context.GetFunction(this, name, args);
             for (int i = 0; i < args.Length; i++)
             {
                 bool isInoutIntrinsic = HLSLIntrinsics.IsIntrinsicInoutParameter(name, i);
@@ -748,7 +748,12 @@ namespace UnityShaderParser.Test
                 case MatrixTypeNode matrixType:
                     return numeric.BroadcastToMatrix(matrixType.FirstDimension, matrixType.SecondDimension).Cast(matrixType.Kind);
                 case GenericVectorTypeNode genVectorType:
+                    int dims = Convert.ToInt32(EvaluateScalar(genVectorType.Dimension).Cast(ScalarType.Int).GetThreadValue(0));
+                    return numeric.BroadcastToVector(dims).Cast(genVectorType.Kind);
                 case GenericMatrixTypeNode genMatrixType:
+                    int rows = Convert.ToInt32(EvaluateScalar(genMatrixType.FirstDimension).Cast(ScalarType.Int).GetThreadValue(0));
+                    int cols = Convert.ToInt32(EvaluateScalar(genMatrixType.SecondDimension).Cast(ScalarType.Int).GetThreadValue(0));
+                    return numeric.BroadcastToMatrix(rows, cols).Cast(genMatrixType.Kind);
                 default:
                     throw new NotImplementedException();
             }

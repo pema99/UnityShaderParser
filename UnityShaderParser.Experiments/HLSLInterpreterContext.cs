@@ -160,7 +160,7 @@ namespace UnityShaderParser.Test
             environment.Peek().table[GetQualifiedName(name)] = type;
         }
 
-        public FunctionDefinitionNode GetFunction(string name, HLSLValue[] args)
+        public FunctionDefinitionNode GetFunction(HLSLExpressionEvaluator evaluator, string name, HLSLValue[] args)
         {
             FunctionDefinitionNode overload = null;
             if (namespaceStack.Count > 0)
@@ -174,7 +174,7 @@ namespace UnityShaderParser.Test
                     string fullName = string.IsNullOrEmpty(prefix) ? name : $"{prefix}::{name}";
                     if (functions.TryGetValue(fullName, out var funcs))
                     {
-                        overload = HLSLValueUtils.PickOverload(funcs, args);
+                        overload = HLSLValueUtils.PickOverload(evaluator, funcs, args);
                     }
                 }
             }
@@ -183,7 +183,7 @@ namespace UnityShaderParser.Test
                 // If we are not in a namespace, just try to resolve the name directly
                 if (functions.TryGetValue(name, out var funcs))
                 {
-                    overload = HLSLValueUtils.PickOverload(funcs, args);
+                    overload = HLSLValueUtils.PickOverload(evaluator, funcs, args);
                 }
             }
 

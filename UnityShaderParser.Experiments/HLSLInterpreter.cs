@@ -172,12 +172,17 @@ namespace UnityShaderParser.Test
                             initializerValue = numericInitializerValue.Cast(matrixType.Kind)
                                 .BroadcastToMatrix(matrixType.FirstDimension, matrixType.SecondDimension);
                             break;
-
                         case GenericVectorTypeNode genVectorType:
+                            int dims = Convert.ToInt32(EvaluateScalar(genVectorType.Dimension).Cast(ScalarType.Int).GetThreadValue(0));
+                            initializerValue = numericInitializerValue.Cast(genVectorType.Kind).BroadcastToVector(dims);
+                            break;
                         case GenericMatrixTypeNode genMatrixType:
-                        case StructTypeNode structType:
+                            int rows = Convert.ToInt32(EvaluateScalar(genMatrixType.FirstDimension).Cast(ScalarType.Int).GetThreadValue(0));
+                            int cols = Convert.ToInt32(EvaluateScalar(genMatrixType.SecondDimension).Cast(ScalarType.Int).GetThreadValue(0));
+                            initializerValue = numericInitializerValue.Cast(genMatrixType.Kind).BroadcastToMatrix(rows, cols);
+                            break;
                         default:
-                            throw new NotImplementedException();
+                            throw Error(decl, "Invalid variable declaration");
                     }
                 }
                 else
@@ -227,7 +232,16 @@ namespace UnityShaderParser.Test
                         defaultValue = CreateStructValue(namedStruct);
                         break;
                     case GenericVectorTypeNode genVectorType:
+                        int dims = Convert.ToInt32(EvaluateScalar(genVectorType.Dimension).Cast(ScalarType.Int).GetThreadValue(0));
+                        defaultValue = new VectorValue(genVectorType.Kind,
+                            new HLSLRegister<object[]>(Enumerable.Repeat(HLSLValueUtils.GetZeroValue(genVectorType.Kind), dims).ToArray()));
+                        break;
                     case GenericMatrixTypeNode genMatrixType:
+                        int rows = Convert.ToInt32(EvaluateScalar(genMatrixType.FirstDimension).Cast(ScalarType.Int).GetThreadValue(0));
+                        int cols = Convert.ToInt32(EvaluateScalar(genMatrixType.SecondDimension).Cast(ScalarType.Int).GetThreadValue(0));
+                        defaultValue = new MatrixValue(genMatrixType.Kind, rows, cols,
+                           new HLSLRegister<object[]>(Enumerable.Repeat(HLSLValueUtils.GetZeroValue(genMatrixType.Kind), rows * cols).ToArray()));
+                        break;
                     case StructTypeNode structType:
                     default:
                         throw new NotImplementedException();
