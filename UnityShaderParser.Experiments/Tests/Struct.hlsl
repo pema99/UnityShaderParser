@@ -48,3 +48,10 @@ void CallStaticMethod_OnStruct_RefersToGlobalState()
 {
     ASSERT(Foo::Baz() == 1337);
 }
+
+[Test]
+void StructDefaultInitializer_ReadField_IsZero()
+{
+    Foo f = (Foo)0;
+    ASSERT(f.a == 0);
+}

@@ -262,7 +262,7 @@ namespace UnityShaderParser.Test
             }
         }
         
-        private StructValue CreateStructValue(StructTypeNode structType)
+        internal StructValue CreateStructValue(StructTypeNode structType)
         {
             // TODO: Inheritance
             Dictionary<string, HLSLValue> members = new Dictionary<string, HLSLValue>();

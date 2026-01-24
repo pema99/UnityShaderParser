@@ -754,8 +754,11 @@ namespace UnityShaderParser.Test
                     int rows = Convert.ToInt32(EvaluateScalar(genMatrixType.FirstDimension).Cast(ScalarType.Int).GetThreadValue(0));
                     int cols = Convert.ToInt32(EvaluateScalar(genMatrixType.SecondDimension).Cast(ScalarType.Int).GetThreadValue(0));
                     return numeric.BroadcastToMatrix(rows, cols).Cast(genMatrixType.Kind);
+                case UserDefinedNamedTypeNode named when node.Expression is LiteralExpressionNode:
+                    var structType = context.GetStruct(named.GetName());
+                    return interpreter.CreateStructValue(structType);
                 default:
-                    throw new NotImplementedException();
+                    throw Error(node, "Invalid cast.");
             }
         }
 
