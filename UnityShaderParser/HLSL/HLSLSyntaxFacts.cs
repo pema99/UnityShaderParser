@@ -1907,5 +1907,143 @@ namespace UnityShaderParser.HLSL
                     return false;
             }
         }
+
+        public static bool IsTexture(PredefinedObjectType type)
+        {
+            switch (type)
+            {
+                case PredefinedObjectType.Texture:
+                case PredefinedObjectType.Texture1D:
+                case PredefinedObjectType.Texture1DArray:
+                case PredefinedObjectType.Texture2D:
+                case PredefinedObjectType.Texture2DArray:
+                case PredefinedObjectType.Texture3D:
+                case PredefinedObjectType.TextureCube:
+                case PredefinedObjectType.TextureCubeArray:
+                case PredefinedObjectType.Texture2DMS:
+                case PredefinedObjectType.Texture2DMSArray:
+                case PredefinedObjectType.RWTexture1D:
+                case PredefinedObjectType.RWTexture1DArray:
+                case PredefinedObjectType.RWTexture2D:
+                case PredefinedObjectType.RWTexture2DArray:
+                case PredefinedObjectType.RWTexture3D:
+                case PredefinedObjectType.RasterizerOrderedTexture1D:
+                case PredefinedObjectType.RasterizerOrderedTexture1DArray:
+                case PredefinedObjectType.RasterizerOrderedTexture2D:
+                case PredefinedObjectType.RasterizerOrderedTexture2DArray:
+                case PredefinedObjectType.RasterizerOrderedTexture3D:
+                case PredefinedObjectType.Sampler:
+                case PredefinedObjectType.Sampler1D:
+                case PredefinedObjectType.Sampler2D:
+                case PredefinedObjectType.Sampler3D:
+                case PredefinedObjectType.SamplerCube:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public static bool IsWriteable(PredefinedObjectType type)
+        {
+            switch (type)
+            {
+                case PredefinedObjectType.RWTexture1D:
+                case PredefinedObjectType.RWTexture1DArray:
+                case PredefinedObjectType.RWTexture2D:
+                case PredefinedObjectType.RWTexture2DArray:
+                case PredefinedObjectType.RWTexture3D:
+                case PredefinedObjectType.RWBuffer:
+                case PredefinedObjectType.RWByteAddressBuffer:
+                case PredefinedObjectType.RWStructuredBuffer:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public static bool IsBuffer(PredefinedObjectType type)
+        {
+            switch (type)
+            {
+                case PredefinedObjectType.AppendStructuredBuffer:
+                case PredefinedObjectType.Buffer:
+                case PredefinedObjectType.ByteAddressBuffer:
+                case PredefinedObjectType.ConsumeStructuredBuffer:
+                case PredefinedObjectType.StructuredBuffer:
+                case PredefinedObjectType.ConstantBuffer:
+                case PredefinedObjectType.RasterizerOrderedBuffer:
+                case PredefinedObjectType.RasterizerOrderedByteAddressBuffer:
+                case PredefinedObjectType.RasterizerOrderedStructuredBuffer:
+                case PredefinedObjectType.RWBuffer:
+                case PredefinedObjectType.RWByteAddressBuffer:
+                case PredefinedObjectType.RWStructuredBuffer:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public static bool IsArray(PredefinedObjectType type)
+        {
+            switch (type)
+            {
+                case PredefinedObjectType.Texture1DArray:
+                case PredefinedObjectType.Texture2DArray:
+                case PredefinedObjectType.TextureCubeArray:
+                case PredefinedObjectType.Texture2DMSArray:
+                case PredefinedObjectType.RWTexture1DArray:
+                case PredefinedObjectType.RWTexture2DArray:
+                case PredefinedObjectType.RasterizerOrderedTexture1DArray:
+                case PredefinedObjectType.RasterizerOrderedTexture2DArray:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public static int GetDimension(PredefinedObjectType type)
+        {
+            switch (type)
+            {
+                case PredefinedObjectType.Texture: return 2;
+                case PredefinedObjectType.Texture1D: return 1;
+                case PredefinedObjectType.Texture1DArray: return 1;
+                case PredefinedObjectType.Texture2D: return 2;
+                case PredefinedObjectType.Texture2DArray: return 2;
+                case PredefinedObjectType.Texture3D: return 3;
+                case PredefinedObjectType.TextureCube: return 3;
+                case PredefinedObjectType.TextureCubeArray: return 3;
+                case PredefinedObjectType.Texture2DMS: return 2;
+                case PredefinedObjectType.Texture2DMSArray: return 2;
+                case PredefinedObjectType.RWTexture1D: return 1;
+                case PredefinedObjectType.RWTexture1DArray: return 1;
+                case PredefinedObjectType.RWTexture2D: return 2;
+                case PredefinedObjectType.RWTexture2DArray: return 2;
+                case PredefinedObjectType.RWTexture3D: return 3;
+                case PredefinedObjectType.AppendStructuredBuffer: return 1;
+                case PredefinedObjectType.Buffer: return 1;
+                case PredefinedObjectType.ByteAddressBuffer: return 1;
+                case PredefinedObjectType.ConsumeStructuredBuffer: return 1;
+                case PredefinedObjectType.StructuredBuffer: return 1;
+                case PredefinedObjectType.ConstantBuffer: return 1;
+                case PredefinedObjectType.RasterizerOrderedBuffer: return 1;
+                case PredefinedObjectType.RasterizerOrderedByteAddressBuffer: return 1;
+                case PredefinedObjectType.RasterizerOrderedStructuredBuffer: return 1;
+                case PredefinedObjectType.RasterizerOrderedTexture1D: return 1;
+                case PredefinedObjectType.RasterizerOrderedTexture1DArray: return 1;
+                case PredefinedObjectType.RasterizerOrderedTexture2D: return 2;
+                case PredefinedObjectType.RasterizerOrderedTexture2DArray: return 2;
+                case PredefinedObjectType.RasterizerOrderedTexture3D: return 3;
+                case PredefinedObjectType.RWBuffer: return 1;
+                case PredefinedObjectType.RWByteAddressBuffer: return 1;
+                case PredefinedObjectType.RWStructuredBuffer: return 1;
+                case PredefinedObjectType.Sampler: return 2;
+                case PredefinedObjectType.Sampler1D: return 1;
+                case PredefinedObjectType.Sampler2D: return 2;
+                case PredefinedObjectType.Sampler3D: return 3;
+                case PredefinedObjectType.SamplerCube: return 3;
+                default: return 0;
+            }
+        }
     }
 }

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Xml.Linq;
 using UnityShaderParser.HLSL;
 
 namespace UnityShaderParser.Test
@@ -38,7 +37,16 @@ namespace UnityShaderParser.Test
                     throw new ArgumentException($"Expected argument in position '{i}' to builtin '{name}' to be a numeric value.");
             }
         }
-        
+
+        private static ScalarValue CastToScalar(NumericValue v, int size = 1)
+        {
+            if (v is VectorValue vec)
+                return vec.x;
+            if (v is MatrixValue mat)
+                return mat[0, 0];
+            return (ScalarValue)v;
+        }
+
         private static VectorValue CastToVector(NumericValue v, int size = 1)
         {
             if (v is VectorValue vec)
@@ -1852,6 +1860,134 @@ namespace UnityShaderParser.Test
         {
             for (int threadIndex = 0; threadIndex < executionState.GetThreadCount(); threadIndex++)
                 executionState.KillThreadGlobally(threadIndex);
+        }
+        #endregion
+
+        #region Texture and Buffer methods
+        // TODO: Argument checking
+        public static bool TryInvokeResourceMethod(HLSLExecutionState executionState, ResourceValue rv, string name, HLSLValue[] args, out HLSLValue result)
+        {
+            string fullName = $"{rv}.{name}";
+            if (name == "Load")
+            {
+                result = Load(rv, (NumericValue)args[0]);
+                return true;
+            }
+            else if (name == "SampleLevel")
+            {
+                result = SampleLevel(rv, (SamplerStateValue)args[0], (NumericValue)args[1], (NumericValue)args[2]);
+                return true;
+            }
+            else if (name == "Sample")
+            {
+                result = Sample(executionState, rv, (SamplerStateValue)args[0], (NumericValue)args[1]);
+                return true;
+            }
+
+            result = null;
+            return false;
+        }
+
+        public static HLSLValue Load(ResourceValue rv, NumericValue location)
+        {
+            // Dimension + Mip + Array Index
+            int args = rv.Dimension + (rv.IsTexture ? 1 : 0) + (rv.IsArray ? 1 : 0);
+
+            VectorValue vectorLoc = CastToVector(location.Cast(ScalarType.Int), args);
+            ScalarValue[] scalarLoc = vectorLoc.ToScalars();
+
+            HLSLValue[] results = new HLSLValue[vectorLoc.ThreadCount];
+            for (int threadIndex = 0; threadIndex < results.Length; threadIndex++)
+            {
+                if (args == 1)
+                {
+                    results[threadIndex] = rv.Get(
+                        Convert.ToInt32(scalarLoc[0].GetThreadValue(threadIndex)),
+                        0,
+                        0,
+                        0,
+                        0);
+                }
+                else if (args == 2)
+                {
+                    results[threadIndex] = rv.Get(
+                        Convert.ToInt32(scalarLoc[0].GetThreadValue(threadIndex)),
+                        0,
+                        0,
+                        0,
+                        Convert.ToInt32(scalarLoc[1].GetThreadValue(threadIndex)));
+                }
+                else if (args == 3)
+                {
+                    results[threadIndex] = rv.Get(
+                        Convert.ToInt32(scalarLoc[0].GetThreadValue(threadIndex)),
+                        Convert.ToInt32(scalarLoc[1].GetThreadValue(threadIndex)),
+                        0,
+                        0,
+                        Convert.ToInt32(scalarLoc[2].GetThreadValue(threadIndex)));
+                }
+                else if(args == 4)
+                {
+                    results[threadIndex] = rv.Get(
+                        Convert.ToInt32(scalarLoc[0].GetThreadValue(threadIndex)),
+                        Convert.ToInt32(scalarLoc[1].GetThreadValue(threadIndex)),
+                        Convert.ToInt32(scalarLoc[2].GetThreadValue(threadIndex)),
+                        0,
+                        Convert.ToInt32(scalarLoc[3].GetThreadValue(threadIndex)));
+                }
+            }
+
+            return HLSLValueUtils.MergeThreadValues(results);
+        }
+
+        // TODO: Texture Arrays
+        // TODO: 1D, 3D texture
+        public static NumericValue SampleLevel(ResourceValue rv, SamplerStateValue sampler, NumericValue location, NumericValue lod)
+        {
+            var scalarLod = CastToScalar(lod);
+            var size = VectorValue.FromScalars(rv.SizeX, rv.SizeY, rv.SizeZ).BroadcastToVector(rv.Dimension) / (lod + 1);
+
+            var texelPos = CastToVector(location, rv.Dimension) * size - 0.5f;
+
+            var basePos = Floor(texelPos).Cast(ScalarType.Int);
+            var frac = (VectorValue)Frac(texelPos);
+
+            var p00 = (VectorValue)Clamp(basePos,                                 0, size - 1);
+            var p10 = (VectorValue)Clamp(basePos + VectorValue.FromScalars(1, 0), 0, size - 1);
+            var p01 = (VectorValue)Clamp(basePos + VectorValue.FromScalars(0, 1), 0, size - 1);
+            var p11 = (VectorValue)Clamp(basePos + VectorValue.FromScalars(1, 1), 0, size - 1);
+
+            var c00 = (NumericValue)Load(rv, VectorValue.FromScalars(p00.x, p00.y, scalarLod));
+            var c10 = (NumericValue)Load(rv, VectorValue.FromScalars(p10.x, p10.y, scalarLod));
+            var c01 = (NumericValue)Load(rv, VectorValue.FromScalars(p01.x, p01.y, scalarLod));
+            var c11 = (NumericValue)Load(rv, VectorValue.FromScalars(p11.x, p11.y, scalarLod));
+
+            var cx0 = Lerp(c00, c10, frac.x);
+            var cx1 = Lerp(c01, c11, frac.x);
+            return Lerp(cx0, cx1, frac.y);
+        }
+
+        // TODO: This doesn't account for elliptical transform.
+        // TODO: 1D, 3D texture
+        public static NumericValue CalculateLevelOfDetail(HLSLExecutionState executionState, ResourceValue rv, SamplerStateValue sampler, NumericValue location)
+        {
+            var vecLoc = CastToVector(location, rv.Dimension);
+
+            var du_dx = Ddx(executionState, vecLoc.x * rv.SizeX);
+            var dv_dx = Ddx(executionState, vecLoc.y * rv.SizeY);
+            var du_dy = Ddy(executionState, vecLoc.x * rv.SizeX);
+            var dv_dy = Ddy(executionState, vecLoc.y * rv.SizeY);
+
+            var lengthX = Sqrt(du_dx * du_dx + dv_dx * dv_dx);
+            var lengthY = Sqrt(du_dy * du_dy + dv_dy * dv_dy);
+            var rho = Max(lengthX, lengthY);
+
+            return Clamp(Log2(rho), 0.0f, MathF.Log(MathF.Max(rv.SizeX, rv.SizeY)) / MathF.Log(2) + 1);
+        }
+
+        public static NumericValue Sample(HLSLExecutionState executionState, ResourceValue rv, SamplerStateValue sampler, NumericValue location)
+        {
+            return SampleLevel(rv, sampler, location, CalculateLevelOfDetail(executionState, rv, sampler, location));
         }
         #endregion
     }

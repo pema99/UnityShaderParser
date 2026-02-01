@@ -208,9 +208,6 @@ namespace UnityShaderParser.Test
                         defaultValue = new MatrixValue(matrixType.Kind, matrixType.FirstDimension, matrixType.SecondDimension,
                             new HLSLRegister<object[]>(Enumerable.Repeat(HLSLValueUtils.GetZeroValue(matrixType.Kind), matrixType.FirstDimension * matrixType.SecondDimension).ToArray()));
                         break;
-                    case PredefinedObjectTypeNode predefinedObjectType:
-                        defaultValue = new PredefinedObjectValue(predefinedObjectType.Kind, predefinedObjectType.TemplateArguments.ToArray());
-                        break;
                     case QualifiedNamedTypeNode qualifiedNamedTypeNodeType:
                         string fullName = qualifiedNamedTypeNodeType.GetName();
                         string[] namespaces = fullName.Split("::");
@@ -241,6 +238,33 @@ namespace UnityShaderParser.Test
                         int cols = Convert.ToInt32(EvaluateScalar(genMatrixType.SecondDimension).Cast(ScalarType.Int).GetThreadValue(0));
                         defaultValue = new MatrixValue(genMatrixType.Kind, rows, cols,
                            new HLSLRegister<object[]>(Enumerable.Repeat(HLSLValueUtils.GetZeroValue(genMatrixType.Kind), rows * cols).ToArray()));
+                        break;
+                    case PredefinedObjectTypeNode predefinedObjectType:
+                        // TODO: More types
+                        switch (predefinedObjectType.Kind)
+                        {
+                            case PredefinedObjectType.SamplerState:
+                                defaultValue = new SamplerStateValue(false);
+                                break;
+                            case PredefinedObjectType.SamplerComparisonState:
+                                defaultValue = new SamplerStateValue(true);
+                                break;
+                            default:
+                                if (HLSLSyntaxFacts.IsTexture(predefinedObjectType.Kind) && HLSLSyntaxFacts.GetDimension(predefinedObjectType.Kind) == 2)
+                                {
+                                    defaultValue = new ResourceValue(
+                                        predefinedObjectType.Kind,
+                                        predefinedObjectType.TemplateArguments.ToArray(),
+                                        2, 2, 1,
+                                        (x, y, z, w, mip) => (NumericValue)0,
+                                        (x, y, z, w, mip, val) => { });
+                                }
+                                else
+                                {
+                                    defaultValue = new PredefinedObjectValue(predefinedObjectType.Kind, predefinedObjectType.TemplateArguments.ToArray());
+                                }
+                                break;
+                        }
                         break;
                     case StructTypeNode structType:
                     default:

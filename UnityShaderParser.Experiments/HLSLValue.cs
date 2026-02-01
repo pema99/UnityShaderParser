@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Globalization;
 using System.Linq;
-using System.Numerics;
-using System.Runtime.InteropServices;
 using System.Text;
 using UnityShaderParser.Common;
 using UnityShaderParser.HLSL;
@@ -141,7 +138,7 @@ namespace UnityShaderParser.Test
 
         public abstract HLSLValue Copy();
     }
-    
+
     // Reference to another value, i.e. refcell (in/inout)
     public class ReferenceValue : HLSLValue
     {
@@ -532,7 +529,7 @@ namespace UnityShaderParser.Test
         public override ScalarValue[] ToScalars()
         {
             return HLSLValueUtils.RegisterToScalars(Type, Values);
-        }  
+        }
 
         public override HLSLValue Copy()
         {
@@ -715,7 +712,7 @@ namespace UnityShaderParser.Test
                 ScalarValue[] newScalars = new ScalarValue[rows * columns];
                 for (int row = 0; row < rows; row++)
                 {
-                    for (int col = 0; col  < columns; col++)
+                    for (int col = 0; col < columns; col++)
                     {
                         if (row < Rows && col < Columns)
                             newScalars[row * columns + col] = scalars[row * Columns + col];
@@ -819,7 +816,7 @@ namespace UnityShaderParser.Test
         public static MatrixValue operator -(MatrixValue left) => (MatrixValue)(-(NumericValue)left);
     }
 
-    public sealed class PredefinedObjectValue : HLSLValue
+    public class PredefinedObjectValue : HLSLValue
     {
         public readonly PredefinedObjectType Type;
         public readonly TypeNode[] TemplateArguments;
@@ -840,7 +837,120 @@ namespace UnityShaderParser.Test
         public override string ToString()
         {
             string type = PrintingUtil.GetEnumName(Type);
-            return $"{type}<{string.Join(", ", (IEnumerable<TypeNode>)TemplateArguments)}>";
+            return $"{type}<{string.Join(", ", TemplateArguments.Select(x => x.GetPrettyPrintedCode()))}>";
+        }
+    }
+
+    public delegate HLSLValue ResourceGetter(int x, int y, int z, int w, int mipLevel);
+    public delegate void ResourceSetter(int x, int y, int z, int w, int mipLevel, HLSLValue value);
+
+    public sealed class ResourceValue : PredefinedObjectValue
+    {
+        public readonly ResourceGetter Get;
+        public readonly ResourceSetter Set;
+        public readonly int SizeX;
+        public readonly int SizeY;
+        public readonly int SizeZ;
+
+        public ResourceValue(PredefinedObjectType type, TypeNode[] templateArguments, int sizeX, int sizeY, int sizeZ, ResourceGetter get, ResourceSetter set)
+            : base(type, templateArguments)
+        {
+            SizeX = sizeX;
+            SizeY = sizeY;
+            SizeZ = sizeZ;
+            Get = get;
+            Set = set;
+        }
+
+        public override HLSLValue Copy()
+        {
+            return new ResourceValue(Type, TemplateArguments, SizeX, SizeY, SizeZ, Get, Set);
+        }
+
+        public bool IsWriteable => HLSLSyntaxFacts.IsWriteable(Type);
+        public bool IsArray => HLSLSyntaxFacts.IsArray(Type);
+        public bool IsTexture => HLSLSyntaxFacts.IsTexture(Type);
+        public bool IsBuffer => HLSLSyntaxFacts.IsBuffer(Type);
+        public bool IsCube => Type == PredefinedObjectType.TextureCube || Type == PredefinedObjectType.SamplerCube || Type == PredefinedObjectType.TextureCubeArray;
+        public int Dimension => HLSLSyntaxFacts.GetDimension(Type);
+    }
+
+    public sealed class SamplerStateValue : PredefinedObjectValue
+    {
+        public enum FilterMode
+        {
+            MinMagMipPoint,
+            MinMagPointMipLinear,
+            MinPointMagLinearMipPoint,
+            MinPointMagMipLinear,
+            MinLinearMagMipPoint,
+            MinLinearMagPointMipLinear,
+            MinMagLinearMipPoint,
+            MinMagMipLinear,
+            Anisotropic,
+            ComparisonMinMagMipPoint,
+            ComparisonMinMagPointMipLinear,
+            ComparisonMinPointMagLinearMipPoint,
+            ComparisonMinPointMagMipLinear,
+            ComparisonMinLinearMagMipPoint,
+            ComparisonMinLinearMagPointMipLinear,
+            ComparisonMinMagLinearMipPoint,
+            ComparisonMinMagMipLinear,
+            ComparisonAnisotropic,
+        }
+
+        public enum TextureAddressMode
+        {
+            Wrap,
+            Mirror,
+            Clamp,
+            Border,
+            MirrorOnce
+        }
+
+        public enum ComparisonMode
+        {
+            Never,
+            Less,
+            Equal,
+            LessEqual,
+            Greater,
+            NotEqual,
+            GreaterEqual,
+            Always
+        }
+
+        public FilterMode Filter { get; set; }
+        public TextureAddressMode AddressU { get; set; }
+        public TextureAddressMode AddressV { get; set; }
+        public TextureAddressMode AddressW { get; set; }
+        public float MinimumLod { get; set; }
+        public float MaximumLod { get; set; }
+        public float MipLodBias { get; set; }
+        public int MaximumAnisotropy { get; set; }
+        public ComparisonMode Comparison { get; set; }
+        public (float r, float g, float b, float a) BorderColor { get; set; }
+
+        public SamplerStateValue(bool isComparison = false)
+            : base(isComparison ? PredefinedObjectType.SamplerComparisonState : PredefinedObjectType.SamplerState, Array.Empty<TypeNode>())
+        {
+        }
+
+        public override HLSLValue Copy()
+        {
+            return new SamplerStateValue(Type == PredefinedObjectType.SamplerComparisonState)
+            {
+                Filter = Filter,
+                AddressU = AddressU,
+                AddressV = AddressV,
+                AddressW = AddressW,
+                MinimumLod = MinimumLod,
+                MaximumLod = MaximumLod,
+                MipLodBias = MipLodBias,
+                MaximumAnisotropy = MaximumAnisotropy,
+                Comparison = Comparison,
+                BorderColor = BorderColor,
+            };
         }
     }
 
@@ -1569,6 +1679,19 @@ namespace UnityShaderParser.Test
                 }
             }
             return selected;
+        }
+
+        public static HLSLValue MergeThreadValues(HLSLValue[] threadValues)
+        {
+            if (threadValues.Length == 1)
+                return threadValues[0];
+
+            HLSLValue result = Vectorize(threadValues[0], threadValues.Length);
+            for (int threadIndex = 1; threadIndex < threadValues.Length; threadIndex++)
+            {
+                result = SetThreadValue(result, threadIndex, threadValues[threadIndex]);
+            }
+            return result;
         }
     }
 }

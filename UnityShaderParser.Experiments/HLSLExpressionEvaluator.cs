@@ -481,17 +481,15 @@ namespace UnityShaderParser.Test
         
         public override HLSLValue VisitMethodCallExpressionNode(MethodCallExpressionNode node)
         {
-            // TODO: Methods on builtin types like Texture2D
-            // TODO: Namespace handling
+            HLSLValue[] args = new HLSLValue[node.Arguments.Count];
+            for (int i = 0; i < args.Length; i++)
+            {
+                args[i] = Visit(node.Arguments[i]);
+            }
+
             var target = Visit(node.Target);
             if (target is StructValue str)
             {
-                HLSLValue[] args = new HLSLValue[node.Arguments.Count];
-                for (int i = 0; i < args.Length; i++)
-                {
-                    args[i] = Visit(node.Arguments[i]);
-                }
-
                 var methods = context.GetStruct(str.Name).Methods;
                 foreach (var method in methods)
                 {
@@ -545,6 +543,19 @@ namespace UnityShaderParser.Test
                 }
 
                 throw Error(node, $"Couldn't find method '{node.Name.Identifier}' on type '{str.Name}'.");
+            }
+
+            if (target is ResourceValue resource)
+            {
+                if (HLSLIntrinsics.TryInvokeResourceMethod(executionState, resource, node.Name.Identifier, args, out HLSLValue result))
+                    return result;
+                else
+                    throw Error(node, $"Can't call unknown method '{resource}.{node.Name.Identifier}'.");
+            }
+
+            if (target is PredefinedObjectValue pre)
+            {
+                throw Error(node, $"Can't call method '{node.Name.Identifier}' on '{pre}.{node.Name.Identifier}', as the resource hasn't been initialized.");
             }
 
             throw Error(node, $"Can't call method '{node.Name.Identifier}' on non-struct type.");
