@@ -332,6 +332,7 @@ namespace UnityShaderParser.HLSL
                 case "snorm": token = TokenKind.SNormKeyword; return true;
                 case "static": token = TokenKind.StaticKeyword; return true;
                 case "string": token = TokenKind.StringKeyword; return true;
+                case "char": token = TokenKind.CharKeyword; return true;
                 case "struct": token = TokenKind.StructKeyword; return true;
                 case "StructuredBuffer": token = TokenKind.StructuredBufferKeyword; return true;
                 case "switch": token = TokenKind.SwitchKeyword; return true;
@@ -417,6 +418,7 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.Min16UintKeyword: type = ScalarType.Min16Uint; return true;
                 case TokenKind.Min12UintKeyword: type = ScalarType.Min12Uint; return true;
                 case TokenKind.StringKeyword: type = ScalarType.String; return true;
+                case TokenKind.CharKeyword: type = ScalarType.Char; return true;
                 default: type = ScalarType.Void; return false;
             }
         }
@@ -1009,6 +1011,7 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.Min16IntKeyword:
                 case TokenKind.Min16UintKeyword:
                 case TokenKind.StringKeyword:
+                case TokenKind.CharKeyword:
                     return true;
 
                 default:
@@ -1036,6 +1039,7 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.Min12UintKeyword:
                 case TokenKind.VoidKeyword:
                 case TokenKind.StringKeyword:
+                case TokenKind.CharKeyword:
                 case TokenKind.SNormKeyword:
                 case TokenKind.UNormKeyword:
 
@@ -1717,6 +1721,7 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.SNormKeyword: result = "snorm"; return true;
                 case TokenKind.StaticKeyword: result = "static"; return true;
                 case TokenKind.StringKeyword: result = "string"; return true;
+                case TokenKind.CharKeyword: result = "char"; return true;
                 case TokenKind.StructKeyword: result = "struct"; return true;
                 case TokenKind.StructuredBufferKeyword: result = "StructuredBuffer"; return true;
                 case TokenKind.SwitchKeyword: result = "switch"; return true;
