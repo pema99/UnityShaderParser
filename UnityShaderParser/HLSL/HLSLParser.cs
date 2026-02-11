@@ -715,12 +715,12 @@ namespace UnityShaderParser.HLSL
 
             var identifier = ParseIdentifier();
 
-            List<LiteralExpressionNode> args = new List<LiteralExpressionNode>();
+            List<ExpressionNode> args = new List<ExpressionNode>();
             if (Match(TokenKind.OpenParenToken))
             {
                 Eat(TokenKind.OpenParenToken);
 
-                args = ParseSeparatedList1(TokenKind.CommaToken, ParseLiteralExpression);
+                args = ParseSeparatedList1(TokenKind.CommaToken, () => ParseExpression((int)OperatorPrecedence.Compound + 1));
 
                 Eat(TokenKind.CloseParenToken);
             }
