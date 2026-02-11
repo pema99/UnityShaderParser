@@ -59,6 +59,10 @@ namespace UnityShaderParser.HLSL
             {
                 needsParen = true;
             }
+            if (prec == OperatorPrecedence.Compound)
+            {
+                needsParen = true;
+            }
 
             expressionPrecedences.Push(precedence);
             if (needsParen) Emit("(");
