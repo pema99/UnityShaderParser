@@ -1443,7 +1443,7 @@ namespace UnityShaderParser.HLSL
             var firstTok = attributes.FirstOrDefault()?.Tokens.FirstOrDefault() ?? Peek();
             var modifiers = ParseDeclarationModifiers();
             TypeNode kind = ParseType();
-            List<VariableDeclaratorNode> variables = ParseSeparatedList1(TokenKind.CommaToken, () => ParseVariableDeclarator());
+            List<VariableDeclaratorNode> variables = ParseSeparatedList1(TokenKind.CommaToken, () => ParseVariableDeclarator(false));
             var semiTok = Eat(TokenKind.SemiToken);
             RecoverTo(TokenKind.SemiToken);
 
