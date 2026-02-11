@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityShaderParser.Common;
 
 namespace UnityShaderParser.ShaderLab
 {
     public abstract class ShaderLabSyntaxVisitor
     {
+        [DebuggerStepThrough]
         protected virtual void DefaultVisit(ShaderLabSyntaxNode node)
         {
             foreach (var child in node.Children)
@@ -33,6 +35,7 @@ namespace UnityShaderParser.ShaderLab
             }
         }
 
+        [DebuggerStepThrough]
         public virtual void Visit(ShaderLabSyntaxNode node) => node?.Accept(this);
         public virtual void VisitShaderNode(ShaderNode node) => DefaultVisit(node);
         public virtual void VisitShaderPropertyNode(ShaderPropertyNode node) => DefaultVisit(node);
@@ -73,6 +76,7 @@ namespace UnityShaderParser.ShaderLab
 
     public abstract class ShaderLabSyntaxVisitor<TReturn>
     {
+        [DebuggerStepThrough]
         protected virtual TReturn DefaultVisit(ShaderLabSyntaxNode node)
         {
             foreach (var child in node.Children)
@@ -105,6 +109,7 @@ namespace UnityShaderParser.ShaderLab
             return result;
         }
 
+        [DebuggerStepThrough]
         public virtual TReturn Visit(ShaderLabSyntaxNode node) => node == null ? default : node.Accept(this);
         public virtual TReturn VisitShaderNode(ShaderNode node) => DefaultVisit(node);
         public virtual TReturn VisitShaderPropertyNode(ShaderPropertyNode node) => DefaultVisit(node);
