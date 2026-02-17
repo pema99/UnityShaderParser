@@ -1142,7 +1142,7 @@ namespace UnityShaderParser.Test
                 return PromoteScalarType(left, right);
             if (IsUint(left))
                 return left;
-            if (IsInt(right))
+            if (IsUint(right))
                 return right;
             if (IsInt(left))
                 return left;
