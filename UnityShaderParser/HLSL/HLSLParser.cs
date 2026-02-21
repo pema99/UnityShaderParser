@@ -11,12 +11,39 @@ namespace UnityShaderParser.HLSL
 
     public class HLSLParserConfig
     {
+        /// <summary>
+        /// Which mode to use for preprocessing the HLSL code before parsing.
+        /// </summary>
         public PreProcessorMode PreProcessorMode { get; set; }
+
+        /// <summary>
+        /// The base path to use when resolving include directives, and for constructing token spans.
+        /// </summary>
         public string BasePath { get; set; }
+
+        /// <summary>
+        /// The file name to use when constructing token spans.
+        /// </summary>
         public string FileName { get; set; }
+
+        /// <summary>
+        /// Use this provide custom logic for resolving include directives.
+        /// </summary>
         public IPreProcessorIncludeResolver IncludeResolver { get; set; }
+
+        /// <summary>
+        /// Custom pre-defined macros to feed to the preprocessor.
+        /// </summary>
         public Dictionary<string, string> Defines { get; set; }
+
+        /// <summary>
+        /// Whether to throw an exception when an error is encountered during parsing, or to attempt to keep parsing.
+        /// </summary>
         public bool ThrowExceptionOnError { get; set; }
+
+        /// <summary>
+        /// Which diagnostic messages to output.
+        /// </summary>
         public DiagnosticFlags DiagnosticFilter { get; set; }
 
         public HLSLParserConfig()

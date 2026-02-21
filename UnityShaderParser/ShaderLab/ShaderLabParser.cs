@@ -12,7 +12,16 @@ namespace UnityShaderParser.ShaderLab
 
     public class ShaderLabParserConfig : HLSLParserConfig
     {
+        /// <summary>
+        /// Whether to parse HLSL code embedded in CGPROGRAM or HLSLPROGRAM blocks into syntax trees, or to leave it as raw text.
+        /// </summary>
         public bool ParseEmbeddedHLSL { get; set; }
+
+        /// <summary>
+        /// Whether to automatically include preambles for CGPROGRAM or HLSLPROGRAM blocks.
+        /// For example, CGPROGRAM blocks automatically include 'UnityCG.cginc' in Unity.
+        /// If that is undesired, set this field to false.
+        /// </summary>
         public bool IncludeProgramBlockPreamble { get; set; }
 
         public ShaderLabParserConfig()
