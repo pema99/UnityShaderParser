@@ -13,17 +13,20 @@ namespace UnityShaderParser.ShaderLab
     public class ShaderLabParserConfig : HLSLParserConfig
     {
         public bool ParseEmbeddedHLSL { get; set; }
+        public bool IncludeProgramBlockPreamble { get; set; }
 
         public ShaderLabParserConfig()
             : base()
         {
             ParseEmbeddedHLSL = true;
+            IncludeProgramBlockPreamble = true;
         }
 
         public ShaderLabParserConfig(ShaderLabParserConfig config)
             : base(config)
         {
             ParseEmbeddedHLSL = config.ParseEmbeddedHLSL;
+            IncludeProgramBlockPreamble = config.IncludeProgramBlockPreamble;
         }
     }
 
@@ -229,15 +232,18 @@ namespace UnityShaderParser.ShaderLab
 
             // Add preamble
             string preamble = string.Empty;
-            if (isSurfaceShader)
+            if (config.IncludeProgramBlockPreamble)
             {
-                // Surface shader compiler has some secret INTERNAL_DATA macro and special includes :(
-                preamble = $"#ifndef INTERNAL_DATA\n#define INTERNAL_DATA\n#endif\n#include \"UnityCG.cginc\"\n";
-            }
-            else if (programToken.Kind != TokenKind.HlslProgramBlock) // HLSLPROGRAM doesn't include anything implicitly.
-            {
-                // UnityShaderVariables.cginc should always be included otherwise
-                preamble = $"#include \"UnityShaderVariables.cginc\"\n"; 
+                if (isSurfaceShader)
+                {
+                    // Surface shader compiler has some secret INTERNAL_DATA macro and special includes :(
+                    preamble = $"#ifndef INTERNAL_DATA\n#define INTERNAL_DATA\n#endif\n#include \"UnityCG.cginc\"\n";
+                }
+                else if (programToken.Kind != TokenKind.HlslProgramBlock) // HLSLPROGRAM doesn't include anything implicitly.
+                {
+                    // UnityShaderVariables.cginc should always be included otherwise
+                    preamble = $"#include \"UnityShaderVariables.cginc\"\n";
+                }
             }
             fullCode = $"{preamble}{fullCode}";
             if (!config.ParseEmbeddedHLSL)
