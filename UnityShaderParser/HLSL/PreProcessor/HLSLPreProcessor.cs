@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityShaderParser.Common;
@@ -7,13 +8,84 @@ namespace UnityShaderParser.HLSL.PreProcessor
 {
     using HLSLToken = Token<TokenKind>;
 
+    [Flags]
     public enum PreProcessorMode
     {
-        ExpandAll,
-        ExpandIncludesOnly,
-        ExpandAllExceptIncludes,
-        StripDirectives,
-        DoNothing,
+        // Common combinations
+
+        /// <summary>
+        /// Don't do anything, just pass the tokens through the preprocesor as-is.
+        /// </summary>
+        DoNothing = 0,
+
+        /// <summary>
+        /// Expand everything. This will cause the preprocessor to act exactly like the real HLSL preprocessor.
+        /// </summary>
+        ExpandAll = ExpandIncludeDirectives | ExpandConditionalDirectives | ExpandLineDirectives | ExpandDefineDirectives |
+            ExpandUndefDirectives | ExpandErrorDirectives | ExpandPragmaDirectives | ExpandMacroInvocations,
+
+        /// <summary>
+        /// Expand only #include directives and ignore everything else.
+        /// </summary>
+        ExpandIncludesOnly = ExpandIncludeDirectives,
+
+        /// <summary>
+        /// Expand everything except for #include directives.
+        /// </summary>
+        ExpandAllExceptIncludes = ExpandAll & ~ExpandIncludeDirectives,
+
+        /// <summary>
+        /// Expand macro invocations and pragmas, but nothing else.
+        /// </summary>
+        ExpandMacroInvocationsAndPragmas = ExpandMacroInvocations | ExpandPragmaDirectives,
+
+        // Flags
+
+        /// <summary>
+        /// Whether to expand #include directives.
+        /// </summary>
+        ExpandIncludeDirectives     = 1 << 0,
+
+        /// <summary>
+        /// Whether to expand conditional directives such as #if and #ifdef.
+        /// </summary>
+        ExpandConditionalDirectives = 1 << 1,
+
+        /// <summary>
+        /// Whether to expand #line directives. This kind of directive modifies the span of encountered tokens.
+        /// </summary>
+        ExpandLineDirectives        = 1 << 2,
+
+        /// <summary>
+        /// Whether to expand #define directives.
+        /// </summary>
+        ExpandDefineDirectives      = 1 << 3,
+
+        /// <summary>
+        /// Whether to expand #undef directives.
+        /// </summary>
+        ExpandUndefDirectives       = 1 << 4,
+
+        /// <summary>
+        /// Whether to expand #error directives. This kind of directives produces error diagnostics.
+        /// </summary>
+        ExpandErrorDirectives       = 1 << 5,
+
+        /// <summary>
+        /// Whether to expand #pragma directives.
+        /// </summary>
+        ExpandPragmaDirectives      = 1 << 6,
+
+        /// <summary>
+        /// Whether to expand macro invocations, i.e. invocations of macros defined using the #define directive.
+        /// </summary>
+        ExpandMacroInvocations      = 1 << 7,
+
+        /// <summary>
+        /// Whether to strip directives from the source code. This flag can not be combined with other flags.
+        /// </summary>
+        StripDirectives             = 1 << 8,
+
         // TODO: Option to embed directives into tokens
     }
 
@@ -113,20 +185,17 @@ namespace UnityShaderParser.HLSL.PreProcessor
             HLSLPreProcessor preProcessor = new HLSLPreProcessor(tokens, throwExceptionOnError, diagnosticFilter, basePath, includeResolver, defines);
             switch (mode)
             {
-                case PreProcessorMode.ExpandAll:
-                    preProcessor.ExpandDirectives(true);
-                    break;
                 case PreProcessorMode.ExpandIncludesOnly:
                     preProcessor.ExpandIncludesOnly();
-                    break;
-                case PreProcessorMode.ExpandAllExceptIncludes:
-                    preProcessor.ExpandDirectives(false);
                     break;
                 case PreProcessorMode.StripDirectives:
                     preProcessor.StripDirectives();
                     break;
                 case PreProcessorMode.DoNothing:
                     preProcessor.outputTokens = tokens;
+                    break;
+                default:
+                    preProcessor.ExpandDirectives(mode);
                     break;
             }
             pragmas = preProcessor.outputPragmas;
@@ -193,7 +262,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
             includeResolver.ExitFile(ref basePath, ref fileName);
         }
 
-        private void ExpandInclude(bool expandIncludesOnly)
+        private void ExpandInclude(PreProcessorMode mode)
         {
             var keywordTok = Eat(TokenKind.IncludeDirectiveKeyword);
             var pathToken = Eat(TokenKind.SystemIncludeLiteralToken, TokenKind.StringLiteralToken);
@@ -203,10 +272,10 @@ namespace UnityShaderParser.HLSL.PreProcessor
 
             EnterFile(includeSpan, newFileName);
 
-            if (expandIncludesOnly)
+            if (mode == PreProcessorMode.ExpandIncludesOnly)
                 ExpandIncludesOnly();
             else
-                ExpandDirectives();
+                ExpandDirectives(mode);
 
             ExitFile();
         }
@@ -745,28 +814,18 @@ namespace UnityShaderParser.HLSL.PreProcessor
             }
         }
 
-        public void ExpandDirectives(bool expandIncludes = true)
+        public void ExpandDirectives(PreProcessorMode mode)
         {
             while (LoopShouldContinue())
             {
                 HLSLToken next = Peek();
                 switch (next.Kind)
                 {
-                    case TokenKind.IncludeDirectiveKeyword:
-                        if (expandIncludes)
-                        {
-                            ExpandInclude(false);
-                        }
-                        else
-                        {
-                            // Skip the include
-                            Eat(TokenKind.IncludeDirectiveKeyword);
-                            var pathToken = Eat(TokenKind.SystemIncludeLiteralToken, TokenKind.StringLiteralToken);
-                            Eat(TokenKind.EndDirectiveToken);
-                        }
+                    case TokenKind.IncludeDirectiveKeyword when mode.HasFlag(PreProcessorMode.ExpandIncludeDirectives):
+                        ExpandInclude(mode);
                         break;
 
-                    case TokenKind.LineDirectiveKeyword:
+                    case TokenKind.LineDirectiveKeyword when mode.HasFlag(PreProcessorMode.ExpandLineDirectives):
                         int tokenLine = next.Span.Start.Line; // where we actually are
                         Eat(TokenKind.LineDirectiveKeyword);
                         int targetLine = ParseIntegerLiteral(); // where we want to be
@@ -778,7 +837,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                         Eat(TokenKind.EndDirectiveToken);
                         break;
 
-                    case TokenKind.DefineDirectiveKeyword:
+                    case TokenKind.DefineDirectiveKeyword when mode.HasFlag(PreProcessorMode.ExpandDefineDirectives):
                         Eat(TokenKind.DefineDirectiveKeyword);
                         string from = ParseIdentifier();
                         List<string> args = new List<string>();
@@ -801,14 +860,14 @@ namespace UnityShaderParser.HLSL.PreProcessor
                         };
                         break;
 
-                    case TokenKind.UndefDirectiveKeyword:
+                    case TokenKind.UndefDirectiveKeyword when mode.HasFlag(PreProcessorMode.ExpandUndefDirectives):
                         Eat(TokenKind.UndefDirectiveKeyword);
                         string undef = ParseIdentifier();
                         Eat(TokenKind.EndDirectiveToken);
                         defines.Remove(undef);
                         break;
 
-                    case TokenKind.ErrorDirectiveKeyword:
+                    case TokenKind.ErrorDirectiveKeyword when mode.HasFlag(PreProcessorMode.ExpandErrorDirectives):
                         Eat(TokenKind.ErrorDirectiveKeyword);
                         var errorToks = ParseMany0(() => !Match(TokenKind.EndDirectiveToken), () => Advance())
                             .Select(x => HLSLSyntaxFacts.TokenToString(x));
@@ -817,7 +876,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                         Error(DiagnosticFlags.PreProcessorError, error);
                         break;
 
-                    case TokenKind.PragmaDirectiveKeyword:
+                    case TokenKind.PragmaDirectiveKeyword when mode.HasFlag(PreProcessorMode.ExpandPragmaDirectives):
                         Eat(TokenKind.PragmaDirectiveKeyword);
                         var pragmaToks = ParseMany0(() => !Match(TokenKind.EndDirectiveToken), () => Advance())
                             .Select(x => HLSLSyntaxFacts.TokenToString(x));
@@ -832,10 +891,13 @@ namespace UnityShaderParser.HLSL.PreProcessor
                     case TokenKind.ElifDirectiveKeyword:
                     case TokenKind.ElseDirectiveKeyword:
                     case TokenKind.EndifDirectiveKeyword:
-                        ExpandConditional();
+                        if (mode.HasFlag(PreProcessorMode.ExpandConditionalDirectives))
+                            ExpandConditional();
+                        else
+                            Passthrough();
                         break;
 
-                    case TokenKind.IdentifierToken:
+                    case TokenKind.IdentifierToken when mode.HasFlag(PreProcessorMode.ExpandMacroInvocations):
                         var startSpan = Peek().Span;
                         var expanded = ApplyMacros();
                         var endSpan = Previous().Span;
@@ -867,7 +929,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                 HLSLToken next = Peek();
                 if (next.Kind == TokenKind.IncludeDirectiveKeyword)
                 {
-                    ExpandInclude(true);
+                    ExpandInclude(PreProcessorMode.ExpandIncludesOnly);
                 }
                 else
                 {
