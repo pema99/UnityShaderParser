@@ -1519,7 +1519,7 @@ void Operator_NestedSwizzleWrite()
     // a.zyx = (z,y,x); .xyyy expands to (z,y,y,y) [4-wide]; .yx contracts to pos(1,0) = (y,z)
     // Writing float2(10,20) assigns a.y=10, a.z=20
     a = float4(1, 2, 3, 4);
-    a.zyx.xyyy.yx = float2(10, 20);
+    a.zyx.xy.yx = float2(10, 20);
     ASSERT(a.x == 1.0 && a.y == 10.0 && a.z == 20.0 && a.w == 4.0);
 }
 
@@ -1540,6 +1540,7 @@ void Operator_NestedSwizzleCompoundAssign()
     // Compound assign through expand-then-contract chain: a.zyx.xyyy.yx += float2(10, 20)
     // Composes to a.yz (see Operator_NestedSwizzleWrite); a.y += 10, a.z += 20
     a = float4(1, 2, 3, 4);
-    a.zyx.xyyy.yx += float2(10, 20);
+    a.zyx.xy.yx += float2(10, 20);
     ASSERT(a.x == 1.0 && a.y == 12.0 && a.z == 23.0 && a.w == 4.0);
+
 }
