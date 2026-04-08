@@ -148,6 +148,33 @@ namespace UnityShaderParser.Test
             return newValue;
         }
 
+        // Composes two swizzles: inner maps base components, outer selects from inner result.
+        // E.g. inner="zyx", outer="yx" -> "yz" (y of zyx = a.y, x of zyx = a.z)
+        // Resolves a nested swizzle chain like a.zyx.yx to a root variable name and a single composed swizzle.
+        // Returns true only when there are 2+ levels of swizzle (simple case is handled separately).
+        private static bool TryResolveNestedSwizzle(ExpressionNode left, out string rootVarName, out string composedSwizzle)
+        {
+            var swizzles = new List<string>();
+            ExpressionNode current = left;
+            while (current is FieldAccessExpressionNode fa)
+            {
+                swizzles.Add(fa.Name.Identifier);
+                current = fa.Target;
+            }
+            if (current is NamedExpressionNode named && swizzles.Count >= 2)
+            {
+                rootVarName = named.GetName();
+                swizzles.Reverse(); // innermost first
+                composedSwizzle = swizzles[0];
+                for (int i = 1; i < swizzles.Count; i++)
+                    composedSwizzle = HLSLValueUtils.ComposeSwizzles(composedSwizzle, swizzles[i]);
+                return true;
+            }
+            rootVarName = null;
+            composedSwizzle = null;
+            return false;
+        }
+
         private HLSLValue SetValueSimpleNamed(string name, HLSLValue value)
         {
             if (executionState.IsVaryingExecution())
@@ -273,7 +300,6 @@ namespace UnityShaderParser.Test
             // TODO: Inout/Out array
             // TODO: Inout/Out struct
             // TODO: Matrix column assignment
-            // TODO: Nested swizzle assignment like a.zyx.yx = float2(1,2);
             // TODO: StructuredBuffer/Resource writes
             // TODO: Write to struct array
             HLSLValue SetValue(HLSLValue value)
@@ -303,6 +329,19 @@ namespace UnityShaderParser.Test
                         structVal.Members[fieldAccess.Name.Identifier] = value;
                         return value;
                     }
+                }
+                else if (node.Left is FieldAccessExpressionNode && TryResolveNestedSwizzle(node.Left, out string nestedRootName, out string composedSwizzle))
+                {
+                    var variable = context.GetVariable(nestedRootName);
+                    if (variable is VectorValue nestedVec)
+                    {
+                        return SetValueSimpleNamed(nestedRootName, nestedVec.SwizzleAssign(composedSwizzle, (NumericValue)value));
+                    }
+                    else if (variable is ReferenceValue refVec && refVec.Get() is VectorValue vecInner)
+                    {
+                        return SetValueSimpleNamed(nestedRootName, vecInner.SwizzleAssign(composedSwizzle, (NumericValue)value));
+                    }
+                    throw Error(node, $"Invalid assignment.");
                 }
                 else if (node.Left is ElementAccessExpressionNode elem && elem.Target is NamedExpressionNode arr)
                 {

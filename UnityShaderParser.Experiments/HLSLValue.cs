@@ -422,29 +422,7 @@ namespace UnityShaderParser.Test
                 perThreadSwizzle[threadIndex] = new object[swizzle.Length];
                 for (int component = 0; component < swizzle.Length; component++)
                 {
-                    switch (swizzle[component])
-                    {
-                        case 'r':
-                        case 'x':
-                        case 's':
-                            perThreadSwizzle[threadIndex][component] = Values.Get(threadIndex)[0];
-                            break;
-                        case 'g':
-                        case 'y':
-                        case 't':
-                            perThreadSwizzle[threadIndex][component] = Values.Get(threadIndex)[1];
-                            break;
-                        case 'b':
-                        case 'z':
-                        case 'p':
-                            perThreadSwizzle[threadIndex][component] = Values.Get(threadIndex)[2];
-                            break;
-                        case 'a':
-                        case 'w':
-                        case 'q':
-                            perThreadSwizzle[threadIndex][component] = Values.Get(threadIndex)[3];
-                            break;
-                    }
+                    perThreadSwizzle[threadIndex][component] = Values.Get(threadIndex)[HLSLValueUtils.SwizzleCharToIndex(swizzle[component])];
                 }
             }
             if (ThreadCount == 1)
@@ -486,29 +464,7 @@ namespace UnityShaderParser.Test
                 // Splat swizzle assign
                 for (int component = 0; component < swizzle.Length; component++)
                 {
-                    switch (swizzle[component])
-                    {
-                        case 'r':
-                        case 'x':
-                        case 's':
-                            perThreadSwizzle[threadIndex][0] = GetComponent(value.GetThreadValue(threadIndex), component);
-                            break;
-                        case 'g':
-                        case 'y':
-                        case 't':
-                            perThreadSwizzle[threadIndex][1] = GetComponent(value.GetThreadValue(threadIndex), component);
-                            break;
-                        case 'b':
-                        case 'z':
-                        case 'p':
-                            perThreadSwizzle[threadIndex][2] = GetComponent(value.GetThreadValue(threadIndex), component);
-                            break;
-                        case 'a':
-                        case 'w':
-                        case 'q':
-                            perThreadSwizzle[threadIndex][3] = GetComponent(value.GetThreadValue(threadIndex), component);
-                            break;
-                    }
+                    perThreadSwizzle[threadIndex][HLSLValueUtils.SwizzleCharToIndex(swizzle[component])] = GetComponent(value.GetThreadValue(threadIndex), component);
                 }
             }
             if (maxThreadCount == 1)
@@ -979,6 +935,38 @@ namespace UnityShaderParser.Test
 
     public static class HLSLValueUtils
     {
+        public static int SwizzleCharToIndex(char c)
+        {
+            switch (c)
+            {
+                case 'x': case 'r': case 's': return 0;
+                case 'y': case 'g': case 't': return 1;
+                case 'z': case 'b': case 'p': return 2;
+                case 'w': case 'a': case 'q': return 3;
+                default: throw new InvalidOperationException($"Invalid swizzle character '{c}'");
+            }
+        }
+
+        public static char IndexToSwizzleChar(int index)
+        {
+            switch (index)
+            {
+                case 0: return 'x';
+                case 1: return 'y';
+                case 2: return 'z';
+                case 3: return 'w';
+                default: throw new InvalidOperationException($"Invalid component index {index}");
+            }
+        }
+
+        // Composes two swizzles: inner maps base components, outer selects from inner result.
+        // E.g. inner="zyx", outer="yx" -> "yz" (y of zyx = a.y, x of zyx = a.z)
+        public static string ComposeSwizzles(string inner, string outer)
+        {
+            int[] innerIndices = inner.Select(SwizzleCharToIndex).ToArray();
+            return new string(outer.Select(c => IndexToSwizzleChar(innerIndices[SwizzleCharToIndex(c)])).ToArray());
+        }
+
         public static object GetZeroValue(ScalarType type)
         {
             switch (type)

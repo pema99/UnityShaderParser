@@ -1492,3 +1492,54 @@ void Operator_SwizzleCompoundAssign()
     v.xyz -= float3(1, 2, 3);
     ASSERT(v.x == 10.0 && v.y == 10.0 && v.z == 3.0);
 }
+
+[Test]
+void Operator_NestedSwizzleWrite()
+{
+    // a.zyx = view (a.z, a.y, a.x) at positions (0,1,2)
+    // a.zyx.yx: y=pos1->a.y, x=pos0->a.z; so writing assigns a.y and a.z
+    float4 a = float4(1, 2, 3, 4);
+    a.zyx.yx = float2(10, 20);
+    ASSERT(a.x == 1.0 && a.y == 10.0 && a.z == 20.0 && a.w == 4.0);
+
+    // Three-level nesting: a.wzyx.xy.yx
+    // a.wzyx = (w,z,y,x); .xy = (w,z) at pos (0,1); .yx = (z,w)
+    // Assigns a.z and a.w
+    a = float4(1, 2, 3, 4);
+    a.wzyx.xy.yx = float2(30, 40);
+    ASSERT(a.x == 1.0 && a.y == 2.0 && a.z == 30.0 && a.w == 40.0);
+
+    // Scalar assigned to a nested vector swizzle: a.yzw = 1
+    // Broadcasts 1 to a.y, a.z, a.w; a.x is unchanged
+    a = float4(1, 2, 3, 4);
+    a.yzw = 1;
+    ASSERT(a.x == 1.0 && a.y == 1.0 && a.z == 1.0 && a.w == 1.0);
+
+    // Swizzle chain that expands then contracts: a.zyx.xyyy.yx
+    // a.zyx = (z,y,x); .xyyy expands to (z,y,y,y) [4-wide]; .yx contracts to pos(1,0) = (y,z)
+    // Writing float2(10,20) assigns a.y=10, a.z=20
+    a = float4(1, 2, 3, 4);
+    a.zyx.xyyy.yx = float2(10, 20);
+    ASSERT(a.x == 1.0 && a.y == 10.0 && a.z == 20.0 && a.w == 4.0);
+}
+
+[Test]
+void Operator_NestedSwizzleCompoundAssign()
+{
+    // a.zyx.yx: composes to a.yz; += float2(10, 20) means a.y += 10, a.z += 20
+    float4 a = float4(1, 2, 3, 4);
+    a.zyx.yx += float2(10, 20);
+    ASSERT(a.x == 1.0 && a.y == 12.0 && a.z == 23.0 && a.w == 4.0);
+
+    // Scalar compound-assigned to a nested vector swizzle: a.yzw += 10
+    // Adds 10 to a.y, a.z, a.w; a.x is unchanged
+    a = float4(1, 2, 3, 4);
+    a.yzw += 10;
+    ASSERT(a.x == 1.0 && a.y == 12.0 && a.z == 13.0 && a.w == 14.0);
+
+    // Compound assign through expand-then-contract chain: a.zyx.xyyy.yx += float2(10, 20)
+    // Composes to a.yz (see Operator_NestedSwizzleWrite); a.y += 10, a.z += 20
+    a = float4(1, 2, 3, 4);
+    a.zyx.xyyy.yx += float2(10, 20);
+    ASSERT(a.x == 1.0 && a.y == 12.0 && a.z == 23.0 && a.w == 4.0);
+}
