@@ -51,11 +51,6 @@ namespace UnityShaderParser.Test
             interpreter = new HLSLInterpreter(defaultThreadsX, defaultThreadsY);
 
             // Add magic callbacks for test running
-            interpreter.AddCallback("FORMAT", (state, args) =>
-            {
-                throw new NotImplementedException();
-            });
-
             ScalarValue Assert(HLSLExecutionState state, ExpressionNode[] args)
             {
                 if (args.Length > 0)
@@ -140,6 +135,12 @@ namespace UnityShaderParser.Test
                     else
                         throw new TestFailException();
                 }
+                return ScalarValue.Null;
+            });
+
+            interpreter.AddCallback("PRINTF", (state, args) =>
+            {
+                HLSLIntrinsics.Printf(state, args.Select(x => interpreter.EvaluateExpression(x)).ToArray());
                 return ScalarValue.Null;
             });
         }

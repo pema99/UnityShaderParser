@@ -6,7 +6,7 @@
     // These should do nothing when not running tests.
     #ifndef __HLSL_TEST_RUNNER__
         #define printf
-        #define FORMAT(x)
+        #define PRINTF
         #define ASSERT(x)
         #define ASSERT_MSG(x, msg)
         #define PASS_TEST()
