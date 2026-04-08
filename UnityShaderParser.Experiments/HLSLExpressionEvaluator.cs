@@ -417,11 +417,7 @@ namespace UnityShaderParser.Test
             var right = Visit(node.Right);
             right = HLSLValueUtils.CastForAssignment(left, right);
 
-            // TODO: Inout/Out array
-            // TODO: Inout/Out struct
-            // TODO: Matrix column assignment
             // TODO: StructuredBuffer/Resource writes
-            // TODO: Write to struct array
             HLSLValue SetValue(HLSLValue value)
             {
                 // lhs = rhs
