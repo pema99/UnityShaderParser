@@ -263,6 +263,9 @@ namespace UnityShaderParser.Test
                 string formattedName = testsToRun[i].TestName;
                 try
                 {
+                    if (testsToRun[i].UsesCustomWarpSize)
+                        interpreter.SetWarpSize(testsToRun[i].WarpSizeX, testsToRun[i].WarpSizeY);
+
                     if (testsToRun[i].GetInputs != null)
                     {
                         var inputs = testsToRun[i].GetInputs();
@@ -302,6 +305,9 @@ namespace UnityShaderParser.Test
                 }
 
                 Console.SetOut(oldConsoleOut);
+
+                if (testsToRun[i].UsesCustomWarpSize)
+                    interpreter.SetWarpSize(2, 2);
 
                 if (runAfterTest != null)
                     runAfterTest(testsToRun[i], results[i]);

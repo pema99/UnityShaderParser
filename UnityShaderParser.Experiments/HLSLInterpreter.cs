@@ -40,8 +40,11 @@ namespace UnityShaderParser.Test
         // Public interface
         public void SetWarpSize(int threadsX, int threadsY)
         {
+            var oldCallbacks = expressionEvaluator.GetCallbacks();
             executionState = new HLSLExecutionState(threadsX, threadsY);
             expressionEvaluator = new HLSLExpressionEvaluator(this, context, executionState);
+            foreach (var kvp in oldCallbacks)
+                expressionEvaluator.AddCallback(kvp.Key, kvp.Value);
         }
 
         public void SetVariable(string name, HLSLValue value) => context.SetVariable(name, value);
