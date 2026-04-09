@@ -12,7 +12,6 @@ namespace UnityShaderParser.Test
     //     public class InterfaceDefinitionNode : StatementNode
     //     public class TypedefNode : StatementNode
     //     public class StatePropertyNode : StatementNode
-    //     CBuffer/TBuffer
     // 
     // Expressions:
     //     VisitSamplerStateLiteralExpressionNode
@@ -690,6 +689,11 @@ namespace UnityShaderParser.Test
         public override void VisitExpressionStatementNode(ExpressionStatementNode node)
         {
             expressionEvaluator.Visit(node.Expression);
+        }
+
+        public override void VisitConstantBufferNode(ConstantBufferNode node)
+        {
+            VisitMany(node.Declarations);
         }
     }
 }
