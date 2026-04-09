@@ -422,7 +422,7 @@ namespace UnityShaderParser.Test
                 perThreadSwizzle[threadIndex] = new object[swizzle.Length];
                 for (int component = 0; component < swizzle.Length; component++)
                 {
-                    perThreadSwizzle[threadIndex][component] = Values.Get(threadIndex)[HLSLValueUtils.SwizzleCharToIndex(swizzle[component])];
+                    perThreadSwizzle[threadIndex][component] = Values.Get(threadIndex)[HLSLValueUtils.VectorSwizzleCharToIndex(swizzle[component])];
                 }
             }
             if (ThreadCount == 1)
@@ -464,7 +464,7 @@ namespace UnityShaderParser.Test
                 // Splat swizzle assign
                 for (int component = 0; component < swizzle.Length; component++)
                 {
-                    perThreadSwizzle[threadIndex][HLSLValueUtils.SwizzleCharToIndex(swizzle[component])] = GetComponent(value.GetThreadValue(threadIndex), component);
+                    perThreadSwizzle[threadIndex][HLSLValueUtils.VectorSwizzleCharToIndex(swizzle[component])] = GetComponent(value.GetThreadValue(threadIndex), component);
                 }
             }
             if (maxThreadCount == 1)
@@ -648,6 +648,62 @@ namespace UnityShaderParser.Test
         public static MatrixValue FromScalars(int rows, int columns, params ScalarValue[] scalars)
         {
             return new MatrixValue(scalars[0].Type, rows, columns, HLSLValueUtils.RegisterFromScalars(scalars));
+        }
+
+        public NumericValue Swizzle(string swizzle)
+        {
+            int[] indices = HLSLValueUtils.MatrixSwizzleStringToIndices(swizzle, Columns);
+            object[][] perThreadSwizzle = new object[ThreadCount][];
+            for (int threadIndex = 0; threadIndex < perThreadSwizzle.Length; threadIndex++)
+            {
+                perThreadSwizzle[threadIndex] = new object[indices.Length];
+                for (int component = 0; component < indices.Length; component++)
+                    perThreadSwizzle[threadIndex][component] = Values.Get(threadIndex)[indices[component]];
+            }
+            if (ThreadCount == 1)
+            {
+                if (indices.Length == 1)
+                    return new ScalarValue(Type, HLSLValueUtils.MakeScalarSGPR(perThreadSwizzle[0][0]));
+                else
+                    return new VectorValue(Type, HLSLValueUtils.MakeVectorSGPR(perThreadSwizzle[0]));
+            }
+            else
+            {
+                if (indices.Length == 1)
+                    return new ScalarValue(Type, HLSLValueUtils.MakeScalarVGPR(perThreadSwizzle.Select(x => x[0])));
+                else
+                    return new VectorValue(Type, HLSLValueUtils.MakeVectorVGPR(perThreadSwizzle));
+            }
+        }
+
+        public MatrixValue SwizzleAssign(string swizzle, NumericValue value)
+        {
+            object GetComponent(object arrayOrSingle, int index)
+            {
+                if (arrayOrSingle is object[] array)
+                    return array[index];
+                return arrayOrSingle;
+            }
+
+            int[] indices = HLSLValueUtils.MatrixSwizzleStringToIndices(swizzle, Columns);
+            int size = Rows * Columns;
+            int maxThreadCount = Math.Max(ThreadCount, value.ThreadCount);
+            object[][] perThreadSwizzle = new object[maxThreadCount][];
+            for (int threadIndex = 0; threadIndex < perThreadSwizzle.Length; threadIndex++)
+            {
+                // Write current values
+                perThreadSwizzle[threadIndex] = new object[size];
+                for (int component = 0; component < size; component++)
+                    perThreadSwizzle[threadIndex][component] = Values.Get(threadIndex)[component];
+
+                // Splat swizzle assign
+                for (int component = 0; component < indices.Length; component++)
+                    perThreadSwizzle[threadIndex][indices[component]] = GetComponent(value.GetThreadValue(threadIndex), component);
+            }
+            if (maxThreadCount == 1)
+                return new MatrixValue(Type, Rows, Columns, HLSLValueUtils.MakeVectorSGPR(perThreadSwizzle[0]));
+            else
+                return new MatrixValue(Type, Rows, Columns, HLSLValueUtils.MakeVectorVGPR(perThreadSwizzle));
         }
 
         public override ScalarValue[] ToScalars()
@@ -935,7 +991,7 @@ namespace UnityShaderParser.Test
 
     public static class HLSLValueUtils
     {
-        public static int SwizzleCharToIndex(char c)
+        public static int VectorSwizzleCharToIndex(char c)
         {
             switch (c)
             {
@@ -947,7 +1003,7 @@ namespace UnityShaderParser.Test
             }
         }
 
-        public static char IndexToSwizzleChar(int index)
+        public static char IndexToVectorSwizzleChar(int index)
         {
             switch (index)
             {
@@ -959,13 +1015,16 @@ namespace UnityShaderParser.Test
             }
         }
 
-        // Composes two swizzles: inner maps base components, outer selects from inner result.
-        // E.g. inner="zyx", outer="yx" -> "yz" (y of zyx = a.y, x of zyx = a.z)
-        public static string ComposeSwizzles(string inner, string outer)
+        public static int[] MatrixSwizzleStringToIndices(string swizzle, int columns)
         {
-            int[] innerIndices = inner.Select(SwizzleCharToIndex).ToArray();
-            return new string(outer.Select(c => IndexToSwizzleChar(innerIndices[SwizzleCharToIndex(c)])).ToArray());
+            bool zeroBased = swizzle.Length >= 2 && swizzle[1] == 'm';
+            string[] parts = zeroBased
+                ? swizzle.Split(new[] { "_m" }, StringSplitOptions.RemoveEmptyEntries)
+                : swizzle.Split(new[] { "_"  }, StringSplitOptions.RemoveEmptyEntries);
+            int offset = zeroBased ? 0 : 1;
+            return parts.Select(p => (p[0] - '0' - offset) * columns + (p[1] - '0' - offset)).ToArray();
         }
+
 
         public static object GetZeroValue(ScalarType type)
         {

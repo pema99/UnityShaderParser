@@ -123,6 +123,13 @@ namespace UnityShaderParser.Test
                         val => parentRef.Set(((VectorValue)parentRef.Get()).SwizzleAssign(field, (NumericValue)val)));
                     return true;
                 }
+                if (parentRef.Get() is MatrixValue)
+                {
+                    reference = new ReferenceValue(
+                        () => ((MatrixValue)parentRef.Get()).Swizzle(field),
+                        val => parentRef.Set(((MatrixValue)parentRef.Get()).SwizzleAssign(field, (NumericValue)val)));
+                    return true;
+                }
             }
 
             if (node is ElementAccessExpressionNode elementAccess)
@@ -191,7 +198,7 @@ namespace UnityShaderParser.Test
                     var vec = (VectorValue)parentRef.Get();
                     if (indexVal.Value.IsUniform)
                     {
-                        string swizzle = HLSLValueUtils.IndexToSwizzleChar(Convert.ToInt32(indexVal.Value.UniformValue)).ToString();
+                        string swizzle = HLSLValueUtils.IndexToVectorSwizzleChar(Convert.ToInt32(indexVal.Value.UniformValue)).ToString();
                         parentRef.Set(vec.SwizzleAssign(swizzle, (NumericValue)val));
                         return;
                     }
@@ -439,6 +446,14 @@ namespace UnityShaderParser.Test
                     {
                         return SetValueSimpleNamed(name, vecInner.SwizzleAssign(fieldAccess.Name, (NumericValue)value));
                     }
+                    else if (variable is MatrixValue mat)
+                    {
+                        return SetValueSimpleNamed(name, mat.SwizzleAssign(fieldAccess.Name, (NumericValue)value));
+                    }
+                    else if (variable is ReferenceValue refMat && refMat.Get() is MatrixValue matInner)
+                    {
+                        return SetValueSimpleNamed(name, matInner.SwizzleAssign(fieldAccess.Name, (NumericValue)value));
+                    }
                     else
                     {
                         var structVal = (StructValue)variable;
@@ -580,23 +595,29 @@ namespace UnityShaderParser.Test
         
         public override HLSLValue VisitFieldAccessExpressionNode(FieldAccessExpressionNode node)
         {
-            // TODO: Matrix swizzle
             var target = Visit(node.Target);
-            var targetStruct = target as StructValue;
-            var targetNumeric = target as NumericValue;
+            string field = node.Name.Identifier;
 
             // Vector swizzle
-            if (!(targetNumeric is null))
+            if (target is VectorValue vec)
             {
-                if (node.Name.Identifier.Length > 4)
-                    throw Error($"Invalid vector swizzle '{node.Name.Identifier}'.");
-                if (targetNumeric is VectorValue vec)
-                    return vec.Swizzle(node.Name);
-                else
-                    return targetNumeric.BroadcastToVector(1).Swizzle(node.Name);
+                if (field.Length > 4)
+                    throw Error($"Invalid vector swizzle '{field}'.");
+                return vec.Swizzle(field);
+            }
+            // Scalar swizzle
+            else if (target is ScalarValue scalar)
+            {
+                return scalar.BroadcastToVector(1).Swizzle(field);
+            }
+            // Matrix swizzle
+            else if (target is MatrixValue mat)
+            {
+                return mat.Swizzle(field);
             }
 
-            if (targetStruct is null && targetNumeric is null)
+            var targetStruct = target as StructValue;
+            if (targetStruct is null)
                 throw Error(node.Target, "Expected a struct or numeric type for field access.");
             return targetStruct.Members[node.Name];
         }

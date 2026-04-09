@@ -1542,5 +1542,213 @@ void Operator_NestedSwizzleCompoundAssign()
     a = float4(1, 2, 3, 4);
     a.zyx.xy.yx += float2(10, 20);
     ASSERT(a.x == 1.0 && a.y == 12.0 && a.z == 23.0 && a.w == 4.0);
+}
+
+// ============================================================================
+// MATRIX SWIZZLE TESTS
+// ============================================================================
+
+[Test]
+void Operator_MatrixSwizzleRead_ZeroBased()
+{
+    // float2x2: [1 2]
+    //           [3 4]
+    // _m00=1, _m01=2, _m10=3, _m11=4
+    float2x2 m = float2x2(1, 2, 3, 4);
+
+    // Single element (scalar)
+    float s = m._m00;
+    ASSERT(s == 1.0);
+    ASSERT(m._m01 == 2.0);
+    ASSERT(m._m10 == 3.0);
+    ASSERT(m._m11 == 4.0);
+
+    // Two elements (vector)
+    float2 diag = m._m00_m11;
+    ASSERT(diag.x == 1.0 && diag.y == 4.0);
+
+    // Three elements — anti-diagonal + corner
+    float3x3 n = float3x3(1, 2, 3, 4, 5, 6, 7, 8, 9);
+    float3 v = n._m00_m11_m22;
+    ASSERT(v.x == 1.0 && v.y == 5.0 && v.z == 9.0);
+
+    // Four elements — can reuse the same element
+    float4 rep = n._m00_m01_m10_m11;
+    ASSERT(rep.x == 1.0 && rep.y == 2.0 && rep.z == 4.0 && rep.w == 5.0);
+}
+
+[Test]
+void Operator_MatrixSwizzleRead_OneBased()
+{
+    // float2x2: [1 2]
+    //           [3 4]
+    // _11=1, _12=2, _21=3, _22=4
+    float2x2 m = float2x2(1, 2, 3, 4);
+
+    // Single element (scalar)
+    float s = m._11;
+    ASSERT(s == 1.0);
+    ASSERT(m._12 == 2.0);
+    ASSERT(m._21 == 3.0);
+    ASSERT(m._22 == 4.0);
+
+    // Two elements (vector)
+    float2 diag = m._11_22;
+    ASSERT(diag.x == 1.0 && diag.y == 4.0);
+
+    // Three elements — main diagonal of 3x3
+    float3x3 n = float3x3(1, 2, 3, 4, 5, 6, 7, 8, 9);
+    float3 v = n._11_22_33;
+    ASSERT(v.x == 1.0 && v.y == 5.0 && v.z == 9.0);
+
+    // Four elements
+    float4 rep = n._11_12_21_22;
+    ASSERT(rep.x == 1.0 && rep.y == 2.0 && rep.z == 4.0 && rep.w == 5.0);
+}
+
+[Test]
+void Operator_MatrixSwizzleRead_BothSyntaxesEquivalent()
+{
+    // _mRC (0-based) and _RC (1-based) should refer to the same elements
+    float3x3 m = float3x3(10, 20, 30, 40, 50, 60, 70, 80, 90);
+
+    ASSERT(m._m00 == m._11);
+    ASSERT(m._m01 == m._12);
+    ASSERT(m._m12 == m._23);
+    ASSERT(m._m22 == m._33);
+
+    float2 a = m._m01_m12;
+    float2 b = m._12_23;
+    ASSERT(a.x == b.x && a.y == b.y);
+}
+
+[Test]
+void Operator_MatrixSwizzleWrite_ZeroBased()
+{
+    float2x2 m = float2x2(1, 2, 3, 4);
+
+    // Write single element
+    m._m00 = 10.0;
+    ASSERT(m[0][0] == 10.0 && m[0][1] == 2.0 && m[1][0] == 3.0 && m[1][1] == 4.0);
+
+    // Write two elements (diagonal)
+    m._m01_m10 = float2(20, 30);
+    ASSERT(m[0][0] == 10.0 && m[0][1] == 20.0 && m[1][0] == 30.0 && m[1][1] == 4.0);
+
+    // Write all four elements
+    m._m00_m01_m10_m11 = float4(100, 200, 300, 400);
+    ASSERT(m[0][0] == 100.0 && m[0][1] == 200.0 && m[1][0] == 300.0 && m[1][1] == 400.0);
+}
+
+[Test]
+void Operator_MatrixSwizzleWrite_OneBased()
+{
+    float2x2 m = float2x2(1, 2, 3, 4);
+
+    // Write single element
+    m._11 = 10.0;
+    ASSERT(m[0][0] == 10.0 && m[0][1] == 2.0 && m[1][0] == 3.0 && m[1][1] == 4.0);
+
+    // Write two elements
+    m._12_21 = float2(20, 30);
+    ASSERT(m[0][0] == 10.0 && m[0][1] == 20.0 && m[1][0] == 30.0 && m[1][1] == 4.0);
+}
+
+[Test]
+void Operator_MatrixSwizzleWrite_ScalarBroadcast()
+{
+    float2x2 m = float2x2(1, 2, 3, 4);
+
+    // Assign scalar to multi-element swizzle — broadcasts
+    m._m00_m11 = 99.0;
+    ASSERT(m[0][0] == 99.0 && m[0][1] == 2.0 && m[1][0] == 3.0 && m[1][1] == 99.0);
+}
+
+[Test]
+void Operator_MatrixSwizzleCompoundAssign()
+{
+    float2x2 m = float2x2(1, 2, 3, 4);
+
+    m._m00_m11 += 10.0;
+    ASSERT(m[0][0] == 11.0 && m[0][1] == 2.0 && m[1][0] == 3.0 && m[1][1] == 14.0);
+
+    m._m01_m10 *= 2.0;
+    ASSERT(m[0][1] == 4.0 && m[1][0] == 6.0);
+}
+
+[Test]
+[WarpSize(4, 1)]
+void Operator_MatrixSwizzleWrite_VaryingControlFlow()
+{
+    // Divergent if: lanes 0-1 write the diagonal, lanes 2-3 write the anti-diagonal
+    uint lane = WaveGetLaneIndex();
+    float2x2 m = float2x2(0, 0, 0, 0);
+
+    if (lane < 2)
+        m._m00_m11 = float2(10.0, 20.0);
+    else
+        m._m01_m10 = float2(30.0, 40.0);
+
+    // Lanes 0-1: diagonal written, anti-diagonal untouched
+    ASSERT(WaveReadLaneAt(m[0][0], 0) == 10.0);
+    ASSERT(WaveReadLaneAt(m[1][1], 0) == 20.0);
+    ASSERT(WaveReadLaneAt(m[0][1], 0) == 0.0);
+    ASSERT(WaveReadLaneAt(m[1][0], 0) == 0.0);
+    // Lanes 2-3: anti-diagonal written, diagonal untouched
+    ASSERT(WaveReadLaneAt(m[0][1], 2) == 30.0);
+    ASSERT(WaveReadLaneAt(m[1][0], 2) == 40.0);
+    ASSERT(WaveReadLaneAt(m[0][0], 2) == 0.0);
+    ASSERT(WaveReadLaneAt(m[1][1], 2) == 0.0);
+}
+
+[Test]
+[WarpSize(4, 1)]
+void Operator_MatrixSwizzleWrite_VaryingRHS()
+{
+    // RHS is per-lane: each lane writes (lane, lane*10) to the diagonal _m00_m11
+    uint lane = WaveGetLaneIndex();
+    float2x2 m = float2x2(0, 0, 0, 0);
+
+    m._m00_m11 = float2((float)lane, (float)lane * 10.0);
+
+    ASSERT(WaveReadLaneAt(m[0][0], 0) == 0.0);
+    ASSERT(WaveReadLaneAt(m[1][1], 0) == 0.0);
+    ASSERT(WaveReadLaneAt(m[0][0], 1) == 1.0);
+    ASSERT(WaveReadLaneAt(m[1][1], 1) == 10.0);
+    ASSERT(WaveReadLaneAt(m[0][0], 2) == 2.0);
+    ASSERT(WaveReadLaneAt(m[1][1], 2) == 20.0);
+    ASSERT(WaveReadLaneAt(m[0][0], 3) == 3.0);
+    ASSERT(WaveReadLaneAt(m[1][1], 3) == 30.0);
+    // Anti-diagonal untouched
+    ASSERT(WaveReadLaneAt(m[0][1], 0) == 0.0);
+    ASSERT(WaveReadLaneAt(m[1][0], 0) == 0.0);
+}
+
+[Test]
+[WarpSize(4, 1)]
+void Operator_MatrixSwizzleWrite_VaryingMatrix()
+{
+    // The matrix itself is varying (each lane has different values)
+    uint lane = WaveGetLaneIndex();
+    float2x2 m = float2x2((float)lane, 0, 0, (float)lane * 10.0);  // diagonal differs per lane
+
+    // Assign uniform value to the anti-diagonal _m01_m10 on a varying matrix
+    m._m01_m10 = float2(99.0, 88.0);
+
+    // Diagonal stays per-lane
+    ASSERT(WaveReadLaneAt(m[0][0], 0) == 0.0);
+    ASSERT(WaveReadLaneAt(m[1][1], 0) == 0.0);
+    ASSERT(WaveReadLaneAt(m[0][0], 1) == 1.0);
+    ASSERT(WaveReadLaneAt(m[1][1], 1) == 10.0);
+    ASSERT(WaveReadLaneAt(m[0][0], 2) == 2.0);
+    ASSERT(WaveReadLaneAt(m[1][1], 2) == 20.0);
+    ASSERT(WaveReadLaneAt(m[0][0], 3) == 3.0);
+    ASSERT(WaveReadLaneAt(m[1][1], 3) == 30.0);
+    // Anti-diagonal was assigned uniformly across all lanes
+    ASSERT(WaveReadLaneAt(m[0][1], 0) == 99.0);
+    ASSERT(WaveReadLaneAt(m[1][0], 0) == 88.0);
+    ASSERT(WaveReadLaneAt(m[0][1], 3) == 99.0);
+    ASSERT(WaveReadLaneAt(m[1][0], 3) == 88.0);
+}
 
 }
