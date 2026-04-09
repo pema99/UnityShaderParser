@@ -864,7 +864,6 @@ namespace UnityShaderParser.Test
         public override HLSLValue VisitCastExpressionNode(CastExpressionNode node)
         {
             // TODO: Array cast
-            // TODO: Struct initialization (0)
             var numeric = EvaluateNumeric(node.Expression);
             switch (node.Kind)
             {
