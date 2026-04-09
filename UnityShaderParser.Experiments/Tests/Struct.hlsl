@@ -14,7 +14,7 @@ struct Foo
         return a;
     }
 
-    void Boo(int b)
+    int Boo(int b)
     {
         return a + b;
     }
@@ -54,4 +54,31 @@ void StructDefaultInitializer_ReadField_IsZero()
 {
     Foo f = (Foo)0;
     ASSERT(f.a == 0);
+}
+
+struct Single
+{
+    int baz;
+};
+
+struct Dual
+{
+    int foo;
+    Single baz;
+};
+
+[Test]
+void StructScalarInitializer_ReadField_MatchesValue()
+{
+    Dual f = (Dual)13;
+    ASSERT(f.foo == 13);
+    ASSERT(f.baz.baz == 13);
+}
+
+[Test]
+void StructArrayInitializer_ReadField_MatchesValues()
+{
+    Dual f = {2,1};
+    ASSERT(f.foo == 2);
+    ASSERT(f.baz.baz == 1);
 }

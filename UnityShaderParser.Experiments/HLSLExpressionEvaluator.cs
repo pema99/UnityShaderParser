@@ -883,7 +883,7 @@ namespace UnityShaderParser.Test
                     return numeric.BroadcastToMatrix(rows, cols).Cast(genMatrixType.Kind);
                 case UserDefinedNamedTypeNode named when node.Expression is LiteralExpressionNode:
                     var structType = context.GetStruct(named.GetName());
-                    return interpreter.CreateStructValue(structType);
+                    return interpreter.CreateStructValueFilledWith(structType, numeric);
                 default:
                     throw Error(node, "Invalid cast.");
             }
