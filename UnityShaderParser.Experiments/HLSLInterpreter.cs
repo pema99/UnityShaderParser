@@ -20,7 +20,6 @@ namespace UnityShaderParser.Test
     // More test attributes
     // Texture/StructuredBuffer
     // Array cast
-    // Struct initialization (0)
     // Generic vector/matrix types
 
     public class HLSLInterpreter : HLSLSyntaxVisitor
