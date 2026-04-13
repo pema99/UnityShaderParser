@@ -324,7 +324,7 @@ namespace UnityShaderParser.HLSL
                 case "sampler1D": token = TokenKind.Sampler1DKeyword; return true;
                 case "sampler2D": token = TokenKind.Sampler2DKeyword; return true;
                 case "sampler3D": token = TokenKind.Sampler3DKeyword; return true;
-                case "samplercube": token = TokenKind.SamplerCubeKeyword; return true;
+                case "samplerCUBE": token = TokenKind.SamplerCubeKeyword; return true;
                 case "SamplerComparisonState": token = TokenKind.SamplerComparisonStateKeyword; return true;
                 case "SamplerState": token = TokenKind.SamplerStateKeyword; return true;
                 case "sampler_state": token = TokenKind.SamplerStateLegacyKeyword; return true;
