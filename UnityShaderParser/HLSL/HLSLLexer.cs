@@ -70,28 +70,39 @@ namespace UnityShaderParser.HLSL
                     break;
 
                 case '/' when LookAhead('/'):
-                    Advance(2);
+                {
+                    StringBuilder builder = new StringBuilder();
+                    builder.Append(Advance());
+                    builder.Append(Advance());
                     while (!Match('\n'))
                     {
-                        Advance();
+                        builder.Append(Advance());
                         if (IsAtEnd())
                             break;
                     }
+                    AddTrivia(SyntaxTriviaKind.SingleLineComment, builder.ToString());
                     break;
+                }
 
                 case '/' when LookAhead('*'):
-                    Advance(2);
+                {
+                    StringBuilder builder = new StringBuilder();
+                    builder.Append(Advance());
+                    builder.Append(Advance());
                     while (!(Match('*') && LookAhead('/')))
                     {
-                        Advance();
+                        builder.Append(Advance());
                         if (IsAtEnd())
                         {
                             Error(DiagnosticFlags.SyntaxError, $"Unterminated comment.");
                             break;
                         }
                     }
-                    Advance(2);
+                    builder.Append(Advance());
+                    builder.Append(Advance());
+                    AddTrivia(SyntaxTriviaKind.MultiLineComment, builder.ToString());
                     break;
+                }
 
                 case '(': Advance(); Add(TokenKind.OpenParenToken); break;
                 case ')': Advance(); Add(TokenKind.CloseParenToken); break;
@@ -227,7 +238,7 @@ namespace UnityShaderParser.HLSL
                 default:
                     Add(TokenKind.HashToken);
                     Add(keyword, TokenKind.IdentifierToken);
-                    break;
+                    return;
             }
 
             // Go to end of line

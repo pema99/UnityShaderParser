@@ -116,6 +116,28 @@ namespace UnityShaderParser.HLSL.PreProcessor
         protected List<HLSLToken> outputTokens = new List<HLSLToken>();
         protected List<string> outputPragmas = new List<string>();
 
+        protected List<SyntaxTrivia> pendingLeadingTrivia = new List<SyntaxTrivia>();
+        protected void AddLeadingTrivia(HLSLToken tok)
+        {
+            if (tok.RawLeadingTrivia != null)
+                pendingLeadingTrivia.AddRange(tok.RawLeadingTrivia);
+        }
+        protected HLSLToken EmitWithSourceTrivia(HLSLToken source, SourceSpan span, SourceSpan originalSpan)
+        {
+            List<SyntaxTrivia> leading = source.RawLeadingTrivia;
+            if (pendingLeadingTrivia.Count > 0)
+            {
+                var combined = new List<SyntaxTrivia>(pendingLeadingTrivia.Count + (leading?.Count ?? 0));
+                combined.AddRange(pendingLeadingTrivia);
+                if (leading != null) combined.AddRange(leading);
+                leading = combined;
+                pendingLeadingTrivia.Clear();
+            }
+            // Fast path
+            return new HLSLToken(source.Kind, source.Identifier, span, originalSpan, outputTokens.Count,
+                leading, source.RawTrailingTrivia);
+        }
+
         protected SourceSpan AddFileContext(SourceSpan span)
         {
             string newBasePath = span.BasePath;
@@ -133,8 +155,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
         protected void Passthrough()
         {
             var token = Advance();
-            var newToken = new HLSLToken(token.Kind, token.Identifier, AddFileContext(token.Span), token.OriginalSpan, outputTokens.Count);
-            outputTokens.Add(newToken);
+            outputTokens.Add(EmitWithSourceTrivia(token, AddFileContext(token.Span), token.OriginalSpan));
         }
 
         public HLSLPreProcessor(List<HLSLToken> tokens, bool throwExceptionOnError, DiagnosticFlags diagnosticFilter, string basePath, IPreProcessorIncludeResolver includeResolver, Dictionary<string, string> defines)
@@ -265,6 +286,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
         private void ExpandInclude(PreProcessorMode mode)
         {
             var keywordTok = Eat(TokenKind.IncludeDirectiveKeyword);
+            AddLeadingTrivia(keywordTok);
             var pathToken = Eat(TokenKind.SystemIncludeLiteralToken, TokenKind.StringLiteralToken);
             var endTok = Eat(TokenKind.EndDirectiveToken);
             var includeSpan = SourceSpan.Between(keywordTok.Span, endTok.Span);
@@ -394,11 +416,27 @@ namespace UnityShaderParser.HLSL.PreProcessor
 
             parameters = new List<List<HLSLToken>>();
 
+            var pendingArgTrivia = new List<SyntaxTrivia>();
+            var parametersRef = parameters;
+            void AddArgToken(HLSLToken tok)
+            {
+                if (pendingArgTrivia.Count > 0)
+                {
+                    var leading = new List<SyntaxTrivia>(pendingArgTrivia);
+                    if (tok.HasLeadingTrivia) leading.AddRange(tok.RawLeadingTrivia);
+                    tok = new HLSLToken(tok.Kind, tok.Identifier, tok.Span, tok.OriginalSpan, tok.Position, leading, tok.RawTrailingTrivia);
+                    pendingArgTrivia.Clear();
+                }
+                parametersRef[parametersRef.Count - 1].Add(tok);
+            }
+
             // Eat arguments if they are available
             if (LocalMatch(TokenKind.OpenParenToken))
             {
                 // Always eat open paren
-                LocalEat(TokenKind.OpenParenToken);
+                var openParen = LocalEat(TokenKind.OpenParenToken);
+                if (openParen.HasLeadingTrivia) pendingArgTrivia.AddRange(openParen.RawLeadingTrivia);
+                if (openParen.HasTrailingTrivia) pendingArgTrivia.AddRange(openParen.RawTrailingTrivia);
 
                 // Check for special case of 0 args
                 if (LocalMatch(TokenKind.CloseParenToken))
@@ -419,17 +457,19 @@ namespace UnityShaderParser.HLSL.PreProcessor
                     {
                         case TokenKind.OpenParenToken:
                             numParens++;
-                            if (numParens > 1) parameters.Last().Add(next);
+                            if (numParens > 1) AddArgToken(next);
                             break;
                         case TokenKind.CloseParenToken:
-                            if (numParens > 1) parameters.Last().Add(next);
+                            if (numParens > 1) AddArgToken(next);
                             numParens--;
                             break;
                         case TokenKind.CommaToken when numParens == 1:
                             parameters.Add(new List<HLSLToken>());
+                            if (next.HasLeadingTrivia) pendingArgTrivia.AddRange(next.RawLeadingTrivia);
+                            if (next.HasTrailingTrivia) pendingArgTrivia.AddRange(next.RawTrailingTrivia);
                             break;
                         default:
-                            parameters.Last().Add(next);
+                            AddArgToken(next);
                             break;
                     }
                 }
@@ -552,7 +592,8 @@ namespace UnityShaderParser.HLSL.PreProcessor
                                     var parameter = parameters[paramIndex];
                                     foreach (var parameterToken in parameter)
                                     {
-                                        next.Add(new HLSLToken(parameterToken.Kind, parameterToken.Identifier, macroToken.Span, parameterToken.Span, parameterToken.Position));
+                                        next.Add(new HLSLToken(parameterToken.Kind, parameterToken.Identifier, macroToken.Span, parameterToken.Span, parameterToken.Position,
+                                            parameterToken.RawLeadingTrivia, parameterToken.RawTrailingTrivia));
                                     }
                                 }
                                 else
@@ -736,6 +777,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
 
         private void ExpandConditional()
         {
+            AddLeadingTrivia(Peek());
             int startPosition = position;
             List<HLSLToken> takenTokens = new List<HLSLToken>();
             bool branchTaken = false;
@@ -827,7 +869,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
 
                     case TokenKind.LineDirectiveKeyword when mode.HasFlag(PreProcessorMode.ExpandLineDirectives):
                         int tokenLine = next.Span.Start.Line; // where we actually are
-                        Eat(TokenKind.LineDirectiveKeyword);
+                        AddLeadingTrivia(Eat(TokenKind.LineDirectiveKeyword));
                         int targetLine = ParseIntegerLiteral(); // where we want to be
                         lineOffset = targetLine - tokenLine - 1; // calculate the offset
                         if (Match(TokenKind.StringLiteralToken))
@@ -838,7 +880,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                         break;
 
                     case TokenKind.DefineDirectiveKeyword when mode.HasFlag(PreProcessorMode.ExpandDefineDirectives):
-                        Eat(TokenKind.DefineDirectiveKeyword);
+                        AddLeadingTrivia(Eat(TokenKind.DefineDirectiveKeyword));
                         string from = ParseIdentifier();
                         List<string> args = new List<string>();
                         bool functionLike = false;
@@ -861,14 +903,14 @@ namespace UnityShaderParser.HLSL.PreProcessor
                         break;
 
                     case TokenKind.UndefDirectiveKeyword when mode.HasFlag(PreProcessorMode.ExpandUndefDirectives):
-                        Eat(TokenKind.UndefDirectiveKeyword);
+                        AddLeadingTrivia(Eat(TokenKind.UndefDirectiveKeyword));
                         string undef = ParseIdentifier();
                         Eat(TokenKind.EndDirectiveToken);
                         defines.Remove(undef);
                         break;
 
                     case TokenKind.ErrorDirectiveKeyword when mode.HasFlag(PreProcessorMode.ExpandErrorDirectives):
-                        Eat(TokenKind.ErrorDirectiveKeyword);
+                        AddLeadingTrivia(Eat(TokenKind.ErrorDirectiveKeyword));
                         var errorToks = ParseMany0(() => !Match(TokenKind.EndDirectiveToken), () => Advance())
                             .Select(x => HLSLSyntaxFacts.TokenToString(x));
                         Eat(TokenKind.EndDirectiveToken);
@@ -877,7 +919,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                         break;
 
                     case TokenKind.PragmaDirectiveKeyword when mode.HasFlag(PreProcessorMode.ExpandPragmaDirectives):
-                        Eat(TokenKind.PragmaDirectiveKeyword);
+                        AddLeadingTrivia(Eat(TokenKind.PragmaDirectiveKeyword));
                         var pragmaToks = ParseMany0(() => !Match(TokenKind.EndDirectiveToken), () => Advance())
                             .Select(x => HLSLSyntaxFacts.TokenToString(x));
                         Eat(TokenKind.EndDirectiveToken);
@@ -898,14 +940,16 @@ namespace UnityShaderParser.HLSL.PreProcessor
                         break;
 
                     case TokenKind.IdentifierToken when mode.HasFlag(PreProcessorMode.ExpandMacroInvocations):
-                        var startSpan = Peek().Span;
+                        var identifierTok = Peek();
+                        var startSpan = identifierTok.Span;
                         var expanded = ApplyMacros();
                         var endSpan = Previous().Span;
                         var newSpan = SourceSpan.Between(startSpan, endSpan);
+                        if (expanded.Count == 0 || !ReferenceEquals(expanded[0], identifierTok))
+                            AddLeadingTrivia(identifierTok);
                         foreach (var token in expanded)
                         {
-                            var newToken = new HLSLToken(token.Kind, token.Identifier, AddFileContext(newSpan), token.Span, outputTokens.Count);
-                            outputTokens.Add(newToken);
+                            outputTokens.Add(EmitWithSourceTrivia(token, AddFileContext(newSpan), token.Span));
                         }
                         break;
 
@@ -957,6 +1001,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                     case TokenKind.ElifDirectiveKeyword:
                     case TokenKind.ElseDirectiveKeyword:
                     case TokenKind.EndifDirectiveKeyword:
+                        AddLeadingTrivia(Peek());
                         while (LoopShouldContinue() && !Match(TokenKind.EndDirectiveToken))
                         {
                             Advance();
