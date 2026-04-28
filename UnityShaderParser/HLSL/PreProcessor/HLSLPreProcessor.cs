@@ -117,6 +117,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
         protected List<string> outputPragmas = new List<string>();
 
         protected List<SyntaxTrivia> pendingLeadingTrivia = new List<SyntaxTrivia>();
+        protected List<SyntaxTrivia> pendingMacroPostTrivia = new List<SyntaxTrivia>();
         protected void AddLeadingTrivia(HLSLToken tok)
         {
             if (tok.RawLeadingTrivia != null)
@@ -134,8 +135,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                 pendingLeadingTrivia.Clear();
             }
             // Fast path
-            return new HLSLToken(source.Kind, source.Identifier, span, originalSpan, outputTokens.Count,
-                leading, source.RawTrailingTrivia);
+            return new HLSLToken(source.Kind, source.Identifier, span, originalSpan, outputTokens.Count, leading);
         }
 
         protected SourceSpan AddFileContext(SourceSpan span)
@@ -398,7 +398,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
             tokens.AddRange(result);
         }
 
-        private bool TryParseFunctionLikeMacroInvocationParameters(List<HLSLToken> tokenStream, ref int streamOffset, out List<List<HLSLToken>> parameters)
+        private bool TryParseFunctionLikeMacroInvocationParameters(List<HLSLToken> tokenStream, ref int streamOffset, out List<List<HLSLToken>> parameters, out List<SyntaxTrivia> closeTrivia)
         {
             int localOffset = streamOffset + 1;
 
@@ -415,6 +415,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
             }
 
             parameters = new List<List<HLSLToken>>();
+            closeTrivia = null;
 
             var pendingArgTrivia = new List<SyntaxTrivia>();
             var parametersRef = parameters;
@@ -424,7 +425,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                 {
                     var leading = new List<SyntaxTrivia>(pendingArgTrivia);
                     if (tok.HasLeadingTrivia) leading.AddRange(tok.RawLeadingTrivia);
-                    tok = new HLSLToken(tok.Kind, tok.Identifier, tok.Span, tok.OriginalSpan, tok.Position, leading, tok.RawTrailingTrivia);
+                    tok = new HLSLToken(tok.Kind, tok.Identifier, tok.Span, tok.OriginalSpan, tok.Position, leading);
                     pendingArgTrivia.Clear();
                 }
                 parametersRef[parametersRef.Count - 1].Add(tok);
@@ -436,12 +437,12 @@ namespace UnityShaderParser.HLSL.PreProcessor
                 // Always eat open paren
                 var openParen = LocalEat(TokenKind.OpenParenToken);
                 if (openParen.HasLeadingTrivia) pendingArgTrivia.AddRange(openParen.RawLeadingTrivia);
-                if (openParen.HasTrailingTrivia) pendingArgTrivia.AddRange(openParen.RawTrailingTrivia);
 
                 // Check for special case of 0 args
                 if (LocalMatch(TokenKind.CloseParenToken))
                 {
-                    LocalEat(TokenKind.CloseParenToken);
+                    var closeParen = LocalEat(TokenKind.CloseParenToken);
+                    if (closeParen.HasLeadingTrivia) closeTrivia = new List<SyntaxTrivia>(closeParen.RawLeadingTrivia);
                     streamOffset = localOffset - 1;
                     return true;
                 }
@@ -460,13 +461,13 @@ namespace UnityShaderParser.HLSL.PreProcessor
                             if (numParens > 1) AddArgToken(next);
                             break;
                         case TokenKind.CloseParenToken:
-                            if (numParens > 1) AddArgToken(next);
                             numParens--;
+                            if (numParens > 0) AddArgToken(next);
+                            else if (next.HasLeadingTrivia) closeTrivia = new List<SyntaxTrivia>(next.RawLeadingTrivia);
                             break;
                         case TokenKind.CommaToken when numParens == 1:
                             parameters.Add(new List<HLSLToken>());
                             if (next.HasLeadingTrivia) pendingArgTrivia.AddRange(next.RawLeadingTrivia);
-                            if (next.HasTrailingTrivia) pendingArgTrivia.AddRange(next.RawTrailingTrivia);
                             break;
                         default:
                             AddArgToken(next);
@@ -552,7 +553,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                         if (macro.FunctionLike)
                         {
                             // Try to parse parameters.
-                            if (!TryParseFunctionLikeMacroInvocationParameters(expanded, ref i, out var parameters))
+                            if (!TryParseFunctionLikeMacroInvocationParameters(expanded, ref i, out var parameters, out var closeTrivia))
                             {
                                 // If they aren't present, it might be a deferred function-like macro.
                                 // Eat more tokens to get the parameters and retry.
@@ -569,7 +570,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                                             numParens--;
                                         expanded.Add(nextTok);
                                     }
-                                    if (!TryParseFunctionLikeMacroInvocationParameters(expanded, ref i, out parameters))
+                                    if (!TryParseFunctionLikeMacroInvocationParameters(expanded, ref i, out parameters, out closeTrivia))
                                         next.Add(token); // Still no luck, must be a regular identifier.
                                 }
                                 // Otherwise, must be a regular identifier.
@@ -583,6 +584,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                                 Error(DiagnosticFlags.PreProcessorError, $"Incorrect number of arguments passed to macro '{macro.Name}', expected {macro.Parameters.Count}, got {parameters.Count}.");
 
                             // If they are there, substitute them
+                            int lastParamEndPosInNext = -1;
                             foreach (var macroToken in macro.Tokens)
                             {
                                 string macroTokenLexeme = HLSLSyntaxFacts.IdentifierOrKeywordToString(macroToken);
@@ -593,12 +595,34 @@ namespace UnityShaderParser.HLSL.PreProcessor
                                     foreach (var parameterToken in parameter)
                                     {
                                         next.Add(new HLSLToken(parameterToken.Kind, parameterToken.Identifier, macroToken.Span, parameterToken.Span, parameterToken.Position,
-                                            parameterToken.RawLeadingTrivia, parameterToken.RawTrailingTrivia));
+                                            parameterToken.RawLeadingTrivia));
                                     }
+                                    lastParamEndPosInNext = next.Count;
                                 }
                                 else
                                 {
                                     next.Add(macroToken);
+                                }
+                            }
+
+                            if (closeTrivia?.Count > 0)
+                            {
+                                // Add trivia end of last param, example:
+                                // #define foo(x) x;
+                                // foo(1 /*bar*/) <-- attach trivia to semicolon
+                                if (lastParamEndPosInNext >= 0 && lastParamEndPosInNext < next.Count)
+                                {
+                                    var bodyTok = next[lastParamEndPosInNext];
+                                    var newLeading = new List<SyntaxTrivia>(closeTrivia);
+                                    if (bodyTok.HasLeadingTrivia) newLeading.AddRange(bodyTok.RawLeadingTrivia);
+                                    next[lastParamEndPosInNext] = new HLSLToken(bodyTok.Kind, bodyTok.Identifier, bodyTok.Span, bodyTok.OriginalSpan, bodyTok.Position, newLeading);
+                                }
+                                // Add trivia to whatever comes next, example:
+                                // #define foo(x) x
+                                // foo(1 /*bar*/) <-- attach trivia to next line
+                                else
+                                {
+                                    pendingMacroPostTrivia.AddRange(closeTrivia);
                                 }
                             }
                         }
@@ -951,7 +975,17 @@ namespace UnityShaderParser.HLSL.PreProcessor
                         {
                             outputTokens.Add(EmitWithSourceTrivia(token, AddFileContext(newSpan), token.Span));
                         }
+                        if (pendingMacroPostTrivia.Count > 0)
+                        {
+                            pendingLeadingTrivia.AddRange(pendingMacroPostTrivia);
+                            pendingMacroPostTrivia.Clear();
+                        }
                         break;
+
+                    // Don't emit EOF tokens from included files.
+                    case TokenKind.EndOfFileToken when fileSnapshots.Count > 0:
+                        AddLeadingTrivia(next);
+                        return;
 
                     default:
                         Passthrough();
@@ -974,6 +1008,12 @@ namespace UnityShaderParser.HLSL.PreProcessor
                 if (next.Kind == TokenKind.IncludeDirectiveKeyword)
                 {
                     ExpandInclude(PreProcessorMode.ExpandIncludesOnly);
+                }
+                // Don't emit EOF tokens from included files.
+                else if (next.Kind == TokenKind.EndOfFileToken && fileSnapshots.Count > 0)
+                {
+                    AddLeadingTrivia(next);
+                    break;
                 }
                 else
                 {

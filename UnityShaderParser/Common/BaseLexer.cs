@@ -8,6 +8,7 @@ namespace UnityShaderParser.Common
         where T : struct
     {
         protected abstract ParserStage Stage { get; }
+        protected abstract T EndOfFileTokenKind { get; }
 
         protected bool throwExceptionOnError = false;
         protected string source = string.Empty;
@@ -95,29 +96,7 @@ namespace UnityShaderParser.Common
             if (pendingTrivia.Count == 0)
                 return;
 
-            // First token, so everything is leading trivia
-            if (tokens.Count == 0)
-            {
-                newToken.AddLeadingTrivia(pendingTrivia);
-                pendingTrivia.Clear();
-                return;
-            }
-
-            var previous = tokens[tokens.Count - 1];
-            int previousEndLine = previous.Span.End.Line;
-            bool reachedNextLine = false;
-            foreach (var trivia in pendingTrivia)
-            {
-                if (!reachedNextLine && trivia.Span.Start.Line > previousEndLine)
-                    reachedNextLine = true;
-
-                // If we reached next line, the trivia belongs to the token on the new line
-                if (reachedNextLine)
-                    newToken.AddLeadingTrivia(trivia);
-                // Otherwise belongs to the previous token
-                else
-                    previous.AddTrailingTrivia(trivia);
-            }
+            newToken.AddLeadingTrivia(pendingTrivia);
             pendingTrivia.Clear();
         }
 
@@ -218,12 +197,12 @@ namespace UnityShaderParser.Common
                 ProcessChar(Peek());
             }
 
-            // Add remaining trivia to last token
-            if (pendingTrivia.Count > 0 && tokens.Count > 0)
-            {
-                tokens[tokens.Count - 1].AddTrailingTrivia(pendingTrivia);
-                pendingTrivia.Clear();
-            }
+            // Emit a synthetic end-of-file token. Any remaining pending trivia
+            // becomes its leading trivia.
+            StartCurrentSpan();
+            var eofToken = new Token<T>(EndOfFileTokenKind, null, GetCurrentSpan(), tokens.Count);
+            AttachPendingTrivia(eofToken);
+            tokens.Add(eofToken);
         }
     }
 }

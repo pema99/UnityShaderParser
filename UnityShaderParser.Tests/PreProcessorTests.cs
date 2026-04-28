@@ -179,6 +179,43 @@ namespace UnityShaderParser.HLSL.PreProcessor.Tests
         }
 
         [Test]
+        public void ExpandIncludesOnlyEmitsExactlyOneEofToken()
+        {
+            // IncludeA.hlsl recursively includes Include/IncludeB.hlsl, so the recursive
+            // ExpandIncludesOnly path is exercised. There must be exactly one EOF in the
+            // output - no stray ones from the lexed include files.
+            var source = "void C() {}\n#include \"TestShaders/Homemade/IncludeA.hlsl\"\nvoid D() {}";
+            var tokens = HLSLLexer.Lex(source, null, null, false, out var lexerDiags);
+            Assert.IsEmpty(lexerDiags);
+
+            var resolver = new DefaultPreProcessorIncludeResolver(new List<string>());
+            var output = HLSLPreProcessor.PreProcess(
+                tokens, false, DiagnosticFlags.All, PreProcessorMode.ExpandIncludesOnly,
+                Directory.GetCurrentDirectory(), resolver, new Dictionary<string, string>(),
+                out _, out var ppDiags);
+            Assert.IsEmpty(ppDiags);
+
+            Assert.AreEqual(1, output.Count(t => t.Kind == HLSL.TokenKind.EndOfFileToken));
+            Assert.AreEqual(HLSL.TokenKind.EndOfFileToken, output[output.Count - 1].Kind);
+        }
+
+        [Test]
+        public void ParseExpressionPostfixIncrement()
+        {
+            var expr = ShaderParser.ParseExpression("i++", out var diags, out _);
+            Assert.IsEmpty(diags);
+            Assert.IsInstanceOf<PostfixUnaryExpressionNode>(expr);
+        }
+
+        [Test]
+        public void ParseStatementsSingleDeclaration()
+        {
+            var stmts = ShaderParser.ParseStatements("int a;", out var diags, out _);
+            Assert.IsEmpty(diags);
+            Assert.AreEqual(1, stmts.Count);
+        }
+
+        [Test]
         public void DelayedFunctionLikeMacrosAreExpandedCorrectly()
         {
             var testCode = @"

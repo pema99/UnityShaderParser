@@ -9,6 +9,7 @@ namespace UnityShaderParser.HLSL
     public class HLSLLexer : BaseLexer<TokenKind>
     {
         protected override ParserStage Stage => ParserStage.HLSLLexing;
+        protected override TokenKind EndOfFileTokenKind => TokenKind.EndOfFileToken;
 
         public HLSLLexer(string source, string basePath, string fileName, bool throwExceptionOnError, SourceLocation offset)
             : base(source, basePath, fileName, throwExceptionOnError, offset) { }

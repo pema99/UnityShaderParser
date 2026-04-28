@@ -143,13 +143,10 @@ namespace UnityShaderParser.Common
         public int Position { get; private set; }            // Location in token stream
 
         public List<SyntaxTrivia> RawLeadingTrivia;  // Null if no trivia
-        public List<SyntaxTrivia> RawTrailingTrivia; // Null if no trivia
 
         public bool HasLeadingTrivia => RawLeadingTrivia != null;
-        public bool HasTrailingTrivia => RawTrailingTrivia != null;
 
         public IReadOnlyList<SyntaxTrivia> LeadingTrivia => RawLeadingTrivia ?? (IReadOnlyList<SyntaxTrivia>)Array.Empty<SyntaxTrivia>();
-        public IReadOnlyList<SyntaxTrivia> TrailingTrivia => RawTrailingTrivia ?? (IReadOnlyList<SyntaxTrivia>)Array.Empty<SyntaxTrivia>();
 
         public void AddLeadingTrivia(SyntaxTrivia trivia)
         {
@@ -157,24 +154,11 @@ namespace UnityShaderParser.Common
             RawLeadingTrivia.Add(trivia);
         }
 
-        public void AddTrailingTrivia(SyntaxTrivia trivia)
-        {
-            if (RawTrailingTrivia == null) RawTrailingTrivia = new List<SyntaxTrivia>();
-            RawTrailingTrivia.Add(trivia);
-        }
-
         public void AddLeadingTrivia(List<SyntaxTrivia> trivias)
         {
             if (trivias.Count == 0) return;
             if (RawLeadingTrivia == null) RawLeadingTrivia = new List<SyntaxTrivia>(trivias);
             else RawLeadingTrivia.AddRange(trivias);
-        }
-
-        public void AddTrailingTrivia(List<SyntaxTrivia> trivias)
-        {
-            if (trivias.Count == 0) return;
-            if (RawTrailingTrivia == null) RawTrailingTrivia = new List<SyntaxTrivia>(trivias);
-            else RawTrailingTrivia.AddRange(trivias);
         }
 
         public Token(T kind, string identifier, SourceSpan span, int position)
@@ -195,7 +179,7 @@ namespace UnityShaderParser.Common
             Position = position;
         }
 
-        public Token(T kind, string identifier, SourceSpan span, SourceSpan originalSpan, int position, List<SyntaxTrivia> leadingTrivia, List<SyntaxTrivia> trailingTrivia)
+        public Token(T kind, string identifier, SourceSpan span, SourceSpan originalSpan, int position, List<SyntaxTrivia> leadingTrivia)
         {
             Kind = kind;
             Identifier = identifier;
@@ -203,7 +187,6 @@ namespace UnityShaderParser.Common
             OriginalSpan = originalSpan;
             Position = position;
             RawLeadingTrivia = leadingTrivia;
-            RawTrailingTrivia = trailingTrivia;
         }
 
         public override string ToString()

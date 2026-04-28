@@ -216,6 +216,8 @@ namespace UnityShaderParser.ShaderLab
         CgProgramBlock,
         GlslIncludeBlock,
         GlslProgramBlock,
+
+        EndOfFileToken,
     }
     #endregion
 

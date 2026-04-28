@@ -145,40 +145,31 @@ namespace UnityShaderParser.Tests
             Assert.AreEqual(1, intTok.LeadingTrivia.Count);
             Assert.AreEqual(SyntaxTriviaKind.SingleLineComment, intTok.LeadingTrivia[0].Kind);
             Assert.AreEqual("// header", intTok.LeadingTrivia[0].Text);
-            Assert.IsEmpty(intTok.TrailingTrivia);
         }
 
         [Test]
-        public void InlineSingleLineCommentBecomesTrailingTriviaOfPreviousToken()
+        public void InlineSingleLineCommentBecomesLeadingTriviaOfNextToken()
         {
             var tokens = HLSLLexer.Lex("int a; // trailing\nint b;", null, null, false, out var diags);
             Assert.IsEmpty(diags);
 
-            var firstSemi = tokens[2];
-            Assert.AreEqual(TokenKind.SemiToken, firstSemi.Kind);
-            Assert.IsEmpty(firstSemi.LeadingTrivia);
-            Assert.AreEqual(1, firstSemi.TrailingTrivia.Count);
-            Assert.AreEqual(SyntaxTriviaKind.SingleLineComment, firstSemi.TrailingTrivia[0].Kind);
-            Assert.AreEqual("// trailing", firstSemi.TrailingTrivia[0].Text);
-
             var secondInt = tokens[3];
             Assert.AreEqual(TokenKind.IntKeyword, secondInt.Kind);
-            Assert.IsEmpty(secondInt.LeadingTrivia);
+            Assert.AreEqual(1, secondInt.LeadingTrivia.Count);
+            Assert.AreEqual(SyntaxTriviaKind.SingleLineComment, secondInt.LeadingTrivia[0].Kind);
+            Assert.AreEqual("// trailing", secondInt.LeadingTrivia[0].Text);
         }
 
         [Test]
-        public void InlineMultiLineCommentBecomesTrailingTriviaOfPreviousToken()
+        public void InlineMultiLineCommentBecomesLeadingTriviaOfNextToken()
         {
             var tokens = HLSLLexer.Lex("int /* between */ a;", null, null, false, out var diags);
             Assert.IsEmpty(diags);
 
-            var intTok = FindToken(tokens, TokenKind.IntKeyword);
-            Assert.AreEqual(1, intTok.TrailingTrivia.Count);
-            Assert.AreEqual(SyntaxTriviaKind.MultiLineComment, intTok.TrailingTrivia[0].Kind);
-            Assert.AreEqual("/* between */", intTok.TrailingTrivia[0].Text);
-
             var aTok = FindToken(tokens, TokenKind.IdentifierToken, "a");
-            Assert.IsEmpty(aTok.LeadingTrivia);
+            Assert.AreEqual(1, aTok.LeadingTrivia.Count);
+            Assert.AreEqual(SyntaxTriviaKind.MultiLineComment, aTok.LeadingTrivia[0].Kind);
+            Assert.AreEqual("/* between */", aTok.LeadingTrivia[0].Text);
         }
 
         [Test]
@@ -186,10 +177,6 @@ namespace UnityShaderParser.Tests
         {
             var tokens = HLSLLexer.Lex("int a;\n/* hello\nworld */\nint b;", null, null, false, out var diags);
             Assert.IsEmpty(diags);
-
-            var firstSemi = tokens[2];
-            Assert.AreEqual(TokenKind.SemiToken, firstSemi.Kind);
-            Assert.IsEmpty(firstSemi.TrailingTrivia);
 
             var secondInt = tokens[3];
             Assert.AreEqual(TokenKind.IntKeyword, secondInt.Kind);
@@ -199,16 +186,26 @@ namespace UnityShaderParser.Tests
         }
 
         [Test]
-        public void CommentBetweenFunctionParametersIsTrailingTriviaOfComma()
+        public void CommentBetweenFunctionParametersIsLeadingTriviaOfNextParameter()
         {
             var decl = ShaderParser.ParseTopLevelDeclaration(
                 "void foo(int a, /* the b */ int b) {}", out var diags, out _);
             Assert.IsEmpty(diags);
 
-            var commaTok = FindToken(decl.Tokens, TokenKind.CommaToken);
-            Assert.AreEqual(1, commaTok.TrailingTrivia.Count);
-            Assert.AreEqual(SyntaxTriviaKind.MultiLineComment, commaTok.TrailingTrivia[0].Kind);
-            Assert.AreEqual("/* the b */", commaTok.TrailingTrivia[0].Text);
+            int sawIntKeyword = 0;
+            Token<TokenKind> secondInt = null;
+            foreach (var t in decl.Tokens)
+            {
+                if (t.Kind == TokenKind.IntKeyword)
+                {
+                    sawIntKeyword++;
+                    if (sawIntKeyword == 2) { secondInt = t; break; }
+                }
+            }
+            Assert.IsNotNull(secondInt);
+            Assert.AreEqual(1, secondInt.LeadingTrivia.Count);
+            Assert.AreEqual(SyntaxTriviaKind.MultiLineComment, secondInt.LeadingTrivia[0].Kind);
+            Assert.AreEqual("/* the b */", secondInt.LeadingTrivia[0].Text);
         }
 
         [Test]
@@ -226,24 +223,23 @@ namespace UnityShaderParser.Tests
             Assert.AreEqual(SyntaxTriviaKind.SingleLineComment, intTok.LeadingTrivia[1].Kind);
             Assert.AreEqual("// line", intTok.LeadingTrivia[1].Text);
 
-            var semi = tokens[tokens.Count - 1];
-            Assert.AreEqual(TokenKind.SemiToken, semi.Kind);
-            Assert.AreEqual(1, semi.TrailingTrivia.Count);
-            Assert.AreEqual(SyntaxTriviaKind.SingleLineComment, semi.TrailingTrivia[0].Kind);
-            Assert.AreEqual("// tail", semi.TrailingTrivia[0].Text);
+            var eofTok = FindToken(tokens, TokenKind.EndOfFileToken);
+            Assert.AreEqual(1, eofTok.LeadingTrivia.Count);
+            Assert.AreEqual(SyntaxTriviaKind.SingleLineComment, eofTok.LeadingTrivia[0].Kind);
+            Assert.AreEqual("// tail", eofTok.LeadingTrivia[0].Text);
         }
 
         [Test]
-        public void TrailingCommentAtEndOfFileAttachesToLastToken()
+        public void TrailingCommentAtEndOfFileAttachesToEndOfFileToken()
         {
             var tokens = HLSLLexer.Lex("int a;\n// goodbye", null, null, false, out var diags);
             Assert.IsEmpty(diags);
 
-            var lastTok = tokens[tokens.Count - 1];
-            Assert.AreEqual(TokenKind.SemiToken, lastTok.Kind);
-            Assert.AreEqual(1, lastTok.TrailingTrivia.Count);
-            Assert.AreEqual(SyntaxTriviaKind.SingleLineComment, lastTok.TrailingTrivia[0].Kind);
-            Assert.AreEqual("// goodbye", lastTok.TrailingTrivia[0].Text);
+            var eofTok = tokens[tokens.Count - 1];
+            Assert.AreEqual(TokenKind.EndOfFileToken, eofTok.Kind);
+            Assert.AreEqual(1, eofTok.LeadingTrivia.Count);
+            Assert.AreEqual(SyntaxTriviaKind.SingleLineComment, eofTok.LeadingTrivia[0].Kind);
+            Assert.AreEqual("// goodbye", eofTok.LeadingTrivia[0].Text);
         }
 
         [Test]
@@ -253,15 +249,10 @@ namespace UnityShaderParser.Tests
                 "int a = /* comment */ 42; // tail", out var diags, out _);
             Assert.IsEmpty(diags);
 
-            var equalsTok = FindToken(stmt.Tokens, TokenKind.EqualsToken);
-            Assert.AreEqual(1, equalsTok.TrailingTrivia.Count);
-            Assert.AreEqual(SyntaxTriviaKind.MultiLineComment, equalsTok.TrailingTrivia[0].Kind);
-            Assert.AreEqual("/* comment */", equalsTok.TrailingTrivia[0].Text);
-
-            var semiTok = FindToken(stmt.Tokens, TokenKind.SemiToken);
-            Assert.AreEqual(1, semiTok.TrailingTrivia.Count);
-            Assert.AreEqual(SyntaxTriviaKind.SingleLineComment, semiTok.TrailingTrivia[0].Kind);
-            Assert.AreEqual("// tail", semiTok.TrailingTrivia[0].Text);
+            var literalTok = FindToken(stmt.Tokens, TokenKind.IntegerLiteralToken);
+            Assert.AreEqual(1, literalTok.LeadingTrivia.Count);
+            Assert.AreEqual(SyntaxTriviaKind.MultiLineComment, literalTok.LeadingTrivia[0].Kind);
+            Assert.AreEqual("/* comment */", literalTok.LeadingTrivia[0].Text);
         }
 
         [Test]
@@ -271,12 +262,11 @@ namespace UnityShaderParser.Tests
                 "#define id(x) x;\nid(foo /*c*/)", out var diags, out _);
             Assert.IsEmpty(diags);
 
-            Assert.AreEqual(2, tokens.Count);
             Assert.AreEqual(TokenKind.IdentifierToken, tokens[0].Kind);
             Assert.AreEqual("foo", tokens[0].Identifier);
-            Assert.AreEqual(1, tokens[0].TrailingTrivia.Count);
-            Assert.AreEqual("/*c*/", tokens[0].TrailingTrivia[0].Text);
             Assert.AreEqual(TokenKind.SemiToken, tokens[1].Kind);
+            Assert.AreEqual(1, tokens[1].LeadingTrivia.Count);
+            Assert.AreEqual("/*c*/", tokens[1].LeadingTrivia[0].Text);
         }
 
         [Test]
@@ -399,8 +389,10 @@ namespace UnityShaderParser.Tests
             var bTok = FindToken(tokens, TokenKind.IdentifierToken, "b");
             Assert.AreEqual(1, bTok.LeadingTrivia.Count);
             Assert.AreEqual("/*comma*/", bTok.LeadingTrivia[0].Text);
-            Assert.AreEqual(1, bTok.TrailingTrivia.Count);
-            Assert.AreEqual("/*close*/", bTok.TrailingTrivia[0].Text);
+
+            var eofTok = FindToken(tokens, TokenKind.EndOfFileToken);
+            Assert.AreEqual(1, eofTok.LeadingTrivia.Count);
+            Assert.AreEqual("/*close*/", eofTok.LeadingTrivia[0].Text);
         }
 
         [Test]
@@ -421,9 +413,10 @@ namespace UnityShaderParser.Tests
                 "#define str(x) #x\nstr(foo)", out var diags, out _);
             Assert.IsEmpty(diags);
 
-            Assert.AreEqual(1, tokens.Count);
+            Assert.AreEqual(2, tokens.Count);
             Assert.AreEqual(TokenKind.StringLiteralToken, tokens[0].Kind);
             Assert.AreEqual("foo", tokens[0].Identifier);
+            Assert.AreEqual(TokenKind.EndOfFileToken, tokens[1].Kind);
         }
 
         [Test]
@@ -464,25 +457,26 @@ namespace UnityShaderParser.Tests
         }
 
         [Test]
-        public void MultiLineCommentBetweenTagsIsTrailingTriviaOfPreviousString()
+        public void MultiLineCommentBetweenTagsIsLeadingTriviaOfNextToken()
         {
             var source = "Shader \"Foo\" { SubShader { Tags { \"Queue\" /* render queue */ = \"Geometry\" \"RenderType\" = \"Opaque\" } } }";
             var tokens = SLLexer.Lex(source, null, null, false, out var diags);
             Assert.IsEmpty(diags);
 
-            Token<SLTokenKind>? queueTok = null;
-            foreach (var t in tokens)
+            Token<SLTokenKind>? equalsTok = null;
+            for (int i = 0; i < tokens.Count; i++)
             {
-                if (t.Kind == SLTokenKind.StringLiteralToken && t.Identifier == "Queue")
+                var t = tokens[i];
+                if (t.Kind == SLTokenKind.EqualsToken && t.HasLeadingTrivia)
                 {
-                    queueTok = t;
+                    equalsTok = t;
                     break;
                 }
             }
-            Assert.IsNotNull(queueTok);
-            Assert.AreEqual(1, queueTok!.TrailingTrivia.Count);
-            Assert.AreEqual(SyntaxTriviaKind.MultiLineComment, queueTok.TrailingTrivia[0].Kind);
-            Assert.AreEqual("/* render queue */", queueTok.TrailingTrivia[0].Text);
+            Assert.IsNotNull(equalsTok);
+            Assert.AreEqual(1, equalsTok!.LeadingTrivia.Count);
+            Assert.AreEqual(SyntaxTriviaKind.MultiLineComment, equalsTok.LeadingTrivia[0].Kind);
+            Assert.AreEqual("/* render queue */", equalsTok.LeadingTrivia[0].Text);
         }
 
         [Test]
@@ -508,25 +502,26 @@ namespace UnityShaderParser.Tests
         }
 
         [Test]
-        public void TrailingCommentOnPassBlockBecomesTrailingTriviaOfBrace()
+        public void CommentAfterPassBlockBecomesLeadingTriviaOfFollowingBrace()
         {
             var source = "SubShader { Pass {} /* end pass */ }";
             var subShader = ShaderParser.ParseUnitySubShader(source, out var diags);
             Assert.IsEmpty(diags);
 
-            Token<SLTokenKind>? passCloseBrace = null;
-            for (int i = 0; i < subShader.Tokens.Count; i++)
+            Token<SLTokenKind>? subShaderCloseBrace = null;
+            for (int i = subShader.Tokens.Count - 1; i >= 0; i--)
             {
                 var t = subShader.Tokens[i];
-                if (t.Kind == SLTokenKind.CloseBraceToken && t.TrailingTrivia.Count > 0)
+                if (t.Kind == SLTokenKind.CloseBraceToken && t.HasLeadingTrivia)
                 {
-                    passCloseBrace = t;
+                    subShaderCloseBrace = t;
                     break;
                 }
             }
-            Assert.IsNotNull(passCloseBrace);
-            Assert.AreEqual(SyntaxTriviaKind.MultiLineComment, passCloseBrace!.TrailingTrivia[0].Kind);
-            Assert.AreEqual("/* end pass */", passCloseBrace.TrailingTrivia[0].Text);
+            Assert.IsNotNull(subShaderCloseBrace);
+            Assert.AreEqual(1, subShaderCloseBrace!.LeadingTrivia.Count);
+            Assert.AreEqual(SyntaxTriviaKind.MultiLineComment, subShaderCloseBrace.LeadingTrivia[0].Kind);
+            Assert.AreEqual("/* end pass */", subShaderCloseBrace.LeadingTrivia[0].Text);
         }
     }
 }

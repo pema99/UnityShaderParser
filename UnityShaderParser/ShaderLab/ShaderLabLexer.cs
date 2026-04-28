@@ -9,6 +9,7 @@ namespace UnityShaderParser.ShaderLab
     public class ShaderLabLexer : BaseLexer<TokenKind>
     {
         protected override ParserStage Stage => ParserStage.ShaderLabLexing;
+        protected override TokenKind EndOfFileTokenKind => TokenKind.EndOfFileToken;
 
         public ShaderLabLexer(string source, string basePath, string fileName, bool throwExceptionOnError)
             : base(source, basePath, fileName, throwExceptionOnError, new SourceLocation(1, 1, 0)) { }
