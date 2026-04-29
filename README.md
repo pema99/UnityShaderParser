@@ -12,6 +12,8 @@ Example usages:
 - Another small example in [this issue](https://github.com/pema99/UnityShaderParser/issues/3#issuecomment-2305855379).
 - [The tests](https://github.com/pema99/UnityShaderParser/tree/master/UnityShaderParser.Tests) contain many small examples.
 
+Available as either a single portable C# file, a zip archive, or [via nuget](https://www.nuget.org/packages/UnityShaderParser/).
+
 # Acknowledgements
 - http://code.google.com/p/fxdis-d3d1x/ for test data
 - https://github.com/James-Jones/HLSLCrossCompiler for test data
