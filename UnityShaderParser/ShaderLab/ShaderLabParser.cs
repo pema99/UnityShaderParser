@@ -291,6 +291,18 @@ namespace UnityShaderParser.ShaderLab
             AppendLexed(premableTokens, tokenStream);
             tokenStream = premableTokens;
 
+            // Other PreProcessorModes regenerate positions via HLSLPreProcessor.PreProcess,
+            // need this for DoNothing too
+            if (config.PreProcessorMode == HLSL.PreProcessor.PreProcessorMode.DoNothing)
+            {
+                for (int i = 0; i < tokenStream.Count; i++)
+                {
+                    var t = tokenStream[i];
+                    if (t.Position != i)
+                        tokenStream[i] = new HLSLToken(t.Kind, t.Identifier, t.Span, t.OriginalSpan, i, t.RawLeadingTrivia);
+                }
+            }
+
             // TODO: Don't redo the parsing work every time - it's slow x)
             var decls = HLSLParser.ParseTopLevelDeclarations(tokenStream, config, out var parserDiags, out var pragmas);
             diagnostics.AddRange(parserDiags);
