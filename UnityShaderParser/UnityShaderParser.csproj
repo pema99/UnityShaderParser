@@ -8,7 +8,7 @@
     <LangVersion>7.3</LangVersion>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Title>UnityShaderParser</Title>
-    <Version>0.8.0</Version>
+    <Version>0.10.0</Version>
     <Company>N/A</Company>
     <Authors>Pema Malling</Authors>
     <Description>C# library for parsing and analyzing ShaderLab and HLSL.
