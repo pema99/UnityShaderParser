@@ -111,6 +111,28 @@ namespace UnityShaderParser.Common
             => new SourceSpan(first.BasePath, first.FileName, first.Start, last.End);
     }
 
+    public enum SyntaxTriviaKind
+    {
+        SingleLineComment,
+        MultiLineComment,
+    }
+
+    public class SyntaxTrivia
+    {
+        public SyntaxTriviaKind Kind { get; private set; }
+        public string Text { get; private set; }
+        public SourceSpan Span { get; private set; }
+
+        public SyntaxTrivia(SyntaxTriviaKind kind, string text, SourceSpan span)
+        {
+            Kind = kind;
+            Text = text;
+            Span = span;
+        }
+
+        public override string ToString() => $"{Kind}({Text})";
+    }
+
     public class Token<T>
         where T : struct
     {
@@ -119,6 +141,25 @@ namespace UnityShaderParser.Common
         public SourceSpan Span { get; private set; }         // Location in source code
         public SourceSpan OriginalSpan { get; private set; }
         public int Position { get; private set; }            // Location in token stream
+
+        public List<SyntaxTrivia> RawLeadingTrivia;  // Null if no trivia
+
+        public bool HasLeadingTrivia => RawLeadingTrivia != null;
+
+        public IReadOnlyList<SyntaxTrivia> LeadingTrivia => RawLeadingTrivia ?? (IReadOnlyList<SyntaxTrivia>)Array.Empty<SyntaxTrivia>();
+
+        public void AddLeadingTrivia(SyntaxTrivia trivia)
+        {
+            if (RawLeadingTrivia == null) RawLeadingTrivia = new List<SyntaxTrivia>();
+            RawLeadingTrivia.Add(trivia);
+        }
+
+        public void AddLeadingTrivia(List<SyntaxTrivia> trivias)
+        {
+            if (trivias.Count == 0) return;
+            if (RawLeadingTrivia == null) RawLeadingTrivia = new List<SyntaxTrivia>(trivias);
+            else RawLeadingTrivia.AddRange(trivias);
+        }
 
         public Token(T kind, string identifier, SourceSpan span, int position)
         {
@@ -138,7 +179,16 @@ namespace UnityShaderParser.Common
             Position = position;
         }
 
-        // TODO: Trivia
+        public Token(T kind, string identifier, SourceSpan span, SourceSpan originalSpan, int position, List<SyntaxTrivia> leadingTrivia)
+        {
+            Kind = kind;
+            Identifier = identifier;
+            Span = span;
+            OriginalSpan = originalSpan;
+            Position = position;
+            RawLeadingTrivia = leadingTrivia;
+        }
+
         public override string ToString()
         {
             if (Identifier == null)

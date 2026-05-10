@@ -462,6 +462,8 @@ namespace UnityShaderParser.HLSL
         SystemIncludeLiteralToken,
         EndDirectiveToken,
         OpenFunctionLikeMacroParenToken,
+
+        EndOfFileToken,
     }
 
     [PrettyEnum(PrettyEnumStyle.AllLowerCase)]

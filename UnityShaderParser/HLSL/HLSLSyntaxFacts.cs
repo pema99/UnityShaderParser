@@ -1885,6 +1885,7 @@ namespace UnityShaderParser.HLSL
                 case TokenKind.ElseDirectiveKeyword: return "#else";
                 case TokenKind.EndifDirectiveKeyword: return "#endif";
                 case TokenKind.EndDirectiveToken: return "\n";
+                case TokenKind.EndOfFileToken: return string.Empty;
 
                 default: return IdentifierOrKeywordToString(token);
             }

@@ -10,6 +10,9 @@ namespace UnityShaderParser.HLSL.PreProcessor
     {
         public static bool EvaluateConstExprTokens(List<HLSLToken> exprTokens, bool throwExceptionOnError, DiagnosticFlags diagnosticFilter, out List<string> diagnostics)
         {
+            if (exprTokens.Count == 0 || exprTokens[exprTokens.Count - 1].Kind != TokenKind.EndOfFileToken)
+                exprTokens.Add(new HLSLToken(TokenKind.EndOfFileToken, null, default, exprTokens.Count));
+
             HLSLParser localParser = new HLSLParser(exprTokens, throwExceptionOnError, diagnosticFilter);
             var expr = localParser.ParseExpression();
 

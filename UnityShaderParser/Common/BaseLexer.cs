@@ -8,6 +8,7 @@ namespace UnityShaderParser.Common
         where T : struct
     {
         protected abstract ParserStage Stage { get; }
+        protected abstract T EndOfFileTokenKind { get; }
 
         protected bool throwExceptionOnError = false;
         protected string source = string.Empty;
@@ -24,6 +25,9 @@ namespace UnityShaderParser.Common
         protected List<Token<T>> tokens = new List<Token<T>>();
         protected List<Diagnostic> diagnostics = new List<Diagnostic>();
 
+        // Trivia collected so far, but not attached to a token.
+        protected List<SyntaxTrivia> pendingTrivia = new List<SyntaxTrivia>();
+
         public BaseLexer(string source, string basePath, string fileName, bool throwExceptionOnError, SourceLocation offset)
         {
             this.source = source;
@@ -39,8 +43,18 @@ namespace UnityShaderParser.Common
         protected bool LookAhead(char c, int offset = 1) => LookAhead(offset) == c;
         protected bool Match(char tok) => Peek() == tok;
         protected bool IsAtEnd(int offset = 0) => position + offset >= source.Length;
-        protected void Add(string identifier, T kind) => tokens.Add(new Token<T>(kind, identifier, GetCurrentSpan(), tokens.Count));
-        protected void Add(T kind) => tokens.Add(new Token<T>(kind, null, GetCurrentSpan(), tokens.Count));
+        protected void Add(string identifier, T kind)
+        {
+            var token = new Token<T>(kind, identifier, GetCurrentSpan(), tokens.Count);
+            AttachPendingTrivia(token);
+            tokens.Add(token);
+        }
+        protected void Add(T kind)
+        {
+            var token = new Token<T>(kind, null, GetCurrentSpan(), tokens.Count);
+            AttachPendingTrivia(token);
+            tokens.Add(token);
+        }
         protected void Eat(char tok)
         {
             if (!Match(tok))
@@ -71,6 +85,19 @@ namespace UnityShaderParser.Common
                 throw new Exception($"Error at line {line}, column {column} during {Stage}: {err}");
             }
             diagnostics.Add(new Diagnostic(GetCurrentSpan(), kind, this.Stage, err));
+        }
+
+        protected void AddTrivia(SyntaxTriviaKind kind, string text)
+        {
+            pendingTrivia.Add(new SyntaxTrivia(kind, text, GetCurrentSpan()));
+        }
+        private void AttachPendingTrivia(Token<T> newToken)
+        {
+            if (pendingTrivia.Count == 0)
+                return;
+
+            newToken.AddLeadingTrivia(pendingTrivia);
+            pendingTrivia.Clear();
         }
 
         protected void StartCurrentSpan()
@@ -169,6 +196,13 @@ namespace UnityShaderParser.Common
                 StartCurrentSpan();
                 ProcessChar(Peek());
             }
+
+            // Emit a synthetic end-of-file token. Any remaining pending trivia
+            // becomes its leading trivia.
+            StartCurrentSpan();
+            var eofToken = new Token<T>(EndOfFileTokenKind, null, GetCurrentSpan(), tokens.Count);
+            AttachPendingTrivia(eofToken);
+            tokens.Add(eofToken);
         }
     }
 }

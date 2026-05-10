@@ -167,6 +167,23 @@ namespace UnityShaderParser.ShaderLab
             return result;
         }
 
+        // Concatenate token streams, but merge the trivia from the EOF token.
+        private static void AppendLexed(List<HLSLToken> dest, List<HLSLToken> src)
+        {
+            if (dest.Count > 0 && dest[dest.Count - 1].Kind == HLSL.TokenKind.EndOfFileToken)
+            {
+                var eof = dest[dest.Count - 1];
+                dest.RemoveAt(dest.Count - 1);
+                if (eof.HasLeadingTrivia && src.Count > 0)
+                {
+                    var first = src[0];
+                    var combined = new List<SyntaxTrivia>(eof.RawLeadingTrivia);
+                    if (first.HasLeadingTrivia) combined.AddRange(first.RawLeadingTrivia);
+                    src[0] = new HLSLToken(first.Kind, first.Identifier, first.Span, first.OriginalSpan, first.Position, combined);
+                }
+            }
+            dest.AddRange(src);
+        }
         protected void ProcessCurrentIncludes(
             SLToken programToken,
             bool lexEmbeddedHLSL,
@@ -182,7 +199,7 @@ namespace UnityShaderParser.ShaderLab
                 {
                     if (lexEmbeddedHLSL)
                     {
-                        tokenStream.AddRange(HLSLLexer.Lex(includeBlock.Code, config.BasePath, config.FileName, config.ThrowExceptionOnError, includeBlock.Span.Start, out var includeLexerDiags));
+                        AppendLexed(tokenStream, HLSLLexer.Lex(includeBlock.Code, config.BasePath, config.FileName, config.ThrowExceptionOnError, includeBlock.Span.Start, out var includeLexerDiags));
                         diagnostics.AddRange(includeLexerDiags);
                     }
                     sb.Append(includeBlock.Code);
@@ -190,7 +207,7 @@ namespace UnityShaderParser.ShaderLab
             }
             if (lexEmbeddedHLSL)
             {
-                tokenStream.AddRange(HLSLLexer.Lex(programToken.Identifier, config.BasePath, config.FileName, config.ThrowExceptionOnError, programToken.Span.Start, out var lexerDiags));
+                AppendLexed(tokenStream, HLSLLexer.Lex(programToken.Identifier, config.BasePath, config.FileName, config.ThrowExceptionOnError, programToken.Span.Start, out var lexerDiags));
                 diagnostics.AddRange(lexerDiags);
             }
             sb.Append(programToken.Identifier);
@@ -271,7 +288,20 @@ namespace UnityShaderParser.ShaderLab
             // Lex preamble
             var premableTokens = HLSLLexer.Lex(preamble, config.BasePath, config.FileName, config.ThrowExceptionOnError, out var lexerDiags);
             diagnostics.InsertRange(0, lexerDiags);
-            tokenStream.InsertRange(0, premableTokens);
+            AppendLexed(premableTokens, tokenStream);
+            tokenStream = premableTokens;
+
+            // Other PreProcessorModes regenerate positions via HLSLPreProcessor.PreProcess,
+            // need this for DoNothing too
+            if (config.PreProcessorMode == HLSL.PreProcessor.PreProcessorMode.DoNothing)
+            {
+                for (int i = 0; i < tokenStream.Count; i++)
+                {
+                    var t = tokenStream[i];
+                    if (t.Position != i)
+                        tokenStream[i] = new HLSLToken(t.Kind, t.Identifier, t.Span, t.OriginalSpan, i, t.RawLeadingTrivia);
+                }
+            }
 
             // TODO: Don't redo the parsing work every time - it's slow x)
             var decls = HLSLParser.ParseTopLevelDeclarations(tokenStream, config, out var parserDiags, out var pragmas);

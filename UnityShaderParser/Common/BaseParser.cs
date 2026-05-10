@@ -113,7 +113,7 @@ namespace UnityShaderParser.Common
         protected Token<T> Peek() => LookAhead(0);
         protected bool Match(Func<Token<T>, bool> predicate) => predicate(Peek());
         protected bool Match(Func<T, bool> predicate) => predicate(Peek().Kind);
-        protected bool Match(T kind) => Match(tok => EqualityComparer<T>.Default.Equals(tok.Kind, kind));
+        protected bool Match(T kind) => EqualityComparer<T>.Default.Equals(Peek().Kind, kind);
         protected bool Match(params T[] alternatives) => Match(tok => alternatives.Contains(tok.Kind));
         protected bool IsAtEnd(int offset = 0) => position + offset >= tokens.Count;
         protected bool LoopShouldContinue() => !IsAtEnd() && !isRecovering;

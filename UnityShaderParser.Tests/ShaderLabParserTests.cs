@@ -121,6 +121,43 @@ namespace UnityShaderParser.ShaderLab.Tests
             // Compare
             Assert.AreEqual(prettyPrinted, roundtripped);
         }
+
+        [Test]
+        public void EmbeddedHlslDoNothingPreservesTokenPositions()
+        {
+            string source =
+                "Shader \"Test\" {\n" +
+                "  SubShader {\n" +
+                "    CGINCLUDE\nvoid helperA() { }\nENDCG\n" +
+                "    CGINCLUDE\nvoid helperB() { }\nENDCG\n" +
+                "    Pass {\n" +
+                "      CGPROGRAM\nvoid frag() { }\nENDCG\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+            var tokens = ShaderLabLexer.Lex(source, null, null, false, out var lexerDiags);
+            Assert.IsEmpty(lexerDiags);
+
+            var config = new ShaderLabParserConfig
+            {
+                ParseEmbeddedHLSL = true,
+                IncludeProgramBlockPreamble = false,
+                PreProcessorMode = PreProcessorMode.DoNothing,
+                BasePath = Directory.GetCurrentDirectory(),
+                IncludeResolver = new DefaultPreProcessorIncludeResolver(new List<string>()),
+            };
+            var shader = ShaderLabParser.Parse(tokens, config, out var _);
+
+            var programBlock = ((ShaderCodePassNode)shader.SubShaders[0].Passes[0]).ProgramBlocks[0];
+            var fns = programBlock.TopLevelDeclarations.OfType<HLSL.FunctionDefinitionNode>().ToList();
+            Assert.AreEqual(3, fns.Count);
+            foreach (var fn in fns)
+            {
+                string name = fn.Name.GetName();
+                Assert.IsTrue(fn.Tokens.Any(t => t.Identifier == name),
+                    $"{name} expected in its own Tokens but got: {string.Join(", ", fn.Tokens.Select(t => t.Identifier ?? t.Kind.ToString()))}");
+            }
+        }
     }
 
     public class NegativeTests
