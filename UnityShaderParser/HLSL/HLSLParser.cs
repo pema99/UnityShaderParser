@@ -229,11 +229,13 @@ namespace UnityShaderParser.HLSL
             offset++;
 
             // If we mention a builtin or user defined type - it might be a cast
+            bool isBuiltinType = false;
             if (HLSLSyntaxFacts.IsBuiltinType(LookAhead(offset).Kind) ||
                 LookAhead(offset).Kind == TokenKind.ClassKeyword ||
                 LookAhead(offset).Kind == TokenKind.StructKeyword ||
                 LookAhead(offset).Kind == TokenKind.InterfaceKeyword)
             {
+                isBuiltinType = true;
                 offset++;
             }
             // If there is an identifier
@@ -294,7 +296,13 @@ namespace UnityShaderParser.HLSL
 
             // It might still be ambiguous, so check if the next token is allowed to follow a cast
             offset++;
-            return HLSLSyntaxFacts.CanTokenComeAfterCast(LookAhead(offset).Kind);
+            var followKind = LookAhead(offset).Kind;
+
+            // Handle special case of `(float2)-1` etc.
+            if (isBuiltinType && (followKind == TokenKind.MinusToken || followKind == TokenKind.PlusToken))
+                return true;
+
+            return HLSLSyntaxFacts.CanTokenComeAfterCast(followKind);
         }
 
         private bool IsNextPossiblyFunctionDeclaration()

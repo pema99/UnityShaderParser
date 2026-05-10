@@ -149,6 +149,31 @@ namespace UnityShaderParser.HLSL.Tests
             }
         }
 
+        [Test]
+        public void CastBuiltinTypeBeforeUnaryMinusParsesAsCast()
+        {
+            var expr = ShaderParser.ParseExpression("(float2)-1.0");
+            Assert.IsInstanceOf<CastExpressionNode>(expr);
+            var cast = (CastExpressionNode)expr;
+            Assert.IsInstanceOf<PrefixUnaryExpressionNode>(cast.Expression);
+        }
+
+        [Test]
+        public void CastBuiltinTypeBeforeUnaryPlusParsesAsCast()
+        {
+            var expr = ShaderParser.ParseExpression("(float4)+1");
+            Assert.IsInstanceOf<CastExpressionNode>(expr);
+            var cast = (CastExpressionNode)expr;
+            Assert.IsInstanceOf<PrefixUnaryExpressionNode>(cast.Expression);
+        }
+
+        [Test]
+        public void ParenthesizedIdentifierBeforeMinusIsSubtraction()
+        {
+            var expr = ShaderParser.ParseExpression("(x)-1");
+            Assert.IsInstanceOf<BinaryExpressionNode>(expr);
+        }
+
         [Test, TestCaseSource(nameof(GetTestShaders))]
         public void RoundTripTestShaders(string path)
         {
