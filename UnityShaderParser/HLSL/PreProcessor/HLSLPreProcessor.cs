@@ -569,6 +569,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                                         hidesets.Add(emptyHideset);
                                     }
                                     if (!TryParseFunctionLikeMacroInvocationParameters(expanded, ref i, out parameters, out closeTrivia))
+                                    {
                                         next.Add(token); // Still no luck, must be a regular identifier.
                                         nextHidesets.Add(hidesets[i]);
                                     }
