@@ -480,14 +480,15 @@ namespace UnityShaderParser.HLSL.PreProcessor
             {
                 ReplaceBetweenExpansions(expanded);
             }
-            
-            HashSet<string> hideSet = new HashSet<string>();
-            
+
+            HashSet<string> emptyHideset = new HashSet<string>();
+            List<HashSet<string>> hidesets = Enumerable.Repeat(emptyHideset, expanded.Count).ToList();
+
             // Loop until we can't apply macros anymore
             while (true)
             {
                 List<HLSLToken> next = new List<HLSLToken>();
-                HashSet<string> nextHideSet = new HashSet<string>();
+                List<HashSet<string>> nextHidesets = new List<HashSet<string>>();
 
                 // Go over each token and try to apply, adding to the hideset as we go
                 bool anyThingApplied = false;
@@ -497,15 +498,10 @@ namespace UnityShaderParser.HLSL.PreProcessor
 
                     string lexeme = HLSLSyntaxFacts.IdentifierOrKeywordToString(token);
                     // If the macro matches
-                    if (!hideSet.Contains(lexeme) && !HLSLSyntaxFacts.IsStringLikeLiteral(token.Kind) && defines.TryGetValue(lexeme, out Macro macro))
+                    if (!hidesets[i].Contains(lexeme) && !HLSLSyntaxFacts.IsStringLikeLiteral(token.Kind) && defines.TryGetValue(lexeme, out Macro macro))
                     {
-                        // Add it to the hideset
-                        if (!nextHideSet.Contains(lexeme))
-                        {
-                            nextHideSet.Add(lexeme);
-                        }
-
                         anyThingApplied = true;
+                        HashSet<string> bodyHideset = new HashSet<string>(hidesets[i]) { lexeme };
 
                         // We need to replace tokens.
                         // First, check if we have a functionlike macro
@@ -519,6 +515,7 @@ namespace UnityShaderParser.HLSL.PreProcessor
                                 if (Match(TokenKind.OpenParenToken))
                                 {
                                     expanded.Add(Eat(TokenKind.OpenParenToken));
+                                    hidesets.Add(emptyHideset);
                                     int numParens = 1;
                                     while (numParens > 0) // Might have nested parens
                                     {
@@ -528,14 +525,19 @@ namespace UnityShaderParser.HLSL.PreProcessor
                                         else if (nextTok.Kind == TokenKind.CloseParenToken)
                                             numParens--;
                                         expanded.Add(nextTok);
+                                        hidesets.Add(emptyHideset);
                                     }
                                     if (!TryParseFunctionLikeMacroInvocationParameters(expanded, ref i, out parameters))
+                                    {
                                         next.Add(token); // Still no luck, must be a regular identifier.
+                                        nextHidesets.Add(hidesets[i]);
+                                    }
                                 }
                                 // Otherwise, must be a regular identifier.
                                 else
                                 {
                                     next.Add(token);
+                                    nextHidesets.Add(hidesets[i]);
                                 }
                             }
 
@@ -553,11 +555,13 @@ namespace UnityShaderParser.HLSL.PreProcessor
                                     foreach (var parameterToken in parameter)
                                     {
                                         next.Add(new HLSLToken(parameterToken.Kind, parameterToken.Identifier, macroToken.Span, parameterToken.Span, parameterToken.Position));
+                                        nextHidesets.Add(emptyHideset);
                                     }
                                 }
                                 else
                                 {
                                     next.Add(macroToken);
+                                    nextHidesets.Add(bodyHideset);
                                 }
                             }
                         }
@@ -565,12 +569,14 @@ namespace UnityShaderParser.HLSL.PreProcessor
                         else
                         {
                             next.AddRange(macro.Tokens);
+                            nextHidesets.AddRange(Enumerable.Repeat(bodyHideset, macro.Tokens.Count));
                         }
                     }
                     // Otherwise just pass the token through
                     else
                     {
                         next.Add(token);
+                        nextHidesets.Add(hidesets[i]);
                     }
                 }
 
@@ -580,8 +586,8 @@ namespace UnityShaderParser.HLSL.PreProcessor
                     ReplaceBetweenExpansions(next);
                 }
 
-                hideSet = nextHideSet;
                 expanded = next;
+                hidesets = nextHidesets;
 
                 // If nothing was applied, stop
                 if (!anyThingApplied)

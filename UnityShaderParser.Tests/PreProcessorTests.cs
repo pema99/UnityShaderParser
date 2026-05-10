@@ -201,6 +201,46 @@ namespace UnityShaderParser.HLSL.PreProcessor.Tests
         }
 
         [Test]
+        public void NestedSelfInvocationInArgumentExpands()
+        {
+            var testCode = @"
+                #define f(x) (x*2)
+                f(f(3))
+            ";
+
+            string expanded = ShaderParser.PreProcessToString(testCode, new HLSLParserConfig() { ThrowExceptionOnError = true });
+
+            Assert.AreEqual("( ( 3 * 2 ) * 2 )", expanded.Trim());
+        }
+
+        [Test]
+        public void SelfReferentialMacroTerminatesAtSingleExpansion()
+        {
+            var testCode = @"
+                #define A A + 1
+                A
+            ";
+
+            string expanded = ShaderParser.PreProcessToString(testCode, new HLSLParserConfig() { ThrowExceptionOnError = true });
+
+            Assert.AreEqual("A + 1", expanded.Trim());
+        }
+
+        [Test]
+        public void MutuallyRecursiveMacrosTerminate()
+        {
+            var testCode = @"
+                #define A B + 1
+                #define B A + 2
+                A
+            ";
+
+            string expanded = ShaderParser.PreProcessToString(testCode, new HLSLParserConfig() { ThrowExceptionOnError = true });
+
+            Assert.AreEqual("A + 2 + 1", expanded.Trim());
+        }
+
+        [Test]
         public void StringizingMacroTokenWorks()
         {
             var testCode = @"
