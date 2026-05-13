@@ -93,6 +93,8 @@ namespace UnityShaderParser.HLSL.PreProcessor
                     {
                         case OperatorKind.Not: return ToNum(!ToBool(unary));
                         case OperatorKind.BitFlip: return ~unary;
+                        case OperatorKind.Plus: return unary;
+                        case OperatorKind.Minus: return -unary;
                         default:
                             Error($"Unary operators of type '{unExpr.Operator}' are not supported in constant expressions.");
                             return 0;
